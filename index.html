@@ -509,7 +509,7 @@ function accountBalance(acc){
 }
 
 function netWorthEGP(){
-  return DB.accounts.reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
+  return DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
 }
 
 function monthTotals(mKey){
@@ -762,7 +762,7 @@ function renderDashboard(){
   document.getElementById('dash-accounts-body').innerHTML = DB.accounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}</td>
+      <td>${a.name}${a.excludeFromNetWorth?' <span class="tag warning">Archive</span>':''}</td>
       <td><span class="tag">${a.type}</span></td>
       <td class="amt ${bal<0?'neg':''}">${a.currency} ${fmtMoney(bal)}</td>
     </tr>`;
@@ -820,7 +820,7 @@ function renderAccounts(){
   document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}</td>
+      <td>${a.name}${a.excludeFromNetWorth?' <span class="tag warning">Archive</span>':''}</td>
       <td><span class="tag">${a.type}</span></td>
       <td>${a.currency}</td>
       <td class="amt">${fmtMoney(a.openingBalance)}</td>
@@ -1022,6 +1022,12 @@ function openModal(kind, ctx={}){
         <div class="field-row">
           <div class="field"><label>Opening Balance</label><input type="number" step="0.01" name="openingBalance" value="0"></div>
           <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${new Date().toISOString().slice(0,10)}"></div>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="excludeFromNetWorth" style="width:auto;">
+            Exclude from Net Worth (e.g. a historical archive, not a real balance)
+          </label>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -1288,7 +1294,8 @@ const submitHandlers = {
   account(data){
     DB.accounts.push({
       id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency,
-      openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate
+      openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate,
+      excludeFromNetWorth: data.excludeFromNetWorth === 'on'
     });
     saveDB(); toast('Account created');
   },

@@ -301,6 +301,7 @@
       <button data-view="transactions"><span class="ic">≡</span><span class="lbl">Transactions</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
+      <button data-view="history"><span class="ic">🕘</span><span class="lbl">History</span></button>
     </nav>
     <div class="nav-footer" id="nav-footer">
       <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
@@ -406,6 +407,27 @@
         <button class="btn" data-open-modal="commitment">+ New Commitment</button>
       </div>
       <div class="grid cols-3" id="commitments-grid"></div>
+    </section>
+
+    <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
+    <section class="view" id="view-history">
+      <div class="topbar">
+        <div><h1>History</h1><div class="today">Imported or archived records — kept for reference, excluded from Net Worth &amp; live Accounts</div></div>
+      </div>
+      <div class="section-title">Archive Accounts</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Currency</th><th class="amt">Balance</th></tr></thead>
+          <tbody id="history-accounts-body"></tbody>
+        </table>
+      </div>
+      <div class="section-title">Historical Transactions</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Source</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+          <tbody id="history-txn-body"></tbody>
+        </table>
+      </div>
     </section>
 
   </main>
@@ -514,7 +536,7 @@ function netWorthEGP(){
 
 function monthTotals(mKey){
   let income=0, expense=0;
-  DB.transactions.forEach(t=>{
+  liveTransactions().forEach(t=>{
     if(monthKey(t.date) !== mKey) return;
     const egp = toEGP(t.amount, t.currency);
     if(t.type==='income') income += egp;
@@ -536,6 +558,13 @@ function categoryLabel(id){
 function commitmentPayments(commitId){
   return DB.commitmentPayments.filter(p=>p.commitmentId===commitId).sort((a,b)=> a.date.localeCompare(b.date));
 }
+
+function isArchiveTxn(t){
+  const acc = accountById(t.accountId);
+  return acc ? !!acc.excludeFromNetWorth : false;
+}
+function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
+function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
 
 function toast(msg){
   const root = document.getElementById('toast-root');
@@ -759,10 +788,10 @@ function renderDashboard(){
     </div>
   `;
 
-  document.getElementById('dash-accounts-body').innerHTML = DB.accounts.map(a=>{
+  document.getElementById('dash-accounts-body').innerHTML = DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}${a.excludeFromNetWorth?' <span class="tag warning">Archive</span>':''}</td>
+      <td>${a.name}</td>
       <td><span class="tag">${a.type}</span></td>
       <td class="amt ${bal<0?'neg':''}">${a.currency} ${fmtMoney(bal)}</td>
     </tr>`;
@@ -800,7 +829,7 @@ function renderDashboard(){
       <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
     </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">Nothing due soon</div>`;
 
-  const recent = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
+  const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
     const acc = accountById(t.accountId);
     const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
@@ -817,10 +846,10 @@ function renderDashboard(){
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
 function renderAccounts(){
-  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
+  document.getElementById('accounts-body').innerHTML = DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}${a.excludeFromNetWorth?' <span class="tag warning">Archive</span>':''}</td>
+      <td>${a.name}</td>
       <td><span class="tag">${a.type}</span></td>
       <td>${a.currency}</td>
       <td class="amt">${fmtMoney(a.openingBalance)}</td>
@@ -858,7 +887,8 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
 /* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
 let txnFilter = 'all';
 function renderTransactions(){
-  document.getElementById('txn-count-label').textContent = `${DB.transactions.length} transaction${DB.transactions.length===1?'':'s'}`;
+  const liveTxns = liveTransactions();
+  document.getElementById('txn-count-label').textContent = `${liveTxns.length} transaction${liveTxns.length===1?'':'s'}`;
 
   const filters = [
     {k:'all', label:'All'},
@@ -870,7 +900,7 @@ function renderTransactions(){
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
   ).join('');
 
-  let list = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date));
+  let list = [...liveTxns].sort((a,b)=> b.date.localeCompare(a.date));
   if(txnFilter==='income') list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
@@ -990,9 +1020,34 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
   }
 });
 
+/* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
+function renderHistory(){
+  const archiveAccounts = DB.accounts.filter(a=>a.excludeFromNetWorth);
+  document.getElementById('history-accounts-body').innerHTML = archiveAccounts.map(a=>{
+    const bal = accountBalance(a);
+    return `<tr>
+      <td>${a.name}</td>
+      <td>${a.currency}</td>
+      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="3" class="empty">No archived accounts</td></tr>`;
+
+  const txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
+  document.getElementById('history-txn-body').innerHTML = txns.map(t=>{
+    const acc = accountById(t.accountId);
+    return `<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${acc?acc.name:'—'}</td>
+      <td>${categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td class="amt neg">-${t.currency} ${fmtMoney(t.amount)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
+}
+
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
-  return DB.accounts.map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
+  return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
 }
 function categoryOptions(type, selected){
   const parents = DB.categories.filter(c=>c.type===type);
@@ -1404,6 +1459,7 @@ function renderAll(){
   renderTransactions();
   renderCategories();
   renderCommitments();
+  renderHistory();
 }
 renderAll();
 </script>

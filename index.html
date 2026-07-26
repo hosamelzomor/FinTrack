@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinTrack — Personal Wealth Management</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#0B0E14;
+    --surface:#12151D;
+    --surface-2:#1A1F2B;
+    --surface-3:#212739;
+    --border:#232838;
+    --text:#E8EAF0;
+    --text-muted:#8890A6;
+    --text-faint:#565F78;
+    --accent:#4C9A8E;
+    --accent-bright:#63BFB0;
+    --accent-soft:rgba(76,154,142,0.14);
+    --positive:#5FB88C;
+    --negative:#E2727C;
+    --warning:#D9A441;
+    --warning-soft:rgba(217,164,65,0.14);
+    --font-display:'Space Grotesk',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent-soft);}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;font-size:14px;}
+
+  .num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+
+  /* ---------- Layout ---------- */
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{
+    width:220px;flex:none;background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+    padding:20px 0;
+  }
+  .brand{
+    padding:0 20px 20px 20px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:14px;
+  }
+  .brand .mark{
+    font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-0.02em;
+    display:flex;align-items:center;gap:8px;
+  }
+  .brand .mark .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-bright);box-shadow:0 0 8px var(--accent-bright);}
+  .brand .sub{font-size:11px;color:var(--text-faint);margin-top:4px;letter-spacing:.04em;text-transform:uppercase;}
+
+  .nav{display:flex;flex-direction:column;gap:2px;padding:0 10px;flex:1;}
+  .nav button{
+    display:flex;align-items:center;gap:10px;
+    background:none;border:none;color:var(--text-muted);
+    padding:10px 12px;border-radius:8px;text-align:left;
+    font-size:13.5px;font-weight:500;
+  }
+  .nav button:hover{background:var(--surface-2);color:var(--text);}
+  .nav button.active{background:var(--accent-soft);color:var(--accent-bright);}
+  .nav button .ic{width:16px;text-align:center;opacity:.85;font-size:14px;}
+
+  .nav-footer{padding:14px 20px 0 20px;border-top:1px solid var(--border);margin-top:14px;}
+  .nav-footer button{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);
+    padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:6px;
+  }
+  .nav-footer button:hover{color:var(--text);border-color:var(--accent);}
+
+  .content{flex:1;min-width:0;padding:28px 34px 60px 34px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;}
+  .topbar h1{font-family:var(--font-display);font-size:22px;margin:0;font-weight:600;letter-spacing:-0.01em;}
+  .topbar .today{font-size:12px;color:var(--text-faint);margin-top:3px;}
+
+  .btn{
+    background:var(--accent);color:#08110F;border:none;border-radius:8px;
+    padding:9px 16px;font-weight:600;font-size:13px;
+  }
+  .btn:hover{background:var(--accent-bright);}
+  .btn.secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn.secondary:hover{border-color:var(--accent);}
+  .btn.danger{background:transparent;color:var(--negative);border:1px solid rgba(226,114,124,.35);}
+  .btn.danger:hover{background:rgba(226,114,124,.1);}
+  .btn.ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border);padding:6px 10px;font-size:12px;}
+  .btn.ghost:hover{color:var(--text);}
+  .btn.sm{padding:6px 10px;font-size:12px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- Cards / grid ---------- */
+  .grid{display:grid;gap:16px;}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .grid.cols-2{grid-template-columns:2fr 1fr;}
+  @media(max-width:900px){.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .card h3{margin:0 0 4px 0;font-size:12px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+  .card .big{font-family:var(--font-mono);font-size:26px;font-weight:600;margin-top:6px;}
+  .card .delta{font-size:12px;margin-top:6px;color:var(--text-muted);}
+  .card .delta.up{color:var(--positive);}
+  .card .delta.down{color:var(--negative);}
+
+  .section-title{
+    font-family:var(--font-display);font-size:15px;font-weight:600;
+    margin:28px 0 12px 0;display:flex;align-items:center;justify-content:space-between;
+  }
+  .section-title .hint{font-family:var(--font-body);font-size:11.5px;color:var(--text-faint);font-weight:400;}
+
+  /* ---------- Tables ---------- */
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    text-align:left;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;
+    padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;
+  }
+  tbody td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--surface-2);}
+  td.amt{font-family:var(--font-mono);text-align:right;}
+  td.amt.pos{color:var(--positive);}
+  td.amt.neg{color:var(--negative);}
+  th.amt{text-align:right;}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .table-wrap .head-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
+  .table-wrap .head-row h3{margin:0;font-size:14px;font-weight:600;font-family:var(--font-display);}
+
+  .empty{padding:40px 20px;text-align:center;color:var(--text-faint);font-size:13px;}
+  .empty .big-ic{font-size:26px;margin-bottom:10px;opacity:.5;}
+
+  .tag{
+    display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;
+    background:var(--surface-3);color:var(--text-muted);
+  }
+  .tag.income{background:rgba(95,184,140,.12);color:var(--positive);}
+  .tag.expense{background:rgba(226,114,124,.12);color:var(--negative);}
+  .tag.warning{background:var(--warning-soft);color:var(--warning);}
+
+  .pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .filter-pill{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);
+    padding:6px 12px;border-radius:20px;font-size:12px;
+  }
+  .filter-pill.active{background:var(--accent-soft);color:var(--accent-bright);border-color:var(--accent);}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(5,6,10,.6);backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;z-index:100;
+  }
+  .modal{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    width:440px;max-width:92vw;max-height:88vh;overflow-y:auto;
+    padding:22px 24px 20px 24px;
+  }
+  .modal h2{font-family:var(--font-display);font-size:17px;margin:0 0 16px 0;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;font-weight:500;}
+  .field input,.field select,.field textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:9px 10px;outline:none;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .radio-group{display:flex;gap:8px;}
+  .radio-opt{
+    flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:7px;
+    background:var(--surface-2);color:var(--text-muted);font-size:12.5px;font-weight:500;
+  }
+  .radio-opt.selected{border-color:var(--accent);color:var(--accent-bright);background:var(--accent-soft);}
+
+  .toast{
+    position:fixed;bottom:22px;right:22px;background:var(--surface-3);border:1px solid var(--accent);
+    color:var(--text);padding:11px 18px;border-radius:8px;font-size:13px;z-index:200;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+
+  .commit-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .commit-card .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .commit-card .name{font-weight:600;font-size:14px;}
+  .commit-card .meta{font-size:11.5px;color:var(--text-faint);margin-top:3px;}
+  .progress-bar{height:6px;background:var(--surface-3);border-radius:4px;overflow:hidden;margin:10px 0 6px 0;}
+  .progress-bar .fill{height:100%;background:var(--accent);}
+  .commit-card .stats{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);}
+  .commit-card .stats .num{color:var(--text);}
+  .commit-card .actions{display:flex;gap:8px;margin-top:12px;}
+
+  .empty-icon-row{display:flex;justify-content:center;color:var(--text-faint);font-size:11px;margin-top:2px;}
+
+  .sync-status{
+    display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint);
+    margin-bottom:9px;padding:0 2px;
+  }
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex:none;}
+  .sync-status.connected .sync-dot{background:var(--positive);box-shadow:0 0 6px var(--positive);}
+  .sync-status.syncing .sync-dot{background:var(--warning);animation:pulse 1s infinite;}
+  .sync-status.error .sync-dot{background:var(--negative);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .help-text{font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:14px;}
+  .help-text a{color:var(--accent-bright);}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark"><span class="dot"></span>FinTrack</div>
+      <div class="sub">Wealth Platform</div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-view="dashboard" class="active"><span class="ic">◆</span>Dashboard</button>
+      <button data-view="accounts"><span class="ic">▦</span>Accounts</button>
+      <button data-view="transactions"><span class="ic">≡</span>Transactions</button>
+      <button data-view="categories"><span class="ic">◫</span>Categories</button>
+      <button data-view="commitments"><span class="ic">◷</span>Commitments</button>
+    </nav>
+    <div class="nav-footer">
+      <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
+      <button id="btn-connect-drive">🔗 Connect Google Drive</button>
+      <button id="btn-export">⬇ Export backup (JSON)</button>
+      <button id="btn-import">⬆ Import backup</button>
+      <input type="file" id="file-import" accept="application/json" style="display:none;">
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="topbar">
+        <div><h1>Dashboard</h1><div class="today" id="today-label"></div></div>
+        <button class="btn" data-open-modal="transaction">+ New Transaction</button>
+      </div>
+
+      <div class="grid cols-3" id="dash-cards"></div>
+
+      <div class="grid cols-2" style="margin-top:16px;">
+        <div>
+          <div class="section-title">Account Balances<span class="hint">converted to EGP</span></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Account</th><th>Type</th><th class="amt">Balance</th></tr></thead>
+            <tbody id="dash-accounts-body"></tbody>
+          </table></div>
+        </div>
+        <div>
+          <div class="section-title">Due Soon</div>
+          <div id="dash-due-list"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Recent Transactions</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+        <tbody id="dash-recent-body"></tbody>
+      </table></div>
+    </section>
+
+    <!-- ACCOUNTS -->
+    <section class="view" id="view-accounts">
+      <div class="topbar">
+        <div><h1>Accounts</h1><div class="today">Cash, banks &amp; wallets across all currencies</div></div>
+        <button class="btn" data-open-modal="account">+ New Account</button>
+      </div>
+      <div class="table-wrap">
+        <div class="head-row"><h3>All Accounts</h3></div>
+        <table>
+          <thead><tr><th>Name</th><th>Type</th><th>Currency</th><th class="amt">Opening</th><th class="amt">Current Balance</th><th></th></tr></thead>
+          <tbody id="accounts-body"></tbody>
+        </table>
+      </div>
+
+      <div class="section-title">Exchange Rates<span class="hint">used to convert balances to EGP</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Currency</th><th class="amt">Rate to EGP</th><th></th></tr></thead>
+          <tbody id="fx-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section class="view" id="view-transactions">
+      <div class="topbar">
+        <div><h1>Transactions</h1><div class="today" id="txn-count-label"></div></div>
+        <button class="btn" data-open-modal="transaction">+ New Transaction</button>
+      </div>
+      <div class="pill-row" id="txn-filters"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th><th></th></tr></thead>
+          <tbody id="txn-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="view" id="view-categories">
+      <div class="topbar">
+        <div><h1>Categories</h1><div class="today">Income &amp; expense categories, with optional sub-categories</div></div>
+        <button class="btn" data-open-modal="category">+ New Category</button>
+      </div>
+      <div class="grid cols-2">
+        <div>
+          <div class="section-title">Expense Categories</div>
+          <div id="cat-expense-list"></div>
+        </div>
+        <div>
+          <div class="section-title">Income Categories</div>
+          <div id="cat-income-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMMITMENTS -->
+    <section class="view" id="view-commitments">
+      <div class="topbar">
+        <div><h1>Commitments</h1><div class="today">Installments &amp; rotating savings (جمعية) — track what's left and when it ends</div></div>
+        <button class="btn" data-open-modal="commitment">+ New Commitment</button>
+      </div>
+      <div class="grid cols-3" id="commitments-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+/* =========================================================================
+   FinTrack — Milestone 1
+   Modules: Accounts, Transactions, Categories, Balance/Net Worth, Commitments
+   Storage: browser localStorage (single-user, offline-first)
+   ========================================================================= */
+
+/* ---------------------------- STORAGE LAYER ---------------------------- */
+const DB_KEY = 'fintrack_data_v1';
+
+function loadDB(){
+  const raw = localStorage.getItem(DB_KEY);
+  if(raw){
+    try{ return JSON.parse(raw); }catch(e){ console.error('Corrupt DB, reseeding', e); }
+  }
+  return seedDB();
+}
+function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); queueDrivePush(); }
+function saveLocalOnly(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+
+function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
+
+function seedDB(){
+  const today = new Date().toISOString().slice(0,10);
+  return {
+    accounts: [
+      { id: uid('acc'), name: 'Cash Wallet', type: 'cash', currency: 'EGP', openingBalance: 0, openingDate: today },
+      { id: uid('acc'), name: 'Bank Account', type: 'bank', currency: 'EGP', openingBalance: 0, openingDate: today }
+    ],
+    categories: [
+      { id: 'cat_home',      name: 'Home Expenses',   type: 'expense', parentId: null },
+      { id: 'cat_meat',      name: 'لحوم (Meat)',     type: 'expense', parentId: 'cat_home' },
+      { id: 'cat_delivery',  name: 'طلبات (Delivery)',type: 'expense', parentId: 'cat_home' },
+      { id: 'cat_utilities', name: 'انترنت وكهرباء (Utilities)', type: 'expense', parentId: 'cat_home' },
+      { id: 'cat_eatingout', name: 'اكل - خروجات (Eating Out)', type: 'expense', parentId: 'cat_home' },
+      { id: 'cat_maint',     name: 'صيانات (Maintenance)', type: 'expense', parentId: 'cat_home' },
+      { id: 'cat_personal',  name: 'Personal Expenses', type: 'expense', parentId: null },
+      { id: 'cat_vehicle',   name: 'Vehicle Expenses', type: 'expense', parentId: null },
+      { id: 'cat_commit',    name: 'Commitments / Installments', type: 'expense', parentId: null },
+      { id: 'cat_salary',    name: 'Salary / Work Income', type: 'income', parentId: null },
+      { id: 'cat_other_inc', name: 'Other Income', type: 'income', parentId: null }
+    ],
+    transactions: [],
+    commitments: [],
+    commitmentPayments: [],
+    fxRates: [
+      { currency: 'EGP', rateToEGP: 1 },
+      { currency: 'SAR', rateToEGP: 13.68 },
+      { currency: 'USD', rateToEGP: 51.4 }
+    ]
+  };
+}
+
+let DB = loadDB();
+
+/* ---------------------------- HELPERS ---------------------------- */
+function fmtMoney(n){
+  const v = Number(n)||0;
+  const sign = v<0 ? '-' : '';
+  return sign + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function monthKey(d){ return (d||'').slice(0,7); }
+function thisMonthKey(){ return new Date().toISOString().slice(0,7); }
+function addMonths(dateStr, n){
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth()+n);
+  return d.toISOString().slice(0,10);
+}
+function fxRate(currency){
+  const r = DB.fxRates.find(x=>x.currency===currency);
+  return r ? r.rateToEGP : 1;
+}
+function toEGP(amount, currency){ return (Number(amount)||0) * fxRate(currency); }
+
+function accountById(id){ return DB.accounts.find(a=>a.id===id); }
+function categoryById(id){ return DB.categories.find(c=>c.id===id); }
+
+function accountBalance(acc){
+  let bal = Number(acc.openingBalance)||0;
+  DB.transactions.forEach(t=>{
+    if(t.accountId !== acc.id) return;
+    if(t.type === 'income') bal += Number(t.amount);
+    else if(t.type === 'expense') bal -= Number(t.amount);
+    else if(t.type === 'transfer_out') bal -= Number(t.amount);
+    else if(t.type === 'transfer_in') bal += Number(t.amount);
+  });
+  return bal;
+}
+
+function netWorthEGP(){
+  return DB.accounts.reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
+}
+
+function monthTotals(mKey){
+  let income=0, expense=0;
+  DB.transactions.forEach(t=>{
+    if(monthKey(t.date) !== mKey) return;
+    const egp = toEGP(t.amount, t.currency);
+    if(t.type==='income') income += egp;
+    else if(t.type==='expense') expense += egp;
+  });
+  return {income, expense, net: income-expense};
+}
+
+function categoryLabel(id){
+  const c = categoryById(id);
+  if(!c) return '—';
+  if(c.parentId){
+    const p = categoryById(c.parentId);
+    return (p?p.name+' › ':'') + c.name;
+  }
+  return c.name;
+}
+
+function commitmentPayments(commitId){
+  return DB.commitmentPayments.filter(p=>p.commitmentId===commitId).sort((a,b)=> a.date.localeCompare(b.date));
+}
+
+function toast(msg){
+  const root = document.getElementById('toast-root');
+  const el = document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  root.appendChild(el);
+  setTimeout(()=>el.remove(), 2600);
+}
+
+/* ---------------------------- GOOGLE DRIVE SYNC ----------------------------
+   Uses Google Identity Services (OAuth token flow) + Drive API v3.
+   Scope: drive.file — the app can only see/edit the single JSON file it creates
+   itself, never the rest of the user's Drive. Requires an OAuth Client ID
+   configured by the user (one-time setup) and the page served over https.
+   ------------------------------------------------------------------------- */
+const DRIVE_FILE_NAME = 'fintrack-data.json';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+let driveAccessToken = null;
+let driveFileId = null;
+let tokenClient = null;
+let pushTimer = null;
+
+function getClientId(){ return localStorage.getItem('fintrack_client_id') || ''; }
+function setClientId(id){ localStorage.setItem('fintrack_client_id', id); }
+
+function initGoogleAuth(){
+  const clientId = getClientId();
+  if(!clientId || typeof google === 'undefined' || !google.accounts) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: DRIVE_SCOPE,
+    callback: onTokenResponse
+  });
+}
+
+function connectDrive(){
+  const clientId = getClientId();
+  if(!clientId){ openModal('drive-setup'); return; }
+  if(typeof google === 'undefined' || !google.accounts){ toast('Google Sign-In failed to load — check your internet connection'); return; }
+  if(!tokenClient) initGoogleAuth();
+  tokenClient.requestAccessToken({ prompt: driveAccessToken ? '' : 'consent' });
+}
+
+async function onTokenResponse(resp){
+  if(resp.error){ toast('Google sign-in failed: ' + resp.error); updateSyncStatus('error'); return; }
+  driveAccessToken = resp.access_token;
+  updateSyncStatus('syncing');
+  try{
+    await driveInitialSync();
+    updateSyncStatus('connected');
+  }catch(e){
+    console.error(e); toast('Drive sync error: ' + e.message); updateSyncStatus('error');
+  }
+}
+
+function disconnectDrive(){
+  driveAccessToken = null; driveFileId = null;
+  updateSyncStatus('disconnected');
+  toast('Disconnected from Google Drive');
+}
+
+async function driveFindFile(){
+  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`, {
+    headers:{ Authorization: 'Bearer ' + driveAccessToken }
+  });
+  if(!res.ok) throw new Error('Drive list failed (' + res.status + ')');
+  const data = await res.json();
+  return (data.files && data.files[0]) ? data.files[0] : null;
+}
+
+async function driveDownload(fileId){
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers:{ Authorization: 'Bearer ' + driveAccessToken }
+  });
+  if(!res.ok) throw new Error('Drive download failed (' + res.status + ')');
+  return res.json();
+}
+
+async function driveCreate(content){
+  const boundary = 'fintrack_' + Date.now();
+  const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(content)}\r\n` +
+    `--${boundary}--`;
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method:'POST',
+    headers:{ Authorization:'Bearer ' + driveAccessToken, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body
+  });
+  if(!res.ok) throw new Error('Drive create failed (' + res.status + ')');
+  const data = await res.json();
+  return data.id;
+}
+
+async function driveUpdate(fileId, content){
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method:'PATCH',
+    headers:{ Authorization:'Bearer ' + driveAccessToken, 'Content-Type':'application/json' },
+    body: JSON.stringify(content)
+  });
+  if(!res.ok) throw new Error('Drive update failed (' + res.status + ')');
+}
+
+// First connection: pull remote if it already exists (so a second device
+// picks up the first device's data), otherwise create it from local data.
+async function driveInitialSync(){
+  const file = await driveFindFile();
+  if(file){
+    driveFileId = file.id;
+    const remote = await driveDownload(file.id);
+    DB = remote;
+    saveLocalOnly();
+    renderAll();
+    toast('Pulled latest data from Google Drive');
+  } else {
+    driveFileId = await driveCreate(DB);
+    toast('Connected — created FinTrack data file in Google Drive');
+  }
+}
+
+async function drivePullOverwriteLocal(){
+  if(!driveAccessToken) throw new Error('Not connected');
+  const file = driveFileId ? {id:driveFileId} : await driveFindFile();
+  if(!file) throw new Error('No file found in Drive yet');
+  driveFileId = file.id;
+  const remote = await driveDownload(file.id);
+  DB = remote;
+  saveLocalOnly();
+  renderAll();
+  toast('Pulled from Google Drive');
+}
+
+async function drivePushNow(){
+  if(!driveAccessToken) throw new Error('Not connected');
+  if(!driveFileId){ driveFileId = await driveCreate(DB); }
+  else{ await driveUpdate(driveFileId, DB); }
+  toast('Pushed to Google Drive');
+}
+
+// Debounced background push, called from saveDB() on every local change.
+function queueDrivePush(){
+  if(!driveAccessToken || !driveFileId) return;
+  updateSyncStatus('syncing');
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async ()=>{
+    try{ await driveUpdate(driveFileId, DB); updateSyncStatus('connected'); }
+    catch(e){ console.error(e); updateSyncStatus('error'); }
+  }, 1500);
+}
+
+function updateSyncStatus(state){
+  const el = document.getElementById('sync-status');
+  const text = document.getElementById('sync-status-text');
+  if(!el || !text) return;
+  el.className = 'sync-status' + (state==='connected' ? ' connected' : state==='syncing' ? ' syncing' : state==='error' ? ' error' : '');
+  const labels = {
+    connected: 'Google Drive: synced',
+    syncing: 'Google Drive: syncing…',
+    error: 'Google Drive: sync error',
+    disconnected: 'Google Drive: not connected'
+  };
+  text.textContent = labels[state] || labels.disconnected;
+}
+
+document.getElementById('btn-connect-drive').addEventListener('click', ()=>{
+  if(driveAccessToken) openModal('drive-manage');
+  else connectDrive();
+});
+
+window.addEventListener('load', ()=>{
+  if(getClientId()) initGoogleAuth();
+});
+
+/* ---------------------------- NAVIGATION ---------------------------- */
+document.getElementById('nav').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-view]');
+  if(!btn) return;
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  renderAll();
+});
+
+/* ---------------------------- RENDER: DASHBOARD ---------------------------- */
+function renderDashboard(){
+  document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+
+  const nw = netWorthEGP();
+  const mt = monthTotals(thisMonthKey());
+
+  document.getElementById('dash-cards').innerHTML = `
+    <div class="card">
+      <h3>Net Worth</h3>
+      <div class="big">EGP ${fmtMoney(nw)}</div>
+      <div class="delta">across ${DB.accounts.length} account${DB.accounts.length===1?'':'s'}</div>
+    </div>
+    <div class="card">
+      <h3>This Month — Income</h3>
+      <div class="big" style="color:var(--positive)">EGP ${fmtMoney(mt.income)}</div>
+      <div class="delta">${thisMonthKey()}</div>
+    </div>
+    <div class="card">
+      <h3>This Month — Expenses</h3>
+      <div class="big" style="color:var(--negative)">EGP ${fmtMoney(mt.expense)}</div>
+      <div class="delta ${mt.net>=0?'up':'down'}">Net: ${mt.net>=0?'+':''}${fmtMoney(mt.net)} EGP</div>
+    </div>
+  `;
+
+  document.getElementById('dash-accounts-body').innerHTML = DB.accounts.map(a=>{
+    const bal = accountBalance(a);
+    return `<tr>
+      <td>${a.name}</td>
+      <td><span class="tag">${a.type}</span></td>
+      <td class="amt ${bal<0?'neg':''}">${a.currency} ${fmtMoney(bal)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="3" class="empty">No accounts yet</td></tr>`;
+
+  // Due soon: commitments with next payment due within 10 days, or جمعية payout due within 30 days
+  const dueItems = [];
+  DB.commitments.forEach(c=>{
+    if(c.status==='completed') return;
+    const paid = commitmentPayments(c.id).length;
+    if(c.type==='installment'){
+      if(paid >= c.totalInstallments) return;
+      const nextDue = addMonths(c.startDate, paid);
+      const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
+      if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
+    } else if(c.type==='rotating_saving'){
+      if(!c.payoutReceived && c.payoutDate){
+        const days = Math.ceil((new Date(c.payoutDate) - new Date()) / 86400000);
+        if(days <= 30) dueItems.push({label:`${c.name} — payout expected`, date:c.payoutDate, days, kind:'payout'});
+      }
+      if(paid < c.totalInstallments){
+        const nextDue = addMonths(c.startDate, paid);
+        const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
+        if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
+      }
+    }
+  });
+  dueItems.sort((a,b)=>a.days-b.days);
+  document.getElementById('dash-due-list').innerHTML = dueItems.length ? dueItems.map(d=>`
+    <div class="card" style="margin-bottom:10px;padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:13px;font-weight:500;">${d.label}</div>
+        <span class="tag ${d.days<0?'expense':'warning'}">${d.days<0? Math.abs(d.days)+'d overdue' : d.days+'d'}</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
+    </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">Nothing due soon</div>`;
+
+  const recent = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
+  document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
+    const acc = accountById(t.accountId);
+    const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
+    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
+    return `<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${acc?acc.name:'—'}</td>
+      <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
+}
+
+/* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
+function renderAccounts(){
+  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
+    const bal = accountBalance(a);
+    return `<tr>
+      <td>${a.name}</td>
+      <td><span class="tag">${a.type}</span></td>
+      <td>${a.currency}</td>
+      <td class="amt">${fmtMoney(a.openingBalance)}</td>
+      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
+      <td><button class="btn ghost sm" data-del-account="${a.id}">Delete</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No accounts yet — add one to start tracking balances</td></tr>`;
+
+  document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
+    <tr>
+      <td>${r.currency}</td>
+      <td class="amt">
+        <input type="number" step="0.0001" value="${r.rateToEGP}" data-fx="${r.currency}"
+          style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
+      </td>
+      <td>${r.currency==='EGP' ? '<span class="tag">base</span>' : ''}</td>
+    </tr>`).join('');
+}
+
+document.getElementById('view-accounts').addEventListener('change', e=>{
+  const cur = e.target.dataset.fx;
+  if(!cur) return;
+  const r = DB.fxRates.find(x=>x.currency===cur);
+  if(r){ r.rateToEGP = Number(e.target.value)||r.rateToEGP; saveDB(); renderAll(); toast(`Updated ${cur} rate`); }
+});
+document.getElementById('view-accounts').addEventListener('click', e=>{
+  const id = e.target.dataset.delAccount;
+  if(!id) return;
+  const hasTxns = DB.transactions.some(t=>t.accountId===id);
+  if(hasTxns){ toast('Cannot delete: account has transactions'); return; }
+  DB.accounts = DB.accounts.filter(a=>a.id!==id);
+  saveDB(); renderAll(); toast('Account deleted');
+});
+
+/* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
+let txnFilter = 'all';
+function renderTransactions(){
+  document.getElementById('txn-count-label').textContent = `${DB.transactions.length} transaction${DB.transactions.length===1?'':'s'}`;
+
+  const filters = [
+    {k:'all', label:'All'},
+    {k:'income', label:'Income'},
+    {k:'expense', label:'Expense'},
+    {k:'transfer', label:'Transfers'}
+  ];
+  document.getElementById('txn-filters').innerHTML = filters.map(f=>
+    `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
+  ).join('');
+
+  let list = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date));
+  if(txnFilter==='income') list = list.filter(t=>t.type==='income');
+  else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
+  else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
+
+  document.getElementById('txn-body').innerHTML = list.map(t=>{
+    const acc = accountById(t.accountId);
+    const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
+    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
+    return `<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${acc?acc.name:'—'}</td>
+      <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+      <td><button class="btn ghost sm" data-del-txn="${t.id}">Delete</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No transactions match this filter</td></tr>`;
+}
+document.getElementById('txn-filters').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-filter]'); if(!btn) return;
+  txnFilter = btn.dataset.filter; renderTransactions();
+});
+document.getElementById('view-transactions').addEventListener('click', e=>{
+  const id = e.target.dataset.delTxn; if(!id) return;
+  DB.transactions = DB.transactions.filter(t=>t.id!==id);
+  saveDB(); renderAll(); toast('Transaction deleted');
+});
+
+/* ---------------------------- RENDER: CATEGORIES ---------------------------- */
+function renderCategories(){
+  function listFor(type){
+    const parents = DB.categories.filter(c=>c.type===type && !c.parentId);
+    if(!parents.length) return `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">No ${type} categories yet</div>`;
+    return parents.map(p=>{
+      const children = DB.categories.filter(c=>c.parentId===p.id);
+      return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:600;font-size:13.5px;">${p.name}</div>
+          <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
+        </div>
+        ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+          ${children.map(c=>`<span class="tag" style="display:flex;align-items:center;gap:6px;">${c.name}
+            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.6;">✕</span></span>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('cat-expense-list').innerHTML = listFor('expense');
+  document.getElementById('cat-income-list').innerHTML = listFor('income');
+}
+document.getElementById('view-categories').addEventListener('click', e=>{
+  const id = e.target.dataset.delCat; if(!id) return;
+  const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
+  if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
+  DB.categories = DB.categories.filter(c=>c.id!==id);
+  saveDB(); renderAll(); toast('Category deleted');
+});
+
+/* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
+function renderCommitments(){
+  if(!DB.commitments.length){
+    document.getElementById('commitments-grid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+        <div class="big-ic">◷</div>
+        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
+      </div>`;
+    return;
+  }
+  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
+    const paid = commitmentPayments(c.id).length;
+    const remaining = Math.max(0, c.totalInstallments - paid);
+    const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
+    const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
+    const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
+
+    let extra = '';
+    if(c.type==='rotating_saving'){
+      extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+        Payout: <span class="num" style="color:var(--text);">${fmtMoney(c.totalAmount)}</span>
+        ${c.payoutReceived ? '<span class="tag income" style="margin-left:6px;">Received</span>' : `expected ${fmtDate(c.payoutDate)}`}
+      </div>`;
+    }
+
+    return `<div class="commit-card">
+      <div class="top">
+        <div>
+          <div class="name">${c.name}</div>
+          <div class="meta">${c.type==='rotating_saving' ? 'جمعية (Rotating Savings)' : 'Installment'} · started ${fmtDate(c.startDate)}</div>
+        </div>
+        <span class="tag ${isDone?'income':''}">${isDone?'Completed':'Active'}</span>
+      </div>
+      <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
+      <div class="stats">
+        <span>${paid}/${c.totalInstallments} paid</span>
+        <span class="num">${remaining} left</span>
+      </div>
+      ${nextDue ? `<div class="meta" style="margin-top:6px;">Next due: ${fmtDate(nextDue)}</div>` : ''}
+      ${extra}
+      <div class="actions">
+        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>` : ''}
+        ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>` : ''}
+        <button class="btn ghost sm" data-del-commit="${c.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('view-commitments').addEventListener('click', e=>{
+  const payId = e.target.dataset.recordPayment;
+  const payoutId = e.target.dataset.recordPayout;
+  const delId = e.target.dataset.delCommit;
+  if(payId) return openModal('payment', {commitmentId: payId});
+  if(payoutId) return openModal('payout', {commitmentId: payoutId});
+  if(delId){
+    DB.commitments = DB.commitments.filter(c=>c.id!==delId);
+    DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.commitmentId!==delId);
+    saveDB(); renderAll(); toast('Commitment deleted');
+  }
+});
+
+/* ---------------------------- MODALS ---------------------------- */
+function accountOptions(selected){
+  return DB.accounts.map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
+}
+function categoryOptions(type, selected){
+  const parents = DB.categories.filter(c=>c.type===type);
+  return parents.map(c=>{
+    const label = c.parentId ? '— ' + c.name : c.name;
+    return `<option value="${c.id}" ${c.id===selected?'selected':''}>${label}</option>`;
+  }).join('');
+}
+
+function openModal(kind, ctx={}){
+  const root = document.getElementById('modal-root');
+  let html = '';
+
+  if(kind==='account'){
+    html = `<div class="modal">
+      <h2>New Account</h2>
+      <form id="form-account">
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. QNB Bank"></div>
+        <div class="field-row">
+          <div class="field"><label>Type</label>
+            <select name="type"><option value="cash">Cash</option><option value="bank">Bank</option><option value="wallet">Mobile Wallet</option></select>
+          </div>
+          <div class="field"><label>Currency</label>
+            <select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}">${r.currency}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Opening Balance</label><input type="number" step="0.01" name="openingBalance" value="0"></div>
+          <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${new Date().toISOString().slice(0,10)}"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create Account</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='transaction'){
+    if(!DB.accounts.length){ toast('Add an account first'); return; }
+    html = `<div class="modal">
+      <h2>New Transaction</h2>
+      <form id="form-transaction">
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="txn-type-group">
+            <div class="radio-opt selected" data-val="expense">Expense</div>
+            <div class="radio-opt" data-val="income">Income</div>
+            <div class="radio-opt" data-val="transfer">Transfer</div>
+          </div>
+          <input type="hidden" name="type" value="expense">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" required placeholder="0.00"></div>
+        </div>
+        <div class="field" id="txn-account-field">
+          <label>Account</label>
+          <select name="accountId">${accountOptions()}</select>
+        </div>
+        <div class="field" id="txn-dest-field" style="display:none;">
+          <label>To Account</label>
+          <select name="destAccountId">${accountOptions()}</select>
+        </div>
+        <div class="field" id="txn-category-field">
+          <label>Category</label>
+          <select name="categoryId">${categoryOptions('expense')}</select>
+        </div>
+        <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. صيانه العربيه"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save Transaction</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='category'){
+    html = `<div class="modal">
+      <h2>New Category</h2>
+      <form id="form-category">
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="cat-type-group">
+            <div class="radio-opt selected" data-val="expense">Expense</div>
+            <div class="radio-opt" data-val="income">Income</div>
+          </div>
+          <input type="hidden" name="type" value="expense">
+        </div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء"></div>
+        <div class="field">
+          <label>Parent category (optional)</label>
+          <select name="parentId" id="cat-parent-select"><option value="">— None (top-level) —</option>${categoryOptions('expense')}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create Category</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='commitment'){
+    html = `<div class="modal">
+      <h2>New Commitment</h2>
+      <form id="form-commitment">
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="commit-type-group">
+            <div class="radio-opt selected" data-val="installment">Installment</div>
+            <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
+          </div>
+          <input type="hidden" name="type" value="installment">
+        </div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
+        <div class="field-row">
+          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" required></div>
+          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12"></div>
+        </div>
+        <div class="field" id="commit-payout-field" style="display:none;">
+          <label>Expected Payout Date (جمعية)</label>
+          <input type="date" name="payoutDate">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create Commitment</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='payment'){
+    const c = DB.commitments.find(x=>x.id===ctx.commitmentId);
+    html = `<div class="modal">
+      <h2>Record Payment — ${c.name}</h2>
+      <form id="form-payment">
+        <input type="hidden" name="commitmentId" value="${c.id}">
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${c.installmentAmount}" required></div>
+        </div>
+        <div class="field">
+          <label>Method</label>
+          <div class="radio-group" id="pay-method-group">
+            <div class="radio-opt selected" data-val="cash">Cash</div>
+            <div class="radio-opt" data-val="bank_transfer">Bank Transfer</div>
+          </div>
+          <input type="hidden" name="method" value="cash">
+        </div>
+        <div class="field" id="pay-account-field" style="display:none;">
+          <label>From Account</label>
+          <select name="accountId">${accountOptions()}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Record Payment</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='payout'){
+    const c = DB.commitments.find(x=>x.id===ctx.commitmentId);
+    html = `<div class="modal">
+      <h2>Mark Payout Received — ${c.name}</h2>
+      <form id="form-payout">
+        <input type="hidden" name="commitmentId" value="${c.id}">
+        <div class="field-row">
+          <div class="field"><label>Date Received</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${c.totalAmount}" required></div>
+        </div>
+        <div class="field">
+          <label>Deposit Into</label>
+          <select name="accountId">${accountOptions()}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Confirm Payout</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='drive-setup'){
+    html = `<div class="modal">
+      <h2>Connect Google Drive</h2>
+      <div class="help-text">
+        One-time setup: create a free OAuth Client ID in Google Cloud Console, then paste it below.
+        Full step-by-step instructions were provided alongside this file. The app only ever accesses
+        the single data file it creates itself (never your other Drive files).
+      </div>
+      <form id="form-drive-setup">
+        <div class="field"><label>OAuth Client ID</label>
+          <input name="clientId" required placeholder="xxxxxxxx.apps.googleusercontent.com" value="${getClientId()}">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save &amp; Connect</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='drive-manage'){
+    html = `<div class="modal">
+      <h2>Google Drive Sync</h2>
+      <div class="help-text">Connected. Data file: <strong>${DRIVE_FILE_NAME}</strong> in your Drive.</div>
+      <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+        <button type="button" class="btn secondary sm" id="btn-force-pull">⬇ Force Pull from Drive</button>
+        <button type="button" class="btn secondary sm" id="btn-force-push">⬆ Force Push to Drive</button>
+        <button type="button" class="btn danger sm" id="btn-disconnect-drive">Disconnect</button>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
+    </div>`;
+  }
+
+  root.innerHTML = `<div class="modal-backdrop" id="modal-backdrop">${html}</div>`;
+  wireModal(kind);
+
+  if(kind==='drive-manage'){
+    const backdrop = document.getElementById('modal-backdrop');
+    backdrop.querySelector('#btn-force-pull').addEventListener('click', async ()=>{
+      try{ updateSyncStatus('syncing'); await drivePullOverwriteLocal(); updateSyncStatus('connected'); closeModal(); }
+      catch(e){ toast('Pull failed: '+e.message); updateSyncStatus('error'); }
+    });
+    backdrop.querySelector('#btn-force-push').addEventListener('click', async ()=>{
+      try{ updateSyncStatus('syncing'); await drivePushNow(); updateSyncStatus('connected'); closeModal(); }
+      catch(e){ toast('Push failed: '+e.message); updateSyncStatus('error'); }
+    });
+    backdrop.querySelector('#btn-disconnect-drive').addEventListener('click', ()=>{
+      disconnectDrive(); closeModal();
+    });
+  }
+}
+
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+function wireModal(kind){
+  const backdrop = document.getElementById('modal-backdrop');
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop) closeModal(); });
+  const closeBtn = backdrop.querySelector('[data-close]');
+  if(closeBtn) closeBtn.addEventListener('click', closeModal);
+
+  // radio groups (generic)
+  backdrop.querySelectorAll('.radio-group').forEach(group=>{
+    group.addEventListener('click', e=>{
+      const opt = e.target.closest('.radio-opt'); if(!opt) return;
+      group.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      group.nextElementSibling.value = opt.dataset.val;
+      // side effects
+      if(group.id==='txn-type-group'){
+        const val = opt.dataset.val;
+        document.getElementById('txn-dest-field').style.display = val==='transfer' ? 'block' : 'none';
+        document.getElementById('txn-category-field').style.display = val==='transfer' ? 'none' : 'block';
+        if(val!=='transfer'){
+          const sel = backdrop.querySelector('select[name="categoryId"]');
+          sel.innerHTML = categoryOptions(val==='income'?'income':'expense');
+        }
+      }
+      if(group.id==='cat-type-group'){
+        const val = opt.dataset.val;
+        document.getElementById('cat-parent-select').innerHTML = '<option value="">— None (top-level) —</option>' + categoryOptions(val);
+      }
+      if(group.id==='commit-type-group'){
+        document.getElementById('commit-payout-field').style.display = opt.dataset.val==='rotating_saving' ? 'block' : 'none';
+      }
+      if(group.id==='pay-method-group'){
+        document.getElementById('pay-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
+      }
+    });
+  });
+
+  const form = backdrop.querySelector('form');
+  if(!form) return;
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    try{
+      submitHandlers[kind](data);
+      closeModal();
+      renderAll();
+    }catch(err){ toast(err.message || 'Something went wrong'); }
+  });
+}
+
+const submitHandlers = {
+  account(data){
+    DB.accounts.push({
+      id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency,
+      openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate
+    });
+    saveDB(); toast('Account created');
+  },
+  transaction(data){
+    if(data.type==='transfer'){
+      if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
+      const from = accountById(data.accountId), to = accountById(data.destAccountId);
+      const amount = Number(data.amount);
+      const destAmount = from.currency===to.currency ? amount : amount * (fxRate(from.currency)/fxRate(to.currency));
+      const pairId = uid('pair');
+      DB.transactions.push({id:uid('txn'), date:data.date, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
+      DB.transactions.push({id:uid('txn'), date:data.date, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
+    } else {
+      const acc = accountById(data.accountId);
+      DB.transactions.push({
+        id: uid('txn'), date:data.date, accountId:data.accountId, categoryId:data.categoryId,
+        amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
+      });
+    }
+    saveDB(); toast('Transaction saved');
+  },
+  category(data){
+    DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+    saveDB(); toast('Category created');
+  },
+  commitment(data){
+    DB.commitments.push({
+      id: uid('cm'), name:data.name.trim(), type:data.type,
+      totalAmount:Number(data.totalAmount), installmentAmount:Number(data.installmentAmount),
+      startDate:data.startDate, totalInstallments:Number(data.totalInstallments),
+      status:'active', payoutDate:data.payoutDate||null, payoutReceived:false
+    });
+    saveDB(); toast('Commitment created');
+  },
+  payment(data){
+    const c = DB.commitments.find(x=>x.id===data.commitmentId);
+    const method = data.method;
+    let accountId = data.accountId || null;
+    let currency = 'EGP';
+    let txnId = null;
+    if(method==='bank_transfer'){
+      if(!accountId) throw new Error('Choose an account');
+      const acc = accountById(accountId); currency = acc.currency;
+      txnId = uid('txn');
+      DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
+    }
+    DB.commitmentPayments.push({
+      id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
+      method, accountId, linkedTransactionId: txnId
+    });
+    const paidCount = commitmentPayments(c.id).length;
+    if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+    saveDB(); toast('Payment recorded');
+  },
+  payout(data){
+    const c = DB.commitments.find(x=>x.id===data.commitmentId);
+    const acc = accountById(data.accountId);
+    DB.transactions.push({id:uid('txn'), date:data.date, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
+    c.payoutReceived = true;
+    const paidCount = commitmentPayments(c.id).length;
+    if(paidCount >= c.totalInstallments) c.status='completed';
+    saveDB(); toast('Payout recorded');
+  },
+  'drive-setup'(data){
+    setClientId(data.clientId.trim());
+    initGoogleAuth();
+    if(tokenClient) tokenClient.requestAccessToken({prompt:'consent'});
+    else toast('Google Sign-In library still loading — try again in a moment');
+  }
+};
+
+document.addEventListener('click', e=>{
+  const opener = e.target.closest('[data-open-modal]');
+  if(opener) openModal(opener.dataset.openModal);
+});
+
+/* ---------------------------- BACKUP / RESTORE ---------------------------- */
+document.getElementById('btn-export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `fintrack-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Backup exported');
+});
+document.getElementById('btn-import').addEventListener('click', ()=> document.getElementById('file-import').click());
+document.getElementById('file-import').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed.accounts || !parsed.transactions) throw new Error('Not a valid FinTrack backup');
+      DB = parsed; saveDB(); renderAll();
+      toast('Backup restored');
+    }catch(err){ toast('Import failed: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ---------------------------- INIT ---------------------------- */
+function renderAll(){
+  renderDashboard();
+  renderAccounts();
+  renderTransactions();
+  renderCategories();
+  renderCommitments();
+}
+renderAll();
+</script>
+</body>
+</html>

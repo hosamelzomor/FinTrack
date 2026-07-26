@@ -223,6 +223,67 @@
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
   .help-text{font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:14px;}
   .help-text a{color:var(--accent-bright);}
+
+  .more-toggle{display:none;}
+
+  /* ---------- Mobile layout (phones/small tablets) ---------- */
+  @media(max-width:760px){
+    .app{display:block;}
+    .sidebar{display:contents;}
+
+    .brand{
+      position:fixed;top:0;left:0;right:0;z-index:70;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 14px;border-bottom:1px solid var(--border);
+      background:var(--surface);margin:0;
+    }
+    .brand .sub{display:none;}
+    .more-toggle{
+      display:flex;align-items:center;justify-content:center;
+      width:32px;height:32px;border-radius:8px;background:var(--surface-2);
+      border:1px solid var(--border);color:var(--text-muted);font-size:16px;
+    }
+
+    .nav{
+      position:fixed;bottom:0;left:0;right:0;z-index:70;
+      flex-direction:row;justify-content:space-around;gap:2px;
+      background:var(--surface);border-top:1px solid var(--border);border-right:none;
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+    }
+    .nav button{
+      flex-direction:column;gap:3px;align-items:center;justify-content:center;
+      flex:1;padding:6px 2px;font-size:9.5px;text-align:center;
+    }
+    .nav button .ic{font-size:17px;}
+    .nav button .lbl{line-height:1.1;}
+
+    .nav-footer{
+      position:fixed;top:57px;left:0;right:0;z-index:65;
+      display:flex;flex-direction:column;gap:8px;
+      background:var(--surface);border-top:none;border-bottom:1px solid var(--border);
+      padding:12px 14px;margin:0;
+      transform:translateY(-140%);opacity:0;transition:transform .18s ease,opacity .18s ease;
+      pointer-events:none;
+    }
+    .nav-footer.open{transform:translateY(0);opacity:1;pointer-events:auto;box-shadow:0 10px 24px rgba(0,0,0,.35);}
+    .nav-footer button{margin-bottom:0;}
+
+    .content{padding:70px 14px 82px 14px;}
+
+    .topbar{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:18px;}
+    .topbar h1{font-size:19px;}
+    .topbar > button.btn{width:100%;}
+
+    .grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}
+
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    table{min-width:520px;}
+
+    .modal{width:94vw;padding:18px 16px;max-height:82vh;}
+    .field-row{flex-direction:column;gap:0;}
+
+    .card .big{font-size:22px;}
+  }
 </style>
 </head>
 <body>
@@ -232,15 +293,16 @@
     <div class="brand">
       <div class="mark"><span class="dot"></span>FinTrack</div>
       <div class="sub">Wealth Platform</div>
+      <button id="btn-more-toggle" class="more-toggle" aria-label="More">⋯</button>
     </div>
     <nav class="nav" id="nav">
-      <button data-view="dashboard" class="active"><span class="ic">◆</span>Dashboard</button>
-      <button data-view="accounts"><span class="ic">▦</span>Accounts</button>
-      <button data-view="transactions"><span class="ic">≡</span>Transactions</button>
-      <button data-view="categories"><span class="ic">◫</span>Categories</button>
-      <button data-view="commitments"><span class="ic">◷</span>Commitments</button>
+      <button data-view="dashboard" class="active"><span class="ic">◆</span><span class="lbl">Dashboard</span></button>
+      <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
+      <button data-view="transactions"><span class="ic">≡</span><span class="lbl">Transactions</span></button>
+      <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
+      <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
     </nav>
-    <div class="nav-footer">
+    <div class="nav-footer" id="nav-footer">
       <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
       <button id="btn-connect-drive">🔗 Connect Google Drive</button>
       <button id="btn-export">⬇ Export backup (JSON)</button>
@@ -658,6 +720,9 @@ window.addEventListener('load', ()=>{
 });
 
 /* ---------------------------- NAVIGATION ---------------------------- */
+document.getElementById('btn-more-toggle').addEventListener('click', ()=>{
+  document.getElementById('nav-footer').classList.toggle('open');
+});
 document.getElementById('nav').addEventListener('click', e=>{
   const btn = e.target.closest('button[data-view]');
   if(!btn) return;
@@ -665,6 +730,7 @@ document.getElementById('nav').addEventListener('click', e=>{
   btn.classList.add('active');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  document.getElementById('nav-footer').classList.remove('open');
   renderAll();
 });
 

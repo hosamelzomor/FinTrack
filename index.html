@@ -206,6 +206,7 @@
   .commit-card .meta{font-size:11.5px;color:var(--text-faint);margin-top:3px;}
   .progress-bar{height:6px;background:var(--surface-3);border-radius:4px;overflow:hidden;margin:10px 0 6px 0;}
   .progress-bar .fill{height:100%;background:var(--accent);}
+  .progress-bar .fill.over{background:var(--negative);}
   .commit-card .stats{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);}
   .commit-card .stats .num{color:var(--text);}
   .commit-card .actions{display:flex;gap:8px;margin-top:12px;}
@@ -301,6 +302,8 @@
       <button data-view="transactions"><span class="ic">≡</span><span class="lbl">Transactions</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
+      <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
+      <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="history"><span class="ic">🕘</span><span class="lbl">History</span></button>
     </nav>
     <div class="nav-footer" id="nav-footer">
@@ -322,6 +325,7 @@
       </div>
 
       <div class="grid cols-3" id="dash-cards"></div>
+      <div class="grid cols-2" id="dash-month-cards" style="margin-top:16px;"></div>
 
       <div class="grid cols-2" style="margin-top:16px;">
         <div>
@@ -409,6 +413,23 @@
       <div class="grid cols-3" id="commitments-grid"></div>
     </section>
 
+    <!-- VEHICLES -->
+    <section class="view" id="view-vehicles">
+      <div class="topbar">
+        <div><h1>Vehicles</h1><div class="today">Fuel, maintenance, oil changes &amp; mileage — per vehicle</div></div>
+        <button class="btn" data-open-modal="vehicle">+ New Vehicle</button>
+      </div>
+      <div class="grid cols-3" id="vehicles-grid"></div>
+    </section>
+
+    <!-- BUDGETS -->
+    <section class="view" id="view-budgets">
+      <div class="topbar">
+        <div><h1>Budgets</h1><div class="today">Set a monthly limit per category — suggested from your real spending history</div></div>
+      </div>
+      <div class="grid cols-3" id="budgets-grid"></div>
+    </section>
+
     <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
     <section class="view" id="view-history">
       <div class="topbar">
@@ -449,7 +470,7 @@ const DB_KEY = 'fintrack_data_v1';
 function loadDB(){
   const raw = localStorage.getItem(DB_KEY);
   if(raw){
-    try{ return JSON.parse(raw); }catch(e){ console.error('Corrupt DB, reseeding', e); }
+    try{ return migrateDB(JSON.parse(raw)); }catch(e){ console.error('Corrupt DB, reseeding', e); }
   }
   return seedDB();
 }
@@ -458,12 +479,47 @@ function saveLocalOnly(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
 
 function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
 
+// Keeps older saved databases (local or pulled from Drive) compatible with newer
+// app versions — fills in any fields/collections/categories added since they last saved.
+function migrateDB(db){
+  db.vehicles = db.vehicles || [];
+  db.vehicleLogs = db.vehicleLogs || [];
+  db.vehicleDocs = db.vehicleDocs || [];
+  db.budgets = db.budgets || [];
+  (db.accounts||[]).forEach(a=>{ if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false; });
+  const catIds = new Set((db.categories||[]).map(c=>c.id));
+  const defaultCats = [
+    { id:'cat_car', name:'مصاريف العربية (Car Expenses)', type:'expense', parentId:null },
+    { id:'cat_car_fuel', name:'وقود (Fuel)', type:'expense', parentId:'cat_car' },
+    { id:'cat_car_maint', name:'صيانة (Maintenance)', type:'expense', parentId:'cat_car' },
+    { id:'cat_car_oil', name:'تغيير زيت (Oil Change)', type:'expense', parentId:'cat_car' },
+    { id:'cat_car_asset', name:'مقتنيات (Assets)', type:'expense', parentId:'cat_car' },
+    { id:'cat_scooter', name:'مصاريف الاسكوتر (Scooter Expenses)', type:'expense', parentId:null },
+    { id:'cat_scooter_fuel', name:'وقود (Fuel)', type:'expense', parentId:'cat_scooter' },
+    { id:'cat_scooter_maint', name:'صيانة (Maintenance)', type:'expense', parentId:'cat_scooter' },
+    { id:'cat_scooter_oil', name:'تغيير زيت (Oil Change)', type:'expense', parentId:'cat_scooter' },
+    { id:'cat_scooter_asset', name:'مقتنيات (Assets)', type:'expense', parentId:'cat_scooter' },
+    { id:'cat_sheimaa', name:'مصاريف شيماء (Sheimaa)', type:'expense', parentId:null },
+    { id:'cat_celia', name:'مصاريف سيليا (Celia)', type:'expense', parentId:null },
+    { id:'cat_celia_school', name:'مدرسة سيليا (Celia School)', type:'expense', parentId:'cat_celia' }
+  ];
+  defaultCats.forEach(c=>{ if(!catIds.has(c.id)){ db.categories.push(c); catIds.add(c.id); } });
+  // Old shared "Vehicle Expenses" categories from an earlier version — migrate any existing
+  // transactions off them onto the new Car-specific ones, then drop the old categories.
+  const oldToNew = { cat_vehicle:'cat_car', cat_fuel:'cat_car_fuel', cat_vehicle_maint:'cat_car_maint', cat_vehicle_oil:'cat_car_oil', cat_vehicle_asset:'cat_car_asset' };
+  if(Object.keys(oldToNew).some(id=>catIds.has(id))){
+    (db.transactions||[]).forEach(t=>{ if(oldToNew[t.categoryId]) t.categoryId = oldToNew[t.categoryId]; });
+    db.categories = db.categories.filter(c=>!oldToNew[c.id]);
+  }
+  return db;
+}
+
 function seedDB(){
   const today = new Date().toISOString().slice(0,10);
-  return {
+  return migrateDB({
     accounts: [
-      { id: uid('acc'), name: 'Cash Wallet', type: 'cash', currency: 'EGP', openingBalance: 0, openingDate: today },
-      { id: uid('acc'), name: 'Bank Account', type: 'bank', currency: 'EGP', openingBalance: 0, openingDate: today }
+      { id: uid('acc'), name: 'Cash Wallet', type: 'cash', currency: 'EGP', openingBalance: 0, openingDate: today, excludeFromNetWorth:false },
+      { id: uid('acc'), name: 'Bank Account', type: 'bank', currency: 'EGP', openingBalance: 0, openingDate: today, excludeFromNetWorth:false }
     ],
     categories: [
       { id: 'cat_home',      name: 'Home Expenses',   type: 'expense', parentId: null },
@@ -472,21 +528,26 @@ function seedDB(){
       { id: 'cat_utilities', name: 'انترنت وكهرباء (Utilities)', type: 'expense', parentId: 'cat_home' },
       { id: 'cat_eatingout', name: 'اكل - خروجات (Eating Out)', type: 'expense', parentId: 'cat_home' },
       { id: 'cat_maint',     name: 'صيانات (Maintenance)', type: 'expense', parentId: 'cat_home' },
-      { id: 'cat_personal',  name: 'Personal Expenses', type: 'expense', parentId: null },
-      { id: 'cat_vehicle',   name: 'Vehicle Expenses', type: 'expense', parentId: null },
-      { id: 'cat_commit',    name: 'Commitments / Installments', type: 'expense', parentId: null },
+      { id: 'cat_personal',  name: 'مصاريفي الشخصية (My Personal Expenses)', type: 'expense', parentId: null },
+      { id: 'cat_commit',    name: 'التزامات / أقساط (Commitments)', type: 'expense', parentId: null },
       { id: 'cat_salary',    name: 'Salary / Work Income', type: 'income', parentId: null },
       { id: 'cat_other_inc', name: 'Other Income', type: 'income', parentId: null }
+      // cat_car, cat_scooter, cat_sheimaa, cat_celia (+ their children) are added by migrateDB()
+      // so both fresh installs and existing databases end up with the same full category set.
     ],
     transactions: [],
     commitments: [],
     commitmentPayments: [],
+    vehicles: [],
+    vehicleLogs: [],
+    vehicleDocs: [],
+    budgets: [],
     fxRates: [
       { currency: 'EGP', rateToEGP: 1 },
       { currency: 'SAR', rateToEGP: 13.68 },
       { currency: 'USD', rateToEGP: 51.4 }
     ]
-  };
+  });
 }
 
 let DB = loadDB();
@@ -534,6 +595,17 @@ function netWorthEGP(){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
 }
 
+// Outstanding commitments (installments/جمعية still owed) — assumed EGP, matching how commitments are entered.
+function commitmentRemaining(c){
+  const paid = commitmentPayments(c.id).length;
+  return Math.max(0, (c.totalInstallments||0) - paid);
+}
+function totalLiabilitiesEGP(){
+  return DB.commitments
+    .filter(c=>c.status!=='completed')
+    .reduce((sum,c)=> sum + commitmentRemaining(c) * (Number(c.installmentAmount)||0), 0);
+}
+
 function monthTotals(mKey){
   let income=0, expense=0;
   liveTransactions().forEach(t=>{
@@ -565,6 +637,68 @@ function isArchiveTxn(t){
 }
 function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
 function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
+
+/* ---------------------------- VEHICLES ---------------------------- */
+function vehicleById(id){ return DB.vehicles.find(v=>v.id===id); }
+function vehicleLogsRaw(vehicleId){
+  return DB.vehicleLogs.filter(l=>l.vehicleId===vehicleId).sort((a,b)=> a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+}
+// Ascending-date logs enriched with distance-since-previous-odometer-reading and km/liter for fuel entries.
+function vehicleLogsComputed(vehicleId){
+  let prevOdo = null;
+  return vehicleLogsRaw(vehicleId).map(l=>{
+    let distance = null, kmPerLiter = null;
+    if(l.odometerKm != null){
+      if(prevOdo != null) distance = l.odometerKm - prevOdo;
+      prevOdo = l.odometerKm;
+    }
+    if(l.type === 'fuel' && l.litersFilled && distance != null && distance > 0){
+      kmPerLiter = +(distance / l.litersFilled).toFixed(2);
+    }
+    return Object.assign({}, l, {distance, kmPerLiter});
+  });
+}
+function vehicleCurrentOdometer(vehicleId){
+  const logs = vehicleLogsRaw(vehicleId).filter(l=>l.odometerKm != null);
+  return logs.length ? logs[logs.length-1].odometerKm : null;
+}
+function vehicleLastOilChangeKm(vehicleId){
+  const oilLogs = vehicleLogsRaw(vehicleId).filter(l=>l.type==='oil' && l.odometerKm != null);
+  return oilLogs.length ? oilLogs[oilLogs.length-1].odometerKm : null;
+}
+function vehicleMonthCost(vehicleId, mKey){
+  return DB.vehicleLogs.filter(l=>l.vehicleId===vehicleId && monthKey(l.date)===mKey)
+    .reduce((sum,l)=> sum + (Number(l.amount)||0), 0);
+}
+function vehicleDocsFor(vehicleId){
+  return DB.vehicleDocs.filter(d=>d.vehicleId===vehicleId).sort((a,b)=> (a.renewalDate||'').localeCompare(b.renewalDate||''));
+}
+
+/* ---------------------------- BUDGETS ---------------------------- */
+// A budget on a parent category (e.g. "Home Expenses") rolls up spend from its sub-categories too.
+function categoryAndDescendantIds(catId){
+  const ids = [catId];
+  DB.categories.forEach(c=>{ if(c.parentId===catId) ids.push(c.id); });
+  return ids;
+}
+function categorySpendInMonth(catId, mKey){
+  const ids = categoryAndDescendantIds(catId);
+  return liveTransactions()
+    .filter(t=> t.type==='expense' && ids.includes(t.categoryId) && monthKey(t.date)===mKey)
+    .reduce((sum,t)=> sum + toEGP(t.amount, t.currency), 0);
+}
+// Average spend over the `monthsCount` calendar months immediately before the current one —
+// used to suggest a realistic budget limit from real history rather than a guess.
+function categoryAvgSpend(catId, monthsCount){
+  const now = new Date();
+  let total = 0;
+  for(let i=1; i<=monthsCount; i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    total += categorySpendInMonth(catId, d.toISOString().slice(0,7));
+  }
+  return monthsCount ? total / monthsCount : 0;
+}
+function budgetFor(catId){ return DB.budgets.find(b=>b.categoryId===catId); }
 
 function toast(msg){
   const root = document.getElementById('toast-root');
@@ -679,7 +813,7 @@ async function driveInitialSync(){
   if(file){
     driveFileId = file.id;
     const remote = await driveDownload(file.id);
-    DB = remote;
+    DB = migrateDB(remote);
     saveLocalOnly();
     renderAll();
     toast('Pulled latest data from Google Drive');
@@ -695,7 +829,7 @@ async function drivePullOverwriteLocal(){
   if(!file) throw new Error('No file found in Drive yet');
   driveFileId = file.id;
   const remote = await driveDownload(file.id);
-  DB = remote;
+  DB = migrateDB(remote);
   saveLocalOnly();
   renderAll();
   toast('Pulled from Google Drive');
@@ -768,14 +902,29 @@ function renderDashboard(){
   document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
 
   const nw = netWorthEGP();
+  const liabilities = totalLiabilitiesEGP();
+  const netPosition = nw - liabilities;
   const mt = monthTotals(thisMonthKey());
 
   document.getElementById('dash-cards').innerHTML = `
     <div class="card">
-      <h3>Net Worth</h3>
+      <h3>Current Balance</h3>
       <div class="big">EGP ${fmtMoney(nw)}</div>
-      <div class="delta">across ${DB.accounts.length} account${DB.accounts.length===1?'':'s'}</div>
+      <div class="delta">cash + bank across ${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} account${DB.accounts.filter(a=>!a.excludeFromNetWorth).length===1?'':'s'}</div>
     </div>
+    <div class="card">
+      <h3>Outstanding Commitments</h3>
+      <div class="big" style="color:var(--warning)">EGP ${fmtMoney(liabilities)}</div>
+      <div class="delta">what you still owe — installments &amp; جمعية</div>
+    </div>
+    <div class="card">
+      <h3>Net Position</h3>
+      <div class="big" style="color:${netPosition>=0?'var(--positive)':'var(--negative)'}">EGP ${fmtMoney(netPosition)}</div>
+      <div class="delta">balance minus outstanding commitments</div>
+    </div>
+  `;
+
+  document.getElementById('dash-month-cards').innerHTML = `
     <div class="card">
       <h3>This Month — Income</h3>
       <div class="big" style="color:var(--positive)">EGP ${fmtMoney(mt.income)}</div>
@@ -818,6 +967,12 @@ function renderDashboard(){
         if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
       }
     }
+  });
+  DB.vehicleDocs.forEach(d=>{
+    if(!d.renewalDate) return;
+    const veh = vehicleById(d.vehicleId);
+    const days = Math.ceil((new Date(d.renewalDate) - new Date()) / 86400000);
+    if(days <= 30) dueItems.push({label:`${veh?veh.name:'Vehicle'} — ${d.docType} renewal`, date:d.renewalDate, days, kind:'document'});
   });
   dueItems.sort((a,b)=>a.days-b.days);
   document.getElementById('dash-due-list').innerHTML = dueItems.length ? dueItems.map(d=>`
@@ -1045,6 +1200,112 @@ function renderHistory(){
   }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
 }
 
+/* ---------------------------- RENDER: VEHICLES ---------------------------- */
+function renderVehicles(){
+  if(!DB.vehicles.length){
+    document.getElementById('vehicles-grid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+        <div class="big-ic">🚗</div>
+        No vehicles yet. Add your car or scooter to start logging fuel, maintenance and mileage.
+      </div>`;
+    return;
+  }
+  const mKey = thisMonthKey();
+  document.getElementById('vehicles-grid').innerHTML = DB.vehicles.map(v=>{
+    const odo = vehicleCurrentOdometer(v.id);
+    const lastOil = vehicleLastOilChangeKm(v.id);
+    const sinceOil = (odo!=null && lastOil!=null) ? odo - lastOil : null;
+    const monthCost = vehicleMonthCost(v.id, mKey);
+    const logsCount = vehicleLogsRaw(v.id).length;
+    const docsCount = vehicleDocsFor(v.id).length;
+    return `<div class="commit-card">
+      <div class="top">
+        <div>
+          <div class="name">${v.name}</div>
+          <div class="meta">${v.type==='car'?'🚗 Car':'🛵 Scooter'}${v.plateNote?' · '+v.plateNote:''}</div>
+        </div>
+        <span class="tag">${logsCount} log${logsCount===1?'':'s'}</span>
+      </div>
+      <div class="stats" style="margin-top:8px;">
+        <span>Odometer</span><span class="num">${odo!=null? fmtMoney(odo)+' km' : '—'}</span>
+      </div>
+      <div class="stats" style="margin-top:4px;">
+        <span>Since oil change</span><span class="num">${sinceOil!=null? fmtMoney(sinceOil)+' km' : '—'}</span>
+      </div>
+      <div class="stats" style="margin-top:4px;">
+        <span>This month cost</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
+      </div>
+      ${docsCount? `<div class="meta" style="margin-top:8px;">${docsCount} document${docsCount===1?'':'s'} tracked</div>` : ''}
+      <div class="actions">
+        <button class="btn secondary sm" data-view-vehicle="${v.id}">View / Log Entry</button>
+        <button class="btn ghost sm" data-del-vehicle="${v.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('view-vehicles').addEventListener('click', e=>{
+  const viewId = e.target.dataset.viewVehicle;
+  const delId = e.target.dataset.delVehicle;
+  if(viewId) return openModal('vehicle-detail', {vehicleId: viewId});
+  if(delId){
+    const hasLogs = DB.vehicleLogs.some(l=>l.vehicleId===delId);
+    if(hasLogs){ toast('Cannot delete: vehicle has log entries'); return; }
+    DB.vehicles = DB.vehicles.filter(v=>v.id!==delId);
+    DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.vehicleId!==delId);
+    saveDB(); renderAll(); toast('Vehicle deleted');
+  }
+});
+
+/* ---------------------------- RENDER: BUDGETS ---------------------------- */
+function renderBudgets(){
+  const topExpenseCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
+  const mKey = thisMonthKey();
+  if(!topExpenseCats.length){
+    document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">No expense categories yet</div>`;
+    return;
+  }
+  document.getElementById('budgets-grid').innerHTML = topExpenseCats.map(c=>{
+    const budget = budgetFor(c.id);
+    const limit = budget ? budget.monthlyLimit : 0;
+    const spent = categorySpendInMonth(c.id, mKey);
+    const avg3 = categoryAvgSpend(c.id, 3);
+    const pct = limit>0 ? Math.min(100, Math.round(spent/limit*100)) : 0;
+    const over = limit>0 && spent>limit;
+    return `<div class="commit-card">
+      <div class="top">
+        <div><div class="name">${c.name}</div><div class="meta">this month so far: EGP ${fmtMoney(spent)}</div></div>
+        ${over ? '<span class="tag expense">Over</span>' : (limit>0?'<span class="tag income">On track</span>':'')}
+      </div>
+      ${limit>0 ? `<div class="progress-bar"><div class="fill ${over?'over':''}" style="width:${pct}%;"></div></div>
+      <div class="stats"><span>${pct}% used</span><span class="num">${fmtMoney(Math.max(0,limit-spent))} left</span></div>` : ''}
+      <div class="field" style="margin-top:12px;margin-bottom:6px;">
+        <label>Monthly Limit (EGP)</label>
+        <input type="number" step="10" data-budget-input="${c.id}" value="${limit||''}" placeholder="no limit set">
+      </div>
+      <div class="meta" style="margin-bottom:8px;">Avg. last 3 months: EGP ${fmtMoney(avg3)}</div>
+      <button class="btn ghost sm" data-suggest-budget="${c.id}" data-suggest-value="${Math.round(avg3)}">Use average as limit</button>
+    </div>`;
+  }).join('');
+}
+document.getElementById('view-budgets').addEventListener('change', e=>{
+  const catId = e.target.dataset.budgetInput;
+  if(!catId) return;
+  const val = Number(e.target.value) || 0;
+  let b = budgetFor(catId);
+  if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
+  else b.monthlyLimit = val;
+  saveDB(); renderBudgets(); toast('Budget updated');
+});
+document.getElementById('view-budgets').addEventListener('click', e=>{
+  const catId = e.target.dataset.suggestBudget;
+  if(!catId) return;
+  const val = Number(e.target.dataset.suggestValue) || 0;
+  let b = budgetFor(catId);
+  if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
+  else b.monthlyLimit = val;
+  saveDB(); renderBudgets(); toast('Budget set from 3-month average');
+});
+
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
@@ -1241,6 +1502,133 @@ function openModal(kind, ctx={}){
     </div>`;
   }
 
+  if(kind==='vehicle'){
+    html = `<div class="modal">
+      <h2>New Vehicle</h2>
+      <form id="form-vehicle">
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. العربية or السكوتر"></div>
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="vehicle-type-group">
+            <div class="radio-opt selected" data-val="car">🚗 Car</div>
+            <div class="radio-opt" data-val="scooter">🛵 Scooter</div>
+          </div>
+          <input type="hidden" name="type" value="car">
+        </div>
+        <div class="field"><label>Plate / Note (optional)</label><input name="plateNote" placeholder="e.g. plate number"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create Vehicle</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='vehicle-detail'){
+    const v = vehicleById(ctx.vehicleId);
+    const odo = vehicleCurrentOdometer(v.id);
+    const lastOil = vehicleLastOilChangeKm(v.id);
+    const logs = vehicleLogsComputed(v.id).slice().reverse();
+    const docs = vehicleDocsFor(v.id);
+    const typeLabels = {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
+    html = `<div class="modal" style="width:660px;">
+      <h2>${v.name}</h2>
+      <div class="help-text">${v.type==='car'?'Car':'Scooter'} · Odometer: ${odo!=null?fmtMoney(odo)+' km':'—'}${lastOil!=null?' · Last oil change: '+fmtMoney(lastOil)+' km':''}</div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">
+        <button type="button" class="btn secondary sm" id="btn-add-vehicle-log">+ Log Entry</button>
+        <button type="button" class="btn secondary sm" id="btn-add-vehicle-doc">+ Document / Renewal</button>
+      </div>
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th class="amt">Amount</th><th class="amt">KM</th><th class="amt">Dist.</th><th class="amt">km/L</th><th>Note</th></tr></thead>
+          <tbody>
+            ${logs.map(l=>`<tr>
+              <td>${fmtDate(l.date)}</td>
+              <td><span class="tag">${typeLabels[l.type]||l.type}</span></td>
+              <td class="amt neg">${fmtMoney(l.amount)}</td>
+              <td class="amt">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
+              <td class="amt">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
+              <td class="amt">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
+              <td style="color:var(--text-muted);">${l.note||''}</td>
+            </tr>`).join('') || `<tr><td colspan="7" class="empty">No log entries yet</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="section-title" style="margin:0 0 10px 0;">Documents &amp; Renewals</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th></tr></thead>
+          <tbody>
+            ${docs.map(d=>`<tr><td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">No documents tracked</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
+    </div>`;
+  }
+
+  if(kind==='vehicle-log'){
+    const v = vehicleById(ctx.vehicleId);
+    html = `<div class="modal">
+      <h2>Log Entry — ${v.name}</h2>
+      <form id="form-vehicle-log">
+        <input type="hidden" name="vehicleId" value="${v.id}">
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="vlog-type-group">
+            <div class="radio-opt selected" data-val="fuel">⛽ Fuel</div>
+            <div class="radio-opt" data-val="maintenance">🔧 Maint.</div>
+            <div class="radio-opt" data-val="oil">🛢 Oil</div>
+            <div class="radio-opt" data-val="asset">💰 Asset</div>
+          </div>
+          <input type="hidden" name="type" value="fuel">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Amount (EGP)</label><input type="number" step="0.01" name="amount" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Odometer (km, optional)</label><input type="number" step="1" name="odometerKm"></div>
+          <div class="field" id="vlog-liters-field"><label>Liters filled</label><input type="number" step="0.01" name="litersFilled"></div>
+        </div>
+        <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. صيانة دورية"></div>
+        <div class="field">
+          <label>Method</label>
+          <div class="radio-group" id="vlog-method-group">
+            <div class="radio-opt selected" data-val="cash">Cash</div>
+            <div class="radio-opt" data-val="bank_transfer">Bank Transfer</div>
+          </div>
+          <input type="hidden" name="method" value="cash">
+        </div>
+        <div class="field" id="vlog-account-field" style="display:none;">
+          <label>From Account</label>
+          <select name="accountId">${accountOptions()}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save Log Entry</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='vehicle-doc'){
+    const v = vehicleById(ctx.vehicleId);
+    html = `<div class="modal">
+      <h2>Document / Renewal — ${v.name}</h2>
+      <form id="form-vehicle-doc">
+        <input type="hidden" name="vehicleId" value="${v.id}">
+        <div class="field"><label>Type</label><input name="docType" required placeholder="e.g. رخصة، تأمين، بطاقة"></div>
+        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" required></div>
+        <div class="field"><label>Note (optional)</label><input name="note"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save Document</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
   if(kind==='drive-setup'){
     html = `<div class="modal">
       <h2>Connect Google Drive</h2>
@@ -1291,6 +1679,12 @@ function openModal(kind, ctx={}){
       disconnectDrive(); closeModal();
     });
   }
+
+  if(kind==='vehicle-detail'){
+    const backdrop = document.getElementById('modal-backdrop');
+    backdrop.querySelector('#btn-add-vehicle-log').addEventListener('click', ()=> openModal('vehicle-log', {vehicleId: ctx.vehicleId}));
+    backdrop.querySelector('#btn-add-vehicle-doc').addEventListener('click', ()=> openModal('vehicle-doc', {vehicleId: ctx.vehicleId}));
+  }
 }
 
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
@@ -1328,6 +1722,12 @@ function wireModal(kind){
       if(group.id==='pay-method-group'){
         document.getElementById('pay-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
       }
+      if(group.id==='vlog-type-group'){
+        document.getElementById('vlog-liters-field').style.display = opt.dataset.val==='fuel' ? 'block' : 'none';
+      }
+      if(group.id==='vlog-method-group'){
+        document.getElementById('vlog-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
+      }
     });
   });
 
@@ -1339,8 +1739,12 @@ function wireModal(kind){
     const data = Object.fromEntries(fd.entries());
     try{
       submitHandlers[kind](data);
-      closeModal();
       renderAll();
+      if(kind==='vehicle-log' || kind==='vehicle-doc'){
+        openModal('vehicle-detail', {vehicleId: data.vehicleId});
+      } else {
+        closeModal();
+      }
     }catch(err){ toast(err.message || 'Something went wrong'); }
   });
 }
@@ -1414,6 +1818,51 @@ const submitHandlers = {
     if(paidCount >= c.totalInstallments) c.status='completed';
     saveDB(); toast('Payout recorded');
   },
+  vehicle(data){
+    DB.vehicles.push({
+      id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || ''
+    });
+    saveDB(); toast('Vehicle created');
+  },
+  'vehicle-log'(data){
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    const catSets = {
+      car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
+      scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
+    };
+    const catByType = catSets[v.type] || catSets.car;
+    let accountId = null, currency = 'EGP', txnId = null;
+    if(data.method === 'bank_transfer'){
+      if(!data.accountId) throw new Error('Choose an account');
+      const acc = accountById(data.accountId);
+      accountId = acc.id; currency = acc.currency;
+    }
+    if(accountId){
+      txnId = uid('txn');
+      DB.transactions.push({
+        id: txnId, date: data.date, accountId, categoryId: catByType[data.type] || (v.type==='scooter'?'cat_scooter':'cat_car'),
+        amount: Number(data.amount), currency, note: `${v.name} — ${data.type}${data.note?': '+data.note:''}`,
+        type: 'expense', transferPairId: null
+      });
+    }
+    DB.vehicleLogs.push({
+      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type,
+      amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+      litersFilled: (data.type==='fuel' && data.litersFilled) ? Number(data.litersFilled) : null,
+      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+    });
+    saveDB(); toast('Log entry saved');
+  },
+  'vehicle-doc'(data){
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    DB.vehicleDocs.push({
+      id: uid('vdoc'), vehicleId: v.id, docType: data.docType.trim(),
+      renewalDate: data.renewalDate, note: data.note || ''
+    });
+    saveDB(); toast('Document saved');
+  },
   'drive-setup'(data){
     setClientId(data.clientId.trim());
     initGoogleAuth();
@@ -1444,7 +1893,7 @@ document.getElementById('file-import').addEventListener('change', e=>{
     try{
       const parsed = JSON.parse(reader.result);
       if(!parsed.accounts || !parsed.transactions) throw new Error('Not a valid FinTrack backup');
-      DB = parsed; saveDB(); renderAll();
+      DB = migrateDB(parsed); saveDB(); renderAll();
       toast('Backup restored');
     }catch(err){ toast('Import failed: ' + err.message); }
   };
@@ -1459,6 +1908,8 @@ function renderAll(){
   renderTransactions();
   renderCategories();
   renderCommitments();
+  renderVehicles();
+  renderBudgets();
   renderHistory();
 }
 renderAll();

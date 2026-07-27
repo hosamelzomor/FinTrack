@@ -229,37 +229,41 @@
 
   /* ---------- Mobile layout (phones/small tablets) ---------- */
   @media(max-width:760px){
+    body{font-size:12.5px;}
+
     .app{display:block;}
     .sidebar{display:contents;}
 
     .brand{
       position:fixed;top:0;left:0;right:0;z-index:70;
       display:flex;align-items:center;justify-content:space-between;
-      padding:12px 14px;border-bottom:1px solid var(--border);
+      padding:10px 14px;border-bottom:1px solid var(--border);
       background:var(--surface);margin:0;
     }
+    .brand .mark{font-size:16px;}
     .brand .sub{display:none;}
     .more-toggle{
       display:flex;align-items:center;justify-content:center;
-      width:32px;height:32px;border-radius:8px;background:var(--surface-2);
-      border:1px solid var(--border);color:var(--text-muted);font-size:16px;
+      width:30px;height:30px;border-radius:8px;background:var(--surface-2);
+      border:1px solid var(--border);color:var(--text-muted);font-size:15px;
     }
 
     .nav{
       position:fixed;bottom:0;left:0;right:0;z-index:70;
-      flex-direction:row;justify-content:space-around;gap:2px;
+      flex-direction:row;justify-content:flex-start;gap:2px;
       background:var(--surface);border-top:1px solid var(--border);border-right:none;
-      padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+      padding:5px 4px calc(5px + env(safe-area-inset-bottom,0px));
+      overflow-x:auto;-webkit-overflow-scrolling:touch;
     }
     .nav button{
-      flex-direction:column;gap:3px;align-items:center;justify-content:center;
-      flex:1;padding:6px 2px;font-size:9.5px;text-align:center;
+      flex-direction:column;gap:2px;align-items:center;justify-content:center;
+      flex:none;min-width:56px;padding:5px 3px;font-size:8.5px;text-align:center;
     }
-    .nav button .ic{font-size:17px;}
+    .nav button .ic{font-size:15px;}
     .nav button .lbl{line-height:1.1;}
 
     .nav-footer{
-      position:fixed;top:57px;left:0;right:0;z-index:65;
+      position:fixed;top:51px;left:0;right:0;z-index:65;
       display:flex;flex-direction:column;gap:8px;
       background:var(--surface);border-top:none;border-bottom:1px solid var(--border);
       padding:12px 14px;margin:0;
@@ -267,15 +271,41 @@
       pointer-events:none;
     }
     .nav-footer.open{transform:translateY(0);opacity:1;pointer-events:auto;box-shadow:0 10px 24px rgba(0,0,0,.35);}
-    .nav-footer button{margin-bottom:0;}
+    .nav-footer button{margin-bottom:0;font-size:12px;}
 
-    .content{padding:70px 14px 82px 14px;}
+    .content{padding:62px 12px 76px 12px;}
 
-    .topbar{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:18px;}
-    .topbar h1{font-size:19px;}
+    .topbar{flex-direction:column;align-items:stretch;gap:9px;margin-bottom:16px;}
+    .topbar h1{font-size:16.5px;}
+    .topbar .today{font-size:10.5px;}
     .topbar > button.btn{width:100%;}
 
-    .grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}
+    .section-title{font-size:13px;margin:22px 0 10px 0;}
+    .section-title .hint{font-size:10.5px;}
+
+    .grid.cols-3,.grid.cols-2,.grid.cols-4{grid-template-columns:1fr;}
+
+    .card{padding:14px 15px;}
+    .card h3{font-size:10.5px;}
+    .card .big{font-size:19px;}
+    .card .delta{font-size:10.5px;}
+
+    table{font-size:11px;}
+    thead th{font-size:9.5px;padding:7px 9px;}
+    tbody td{padding:8px 9px;font-size:11.5px;}
+
+    .modal h2{font-size:15px;}
+    .field label{font-size:11px;}
+    .field input,.field select,.field textarea{padding:8px 9px;font-size:12.5px;}
+    .help-text{font-size:10.5px;}
+    .btn{font-size:12px;padding:8px 14px;}
+    .btn.sm{font-size:10.5px;}
+    .tag{font-size:9.5px;}
+
+    .commit-card{padding:13px 14px;}
+    .commit-card .name{font-size:12.5px;}
+    .commit-card .meta{font-size:10px;}
+    .commit-card .stats{font-size:10.5px;}
 
     .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
     table{min-width:520px;}
@@ -304,6 +334,7 @@
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
       <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
       <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
+      <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
       <button data-view="history"><span class="ic">🕘</span><span class="lbl">History</span></button>
     </nav>
     <div class="nav-footer" id="nav-footer">
@@ -428,6 +459,31 @@
         <div><h1>Budgets</h1><div class="today">Set a monthly limit per category — suggested from your real spending history</div></div>
       </div>
       <div class="grid cols-3" id="budgets-grid"></div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="view" id="view-reports">
+      <div class="topbar">
+        <div><h1>Reports</h1><div class="today">Where your money goes — across your full history, by category and by month</div></div>
+      </div>
+      <div class="section-title">By Category<span class="hint">parent categories roll up their sub-categories</span></div>
+      <div class="table-wrap" style="margin-bottom:24px;">
+        <table>
+          <thead><tr><th>Category</th><th class="amt">This Month</th><th class="amt">All Time</th></tr></thead>
+          <tbody id="reports-tree-body"></tbody>
+        </table>
+      </div>
+      <div class="section-title">Monthly Breakdown</div>
+      <div class="field" style="max-width:340px;margin-bottom:14px;">
+        <label>Category</label>
+        <select id="reports-category-select"></select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Month</th><th class="amt">Amount</th></tr></thead>
+          <tbody id="reports-monthly-body"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
@@ -733,6 +789,25 @@ function categoryAvgSpend(catId, monthsCount){
   return monthsCount ? total / monthsCount : 0;
 }
 function budgetFor(catId){ return DB.budgets.find(b=>b.categoryId===catId); }
+
+/* ---------------------------- REPORTS ---------------------------- */
+// Reports look across ALL transactions (live + historical archive) since the point is full analysis,
+// unlike Dashboard/Transactions which only show live/current-account activity.
+function categoryTotal(catId, mKey){
+  const ids = categoryAndDescendantIds(catId);
+  return DB.transactions
+    .filter(t=> t.type==='expense' && ids.includes(t.categoryId) && (!mKey || monthKey(t.date)===mKey))
+    .reduce((sum,t)=> sum + toEGP(t.amount, t.currency), 0);
+}
+function categorySelfTotal(catId, mKey){
+  return DB.transactions
+    .filter(t=> t.type==='expense' && t.categoryId===catId && (!mKey || monthKey(t.date)===mKey))
+    .reduce((sum,t)=> sum + toEGP(t.amount, t.currency), 0);
+}
+function allMonthsWithActivity(){
+  const set = new Set(DB.transactions.map(t=>monthKey(t.date)));
+  return [...set].filter(Boolean).sort().reverse();
+}
 
 function toast(msg){
   const root = document.getElementById('toast-root');
@@ -1370,6 +1445,41 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
   else b.monthlyLimit = val;
   saveDB(); renderBudgets(); toast('Budget set from 3-month average');
 });
+
+/* ---------------------------- RENDER: REPORTS ---------------------------- */
+function renderReports(){
+  const mKey = thisMonthKey();
+  const topCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
+  document.getElementById('reports-tree-body').innerHTML = topCats.map(c=>{
+    const children = DB.categories.filter(ch=>ch.parentId===c.id);
+    const parentRow = `<tr>
+      <td style="font-weight:600;">${c.name}</td>
+      <td class="amt">${fmtMoney(categoryTotal(c.id, mKey))}</td>
+      <td class="amt">${fmtMoney(categoryTotal(c.id, null))}</td>
+    </tr>`;
+    const childRows = children.map(ch=>`<tr>
+      <td style="padding-left:28px;color:var(--text-muted);font-size:12.5px;">— ${ch.name}</td>
+      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, mKey))}</td>
+      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, null))}</td>
+    </tr>`).join('');
+    return parentRow + childRows;
+  }).join('') || `<tr><td colspan="3" class="empty">No expense categories yet</td></tr>`;
+
+  const select = document.getElementById('reports-category-select');
+  const prevSelection = select.value;
+  select.innerHTML = categoryOptions('expense');
+  if(prevSelection && [...select.options].some(o=>o.value===prevSelection)) select.value = prevSelection;
+  renderReportsMonthly();
+}
+function renderReportsMonthly(){
+  const catId = document.getElementById('reports-category-select').value;
+  const months = allMonthsWithActivity();
+  document.getElementById('reports-monthly-body').innerHTML = months.map(mk=>{
+    const amt = categoryTotal(catId, mk);
+    return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
+  }).join('') || `<tr><td colspan="2" class="empty">No activity recorded yet</td></tr>`;
+}
+document.getElementById('reports-category-select').addEventListener('change', renderReportsMonthly);
 
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
@@ -2121,6 +2231,7 @@ function renderAll(){
   renderCommitments();
   renderVehicles();
   renderBudgets();
+  renderReports();
   renderHistory();
 }
 renderAll();

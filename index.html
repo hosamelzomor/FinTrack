@@ -450,6 +450,10 @@
         <div><h1>Vehicles</h1><div class="today">Fuel, maintenance, oil changes &amp; mileage — per vehicle</div></div>
         <button class="btn" data-open-modal="vehicle">+ New Vehicle</button>
       </div>
+      <div class="field" style="max-width:260px;margin-bottom:18px;">
+        <label>92 Fuel Price (EGP / liter)</label>
+        <input type="number" step="0.01" id="fuel-price-input">
+      </div>
       <div class="grid cols-3" id="vehicles-grid"></div>
     </section>
 
@@ -539,7 +543,11 @@ function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9
 // app versions — fills in any fields/collections/categories added since they last saved.
 function migrateDB(db){
   db.vehicles = db.vehicles || [];
-  db.vehicles.forEach(v=>{ if(v.oilIntervalKm===undefined) v.oilIntervalKm = null; });
+  db.vehicles.forEach(v=>{
+    if(v.oilIntervalKm===undefined) v.oilIntervalKm = null;
+    if(v.tankRangeKm===undefined) v.tankRangeKm = null;
+  });
+  db.fuelPricePerLiter = db.fuelPricePerLiter || 22.25;
   db.vehicleParts = db.vehicleParts || [];
   db.vehicleLogs = db.vehicleLogs || [];
   db.vehicleDocs = db.vehicleDocs || [];
@@ -602,6 +610,7 @@ function seedDB(){
     vehicleLogs: [],
     vehicleDocs: [],
     vehicleParts: [],
+    fuelPricePerLiter: 22.25,
     budgets: [],
     fxRates: [
       { currency: 'EGP', rateToEGP: 1 },
@@ -738,6 +747,19 @@ function vehicleOilDueStatus(vehicleId){
   const sinceOil = odo - baseline;
   const remaining = v.oilIntervalKm - sinceOil;
   return { sinceOil, remaining, overdue: remaining < 0 };
+}
+// Estimated km left before the tank likely needs a refill, based on distance since the last fuel log.
+function vehicleFuelDueStatus(vehicleId){
+  const v = vehicleById(vehicleId);
+  if(!v || !v.tankRangeKm) return null;
+  const odo = vehicleCurrentOdometer(vehicleId);
+  if(odo == null) return null;
+  const fuelLogs = vehicleLogsRaw(vehicleId).filter(l=>l.type==='fuel' && l.odometerKm != null);
+  const lastFuel = fuelLogs.length ? fuelLogs[fuelLogs.length-1].odometerKm : null;
+  const baseline = lastFuel != null ? lastFuel : odo;
+  const sinceFuel = odo - baseline;
+  const remaining = v.tankRangeKm - sinceFuel;
+  return { sinceFuel, remaining, overdue: remaining < 0 };
 }
 
 /* ---------------------------- VEHICLE PARTS (general consumables: tires, brakes, filters...) ---------------------------- */
@@ -1115,6 +1137,13 @@ function renderDashboard(){
         date: null, days: oilStatus.overdue ? -1 : 5, kind:'oil'
       });
     }
+    const fuelStatus = vehicleFuelDueStatus(v.id);
+    if(fuelStatus && fuelStatus.remaining <= 100){
+      dueItems.push({
+        label: `${v.name} — ⛽ ${fuelStatus.overdue?'likely out of fuel':'fuel low, ~'+fmtMoney(fuelStatus.remaining)+' km range left'}`,
+        date: null, days: fuelStatus.overdue ? -1 : 3, kind:'fuel'
+      });
+    }
   });
   DB.vehicleParts.forEach(p=>{
     const st = vehiclePartDueStatus(p);
@@ -1362,6 +1391,7 @@ function renderHistory(){
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
+  document.getElementById('fuel-price-input').value = DB.fuelPricePerLiter;
   if(!DB.vehicles.length){
     document.getElementById('vehicles-grid').innerHTML = `
       <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
@@ -1376,6 +1406,7 @@ function renderVehicles(){
     const lastOil = vehicleLastOilChangeKm(v.id);
     const sinceOil = (odo!=null && lastOil!=null) ? odo - lastOil : null;
     const oilStatus = vehicleOilDueStatus(v.id);
+    const fuelStatus = vehicleFuelDueStatus(v.id);
     const monthCost = vehicleMonthCost(v.id, mKey);
     const logsCount = vehicleLogsRaw(v.id).length;
     const docsCount = vehicleDocsFor(v.id).length;
@@ -1390,6 +1421,9 @@ function renderVehicles(){
       <div class="stats" style="margin-top:8px;">
         <span>Odometer</span><span class="num">${odo!=null? fmtMoney(odo)+' km' : '—'}</span>
       </div>
+      ${fuelStatus ? `<div class="stats" style="margin-top:4px;">
+        <span>⛽ Fuel range</span><span class="num" style="color:${fuelStatus.overdue?'var(--negative)':(fuelStatus.remaining<=100?'var(--warning)':'var(--positive)')}">${fuelStatus.overdue?'Likely empty':fmtMoney(fuelStatus.remaining)+' km left'}</span>
+      </div>` : ''}
       <div class="stats" style="margin-top:4px;">
         <span>Since oil change</span><span class="num">${sinceOil!=null? fmtMoney(sinceOil)+' km' : '—'}</span>
       </div>
@@ -1407,6 +1441,10 @@ function renderVehicles(){
     </div>`;
   }).join('');
 }
+document.getElementById('fuel-price-input').addEventListener('change', e=>{
+  const val = Number(e.target.value);
+  if(val > 0){ DB.fuelPricePerLiter = val; saveDB(); toast('Fuel price updated'); renderAll(); }
+});
 document.getElementById('view-vehicles').addEventListener('click', e=>{
   const viewId = e.target.dataset.viewVehicle;
   const delId = e.target.dataset.delVehicle;
@@ -1803,6 +1841,7 @@ function openModal(kind, ctx={}){
     const odo = vehicleCurrentOdometer(v.id);
     const lastOil = vehicleLastOilChangeKm(v.id);
     const oilStatus = vehicleOilDueStatus(v.id);
+    const fuelStatus = vehicleFuelDueStatus(v.id);
     const logs = vehicleLogsComputed(v.id).slice().reverse();
     const docs = vehicleDocsFor(v.id);
     const parts = vehiclePartsFor(v.id);
@@ -1810,13 +1849,22 @@ function openModal(kind, ctx={}){
     html = `<div class="modal" style="width:660px;">
       <h2>${v.name}</h2>
       <div class="help-text">${v.type==='car'?'Car':'Scooter'} · Odometer: ${odo!=null?fmtMoney(odo)+' km':'—'}${lastOil!=null?' · Last oil change: '+fmtMoney(lastOil)+' km':''}</div>
-      <div class="field-row" style="align-items:flex-end;margin-bottom:12px;">
+      <div class="field-row" style="align-items:flex-end;margin-bottom:8px;">
         <div class="field" style="margin-bottom:0;">
           <label>Oil change interval (km)</label>
           <input type="number" step="100" data-oil-interval="${v.id}" value="${v.oilIntervalKm||''}" placeholder="e.g. 5000">
         </div>
         <div class="field" style="margin-bottom:0;flex:1.4;">
           ${oilStatus ? `<label>Status</label><div class="tag ${oilStatus.overdue?'expense':(oilStatus.remaining<=500?'warning':'income')}" style="display:block;text-align:center;padding:8px;">${oilStatus.overdue ? 'Overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km' : fmtMoney(oilStatus.remaining)+' km left'}</div>` : ''}
+        </div>
+      </div>
+      <div class="field-row" style="align-items:flex-end;margin-bottom:12px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Tank range (km per full tank)</label>
+          <input type="number" step="10" data-tank-range="${v.id}" value="${v.tankRangeKm||''}" placeholder="e.g. 550">
+        </div>
+        <div class="field" style="margin-bottom:0;flex:1.4;">
+          ${fuelStatus ? `<label>Fuel Status</label><div class="tag ${fuelStatus.overdue?'expense':(fuelStatus.remaining<=100?'warning':'income')}" style="display:block;text-align:center;padding:8px;">${fuelStatus.overdue ? 'Likely empty — over by '+fmtMoney(Math.abs(fuelStatus.remaining))+' km' : fmtMoney(fuelStatus.remaining)+' km range left'}</div>` : ''}
         </div>
       </div>
 
@@ -1891,10 +1939,10 @@ function openModal(kind, ctx={}){
           <div class="field"><label>Amount (EGP)</label><input type="number" step="0.01" name="amount" required></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Odometer (km, optional)</label><input type="number" step="1" name="odometerKm"></div>
-          <div class="field" id="vlog-liters-field"><label>Liters filled</label><input type="number" step="0.01" name="litersFilled"></div>
+          <div class="field"><label>Odometer (km)</label><input type="number" step="1" name="odometerKm" id="vlog-odometer"></div>
+          <div class="field" id="vlog-liters-field"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters"></div>
         </div>
-        <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. صيانة دورية"></div>
+        <div class="field"><label>Description</label><input name="note" placeholder="e.g. صيانة دورية" required></div>
         <div class="field" id="vlog-part-field" style="display:none;">
           <label>Part (optional)</label>
           <select name="partId">
@@ -2018,6 +2066,25 @@ function openModal(kind, ctx={}){
       saveDB(); renderAll();
       openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
       toast('Oil interval updated');
+    });
+    backdrop.querySelector('[data-tank-range]').addEventListener('change', e=>{
+      const v = vehicleById(ctx.vehicleId);
+      v.tankRangeKm = e.target.value ? Number(e.target.value) : null;
+      saveDB(); renderAll();
+      openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+      toast('Tank range updated');
+    });
+  }
+
+  if(kind==='vehicle-log'){
+    const backdrop = document.getElementById('modal-backdrop');
+    const amountInput = backdrop.querySelector('input[name="amount"]');
+    const litersInput = backdrop.querySelector('#vlog-liters');
+    amountInput.addEventListener('input', ()=>{
+      const activeType = backdrop.querySelector('#vlog-type-group .radio-opt.selected').dataset.val;
+      if(activeType !== 'fuel') return;
+      const amt = Number(amountInput.value);
+      litersInput.value = amt > 0 ? (amt / DB.fuelPricePerLiter).toFixed(2) : '';
     });
   }
   if(kind==='reconcile'){

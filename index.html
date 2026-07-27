@@ -483,6 +483,7 @@ function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9
 // app versions — fills in any fields/collections/categories added since they last saved.
 function migrateDB(db){
   db.vehicles = db.vehicles || [];
+  db.vehicles.forEach(v=>{ if(v.oilIntervalKm===undefined) v.oilIntervalKm = null; });
   db.vehicleLogs = db.vehicleLogs || [];
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
@@ -665,6 +666,18 @@ function vehicleCurrentOdometer(vehicleId){
 function vehicleLastOilChangeKm(vehicleId){
   const oilLogs = vehicleLogsRaw(vehicleId).filter(l=>l.type==='oil' && l.odometerKm != null);
   return oilLogs.length ? oilLogs[oilLogs.length-1].odometerKm : null;
+}
+// Returns null if not enough info to judge (no interval set, or no odometer readings yet).
+function vehicleOilDueStatus(vehicleId){
+  const v = vehicleById(vehicleId);
+  if(!v || !v.oilIntervalKm) return null;
+  const odo = vehicleCurrentOdometer(vehicleId);
+  const lastOil = vehicleLastOilChangeKm(vehicleId);
+  if(odo == null) return null;
+  const baseline = lastOil != null ? lastOil : odo; // if never changed, count from current odometer
+  const sinceOil = odo - baseline;
+  const remaining = v.oilIntervalKm - sinceOil;
+  return { sinceOil, remaining, overdue: remaining < 0 };
 }
 function vehicleMonthCost(vehicleId, mKey){
   return DB.vehicleLogs.filter(l=>l.vehicleId===vehicleId && monthKey(l.date)===mKey)
@@ -974,6 +987,15 @@ function renderDashboard(){
     const days = Math.ceil((new Date(d.renewalDate) - new Date()) / 86400000);
     if(days <= 30) dueItems.push({label:`${veh?veh.name:'Vehicle'} — ${d.docType} renewal`, date:d.renewalDate, days, kind:'document'});
   });
+  DB.vehicles.forEach(v=>{
+    const oilStatus = vehicleOilDueStatus(v.id);
+    if(oilStatus && oilStatus.remaining <= 500){
+      dueItems.push({
+        label: `${v.name} — oil change ${oilStatus.overdue?'overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km':'in '+fmtMoney(oilStatus.remaining)+' km'}`,
+        date: null, days: oilStatus.overdue ? -1 : 5, kind:'oil'
+      });
+    }
+  });
   dueItems.sort((a,b)=>a.days-b.days);
   document.getElementById('dash-due-list').innerHTML = dueItems.length ? dueItems.map(d=>`
     <div class="card" style="margin-bottom:10px;padding:12px 14px;">
@@ -1215,6 +1237,7 @@ function renderVehicles(){
     const odo = vehicleCurrentOdometer(v.id);
     const lastOil = vehicleLastOilChangeKm(v.id);
     const sinceOil = (odo!=null && lastOil!=null) ? odo - lastOil : null;
+    const oilStatus = vehicleOilDueStatus(v.id);
     const monthCost = vehicleMonthCost(v.id, mKey);
     const logsCount = vehicleLogsRaw(v.id).length;
     const docsCount = vehicleDocsFor(v.id).length;
@@ -1232,6 +1255,9 @@ function renderVehicles(){
       <div class="stats" style="margin-top:4px;">
         <span>Since oil change</span><span class="num">${sinceOil!=null? fmtMoney(sinceOil)+' km' : '—'}</span>
       </div>
+      ${oilStatus ? `<div class="stats" style="margin-top:4px;">
+        <span>Oil change</span><span class="num" style="color:${oilStatus.overdue?'var(--negative)':(oilStatus.remaining<=500?'var(--warning)':'var(--positive)')}">${oilStatus.overdue?'Overdue '+fmtMoney(Math.abs(oilStatus.remaining))+' km':fmtMoney(oilStatus.remaining)+' km left'}</span>
+      </div>` : ''}
       <div class="stats" style="margin-top:4px;">
         <span>This month cost</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
       </div>
@@ -1516,6 +1542,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="car">
         </div>
         <div class="field"><label>Plate / Note (optional)</label><input name="plateNote" placeholder="e.g. plate number"></div>
+        <div class="field"><label>Oil change interval (km, optional)</label><input type="number" step="100" name="oilIntervalKm" placeholder="e.g. 5000"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
           <button type="submit" class="btn">Create Vehicle</button>
@@ -1528,12 +1555,22 @@ function openModal(kind, ctx={}){
     const v = vehicleById(ctx.vehicleId);
     const odo = vehicleCurrentOdometer(v.id);
     const lastOil = vehicleLastOilChangeKm(v.id);
+    const oilStatus = vehicleOilDueStatus(v.id);
     const logs = vehicleLogsComputed(v.id).slice().reverse();
     const docs = vehicleDocsFor(v.id);
     const typeLabels = {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
     html = `<div class="modal" style="width:660px;">
       <h2>${v.name}</h2>
       <div class="help-text">${v.type==='car'?'Car':'Scooter'} · Odometer: ${odo!=null?fmtMoney(odo)+' km':'—'}${lastOil!=null?' · Last oil change: '+fmtMoney(lastOil)+' km':''}</div>
+      <div class="field-row" style="align-items:flex-end;margin-bottom:12px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Oil change interval (km)</label>
+          <input type="number" step="100" data-oil-interval="${v.id}" value="${v.oilIntervalKm||''}" placeholder="e.g. 5000">
+        </div>
+        <div class="field" style="margin-bottom:0;flex:1.4;">
+          ${oilStatus ? `<label>Status</label><div class="tag ${oilStatus.overdue?'expense':(oilStatus.remaining<=500?'warning':'income')}" style="display:block;text-align:center;padding:8px;">${oilStatus.overdue ? 'Overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km' : fmtMoney(oilStatus.remaining)+' km left'}</div>` : ''}
+        </div>
+      </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">
         <button type="button" class="btn secondary sm" id="btn-add-vehicle-log">+ Log Entry</button>
         <button type="button" class="btn secondary sm" id="btn-add-vehicle-doc">+ Document / Renewal</button>
@@ -1684,6 +1721,13 @@ function openModal(kind, ctx={}){
     const backdrop = document.getElementById('modal-backdrop');
     backdrop.querySelector('#btn-add-vehicle-log').addEventListener('click', ()=> openModal('vehicle-log', {vehicleId: ctx.vehicleId}));
     backdrop.querySelector('#btn-add-vehicle-doc').addEventListener('click', ()=> openModal('vehicle-doc', {vehicleId: ctx.vehicleId}));
+    backdrop.querySelector('[data-oil-interval]').addEventListener('change', e=>{
+      const v = vehicleById(ctx.vehicleId);
+      v.oilIntervalKm = e.target.value ? Number(e.target.value) : null;
+      saveDB(); renderAll();
+      openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+      toast('Oil interval updated');
+    });
   }
 }
 
@@ -1820,7 +1864,8 @@ const submitHandlers = {
   },
   vehicle(data){
     DB.vehicles.push({
-      id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || ''
+      id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || '',
+      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
     });
     saveDB(); toast('Vehicle created');
   },

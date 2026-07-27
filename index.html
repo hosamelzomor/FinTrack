@@ -790,7 +790,9 @@ function allExpenseEntries(){
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date}));
   const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
     .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date}));
-  return txnEntries.concat(vlogEntries);
+  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
+    .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date}));
+  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -823,7 +825,9 @@ function categorySelfTotal(catId, mKey){
     .reduce((sum,e)=> sum + toEGP(e.amount, e.currency), 0);
 }
 function allMonthsWithActivity(){
-  const dates = DB.transactions.map(t=>monthKey(t.date)).concat(DB.vehicleLogs.map(l=>monthKey(l.date)));
+  const dates = DB.transactions.map(t=>monthKey(t.date))
+    .concat(DB.vehicleLogs.map(l=>monthKey(l.date)))
+    .concat(DB.commitmentPayments.map(p=>monthKey(p.date)));
   const set = new Set(dates);
   return [...set].filter(Boolean).sort().reverse();
 }

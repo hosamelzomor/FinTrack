@@ -771,11 +771,29 @@ function categoryAndDescendantIds(catId){
   DB.categories.forEach(c=>{ if(c.parentId===catId) ids.push(c.id); });
   return ids;
 }
+// Maps a vehicle log entry to the category it represents (car vs scooter, fuel/maintenance/oil/asset).
+function vehicleLogCategoryId(log){
+  const v = vehicleById(log.vehicleId);
+  if(!v) return null;
+  const sets = {
+    car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
+    scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
+  };
+  const set = sets[v.type] || sets.car;
+  return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
+}
+// Unified expense list for category totals: regular expense transactions, PLUS vehicle logs that
+// were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
+// transaction with the same category, so they're skipped here to avoid double-counting.
+function allExpenseEntries(){
+  const txnEntries = DB.transactions.filter(t=>t.type==='expense')
+    .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date}));
+  const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
+    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date}));
+  return txnEntries.concat(vlogEntries);
+}
 function categorySpendInMonth(catId, mKey){
-  const ids = categoryAndDescendantIds(catId);
-  return liveTransactions()
-    .filter(t=> t.type==='expense' && ids.includes(t.categoryId) && monthKey(t.date)===mKey)
-    .reduce((sum,t)=> sum + toEGP(t.amount, t.currency), 0);
+  return categoryTotal(catId, mKey);
 }
 // Average spend over the `monthsCount` calendar months immediately before the current one —
 // used to suggest a realistic budget limit from real history rather than a guess.
@@ -791,21 +809,22 @@ function categoryAvgSpend(catId, monthsCount){
 function budgetFor(catId){ return DB.budgets.find(b=>b.categoryId===catId); }
 
 /* ---------------------------- REPORTS ---------------------------- */
-// Reports look across ALL transactions (live + historical archive) since the point is full analysis,
-// unlike Dashboard/Transactions which only show live/current-account activity.
+// Reports (and Budgets, via categorySpendInMonth above) look across ALL expense entries —
+// transactions plus vehicle logs — since the point is full analysis, not just current-account activity.
 function categoryTotal(catId, mKey){
   const ids = categoryAndDescendantIds(catId);
-  return DB.transactions
-    .filter(t=> t.type==='expense' && ids.includes(t.categoryId) && (!mKey || monthKey(t.date)===mKey))
-    .reduce((sum,t)=> sum + toEGP(t.amount, t.currency), 0);
+  return allExpenseEntries()
+    .filter(e=> ids.includes(e.categoryId) && (!mKey || monthKey(e.date)===mKey))
+    .reduce((sum,e)=> sum + toEGP(e.amount, e.currency), 0);
 }
 function categorySelfTotal(catId, mKey){
-  return DB.transactions
-    .filter(t=> t.type==='expense' && t.categoryId===catId && (!mKey || monthKey(t.date)===mKey))
-    .reduce((sum,t)=> sum + toEGP(t.amount, t.currency), 0);
+  return allExpenseEntries()
+    .filter(e=> e.categoryId===catId && (!mKey || monthKey(e.date)===mKey))
+    .reduce((sum,e)=> sum + toEGP(e.amount, e.currency), 0);
 }
 function allMonthsWithActivity(){
-  const set = new Set(DB.transactions.map(t=>monthKey(t.date)));
+  const dates = DB.transactions.map(t=>monthKey(t.date)).concat(DB.vehicleLogs.map(l=>monthKey(l.date)));
+  const set = new Set(dates);
   return [...set].filter(Boolean).sort().reverse();
 }
 
@@ -1019,7 +1038,8 @@ function renderDashboard(){
     <div class="card">
       <h3>Current Balance</h3>
       <div class="big">EGP ${fmtMoney(nw)}</div>
-      <div class="delta">cash + bank across ${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} account${DB.accounts.filter(a=>!a.excludeFromNetWorth).length===1?'':'s'}</div>
+      <div class="delta">cash + bank across ${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} account${DB.accounts.filter(a=>!a.excludeFromNetWorth).length===1?'':'s'} · income − expenses since each account's opening balance</div>
+      <button class="btn ghost sm" style="margin-top:10px;" data-open-modal="reconcile-all">Reconcile with real balances</button>
     </div>
     <div class="card">
       <h3>Outstanding Commitments</h3>
@@ -1564,6 +1584,44 @@ function openModal(kind, ctx={}){
     </div>`;
   }
 
+  if(kind==='reconcile-all'){
+    const accounts = DB.accounts.filter(a=>!a.excludeFromNetWorth);
+    html = `<div class="modal" style="width:520px;">
+      <h2>Reconcile with Real Balances</h2>
+      <div class="help-text">
+        For each account, count what you actually have (cash in hand / real bank balance) and type it in.
+        The system total is Income − Expenses since each account's opening balance — this finds exactly
+        where the difference is, account by account, so you can go track down what's missing.
+      </div>
+      <form id="form-reconcile-all">
+        ${accounts.map(a=>{
+          const computed = accountBalance(a);
+          return `<div class="field-row" style="align-items:flex-end;">
+            <div class="field" style="flex:1.4;margin-bottom:14px;">
+              <label>${a.name} <span style="color:var(--text-faint);">(system: ${a.currency} ${fmtMoney(computed)})</span></label>
+              <input type="number" step="0.01" name="actual_${a.id}" data-recall-actual="${a.id}" data-recall-computed="${computed}" data-recall-currency="${a.currency}" placeholder="actual ${a.currency}">
+            </div>
+            <div class="field" style="margin-bottom:14px;">
+              <div class="num" data-recall-diff="${a.id}" style="text-align:right;color:var(--text-faint);padding-bottom:9px;">—</div>
+            </div>
+          </div>`;
+        }).join('')}
+        <div class="card" style="margin-bottom:14px;">
+          <h3>Total Difference (EGP)</h3>
+          <div class="big" id="reconcile-all-total">0.00</div>
+        </div>
+        <div class="help-text" style="margin-bottom:8px;">
+          Leave any account blank to skip it. Adjustments are only recorded for accounts where you entered
+          an actual balance different from the system total.
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Record Adjustments</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
   if(kind==='transaction'){
     if(!DB.accounts.length){ toast('Add an account first'); return; }
     html = `<div class="modal">
@@ -1972,6 +2030,29 @@ function openModal(kind, ctx={}){
       diffValue.style.color = Math.abs(diff) < 0.01 ? 'var(--positive)' : (diff>0 ? 'var(--positive)' : 'var(--negative)');
     });
   }
+
+  if(kind==='reconcile-all'){
+    const backdrop = document.getElementById('modal-backdrop');
+    const inputs = backdrop.querySelectorAll('[data-recall-actual]');
+    const totalEl = backdrop.querySelector('#reconcile-all-total');
+    function recalc(){
+      let total = 0;
+      inputs.forEach(inp=>{
+        const accId = inp.dataset.recallActual;
+        const diffEl = backdrop.querySelector(`[data-recall-diff="${accId}"]`);
+        if(inp.value === ''){ diffEl.textContent = '—'; diffEl.style.color = 'var(--text-faint)'; return; }
+        const computed = Number(inp.dataset.recallComputed);
+        const currency = inp.dataset.recallCurrency;
+        const diff = Number(inp.value) - computed;
+        diffEl.textContent = (diff>=0?'+':'') + fmtMoney(diff);
+        diffEl.style.color = Math.abs(diff) < 0.01 ? 'var(--positive)' : (diff>0 ? 'var(--positive)' : 'var(--negative)');
+        total += toEGP(diff, currency);
+      });
+      totalEl.textContent = (total>=0?'+':'') + fmtMoney(total) + ' EGP';
+      totalEl.style.color = Math.abs(total) < 0.01 ? 'var(--positive)' : (total>0 ? 'var(--positive)' : 'var(--negative)');
+    }
+    inputs.forEach(inp=> inp.addEventListener('input', recalc));
+  }
 }
 
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
@@ -2069,6 +2150,28 @@ const submitHandlers = {
     });
     saveDB(); toast('Adjustment recorded — balance now matches');
   },
+  'reconcile-all'(data){
+    const today = new Date().toISOString().slice(0,10);
+    let recorded = 0;
+    Object.keys(data).forEach(key=>{
+      if(!key.startsWith('actual_') || data[key]==='') return;
+      const accId = key.slice('actual_'.length);
+      const a = accountById(accId);
+      if(!a) return;
+      const computed = accountBalance(a);
+      const diff = Number(data[key]) - computed;
+      if(Math.abs(diff) < 0.01) return;
+      DB.transactions.push({
+        id: uid('txn'), date: today, accountId: a.id,
+        categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
+        amount: Math.abs(diff), currency: a.currency,
+        note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
+      });
+      recorded++;
+    });
+    if(recorded===0){ toast('No differences to record'); return; }
+    saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
+  },
   transaction(data){
     if(data.type==='transfer'){
       if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
@@ -2139,11 +2242,6 @@ const submitHandlers = {
   'vehicle-log'(data){
     const v = vehicleById(data.vehicleId);
     if(!v) throw new Error('Vehicle not found');
-    const catSets = {
-      car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
-      scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
-    };
-    const catByType = catSets[v.type] || catSets.car;
     let accountId = null, currency = 'EGP', txnId = null;
     if(data.method === 'bank_transfer'){
       if(!data.accountId) throw new Error('Choose an account');
@@ -2153,7 +2251,7 @@ const submitHandlers = {
     if(accountId){
       txnId = uid('txn');
       DB.transactions.push({
-        id: txnId, date: data.date, accountId, categoryId: catByType[data.type] || (v.type==='scooter'?'cat_scooter':'cat_car'),
+        id: txnId, date: data.date, accountId, categoryId: vehicleLogCategoryId({vehicleId: v.id, type: data.type}),
         amount: Number(data.amount), currency, note: `${v.name} — ${data.type}${data.note?': '+data.note:''}`,
         type: 'expense', transferPairId: null
       });

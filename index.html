@@ -549,6 +549,11 @@ function migrateDB(db){
   });
   db.fuelPricePerLiter = db.fuelPricePerLiter || 22.25;
   db.vehicleParts = db.vehicleParts || [];
+  db.vehicleParts.forEach(p=>{
+    if(p.intervalType===undefined) p.intervalType = 'km';
+    if(p.intervalDays===undefined) p.intervalDays = null;
+    if(p.createdDate===undefined) p.createdDate = todayLocalISO();
+  });
   db.vehicleLogs = db.vehicleLogs || [];
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
@@ -583,7 +588,7 @@ function migrateDB(db){
 }
 
 function seedDB(){
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayLocalISO();
   return migrateDB({
     accounts: [
       { id: uid('acc'), name: 'Cash Wallet', type: 'cash', currency: 'EGP', openingBalance: 0, openingDate: today, excludeFromNetWorth:false },
@@ -634,7 +639,16 @@ function fmtDate(d){
   return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 }
 function monthKey(d){ return (d||'').slice(0,7); }
-function thisMonthKey(){ return new Date().toISOString().slice(0,7); }
+// Local calendar date (not UTC) — new Date().toISOString() shifts near midnight in Cairo (UTC+2/+3),
+// which was exactly the class of bug that hit ميزان before. This avoids it everywhere "today" is used.
+function todayLocalISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function thisMonthKey(){ return todayLocalISO().slice(0,7); }
 function addMonths(dateStr, n){
   const d = new Date(dateStr);
   d.setMonth(d.getMonth()+n);
@@ -677,13 +691,14 @@ function totalLiabilitiesEGP(){
 }
 
 function monthTotals(mKey){
-  let income=0, expense=0;
+  let income=0;
   liveTransactions().forEach(t=>{
     if(monthKey(t.date) !== mKey) return;
-    const egp = toEGP(t.amount, t.currency);
-    if(t.type==='income') income += egp;
-    else if(t.type==='expense') expense += egp;
+    if(t.type==='income') income += toEGP(t.amount, t.currency);
   });
+  const expense = liveExpenseEntries()
+    .filter(e=> monthKey(e.date)===mKey)
+    .reduce((sum,e)=> sum + toEGP(e.amount, e.currency), 0);
   return {income, expense, net: income-expense};
 }
 
@@ -768,15 +783,28 @@ function vehiclePartLastChangeKm(partId){
   const logs = DB.vehicleLogs.filter(l=>l.partId===partId && l.odometerKm!=null).sort((a,b)=>a.date.localeCompare(b.date));
   return logs.length ? logs[logs.length-1].odometerKm : null;
 }
-// Same math as vehicleOilDueStatus, generalized to any tracked part.
+function vehiclePartLastChangeDate(partId){
+  const logs = DB.vehicleLogs.filter(l=>l.partId===partId).sort((a,b)=>a.date.localeCompare(b.date));
+  return logs.length ? logs[logs.length-1].date : null;
+}
+// A part can be tracked by distance (km since last change) or by time (days since last change) —
+// same due/overdue math either way, generalized from vehicleOilDueStatus.
 function vehiclePartDueStatus(part){
+  if(part.intervalType === 'time'){
+    if(!part.intervalDays) return null;
+    const lastDate = vehiclePartLastChangeDate(part.id) || part.createdDate;
+    if(!lastDate) return null;
+    const sinceChange = Math.floor((new Date(todayLocalISO()) - new Date(lastDate)) / 86400000);
+    const remaining = part.intervalDays - sinceChange;
+    return { unit:'days', sinceChange, remaining, overdue: remaining < 0 };
+  }
   const odo = vehicleCurrentOdometer(part.vehicleId);
   if(odo == null || !part.intervalKm) return null;
   const lastChange = vehiclePartLastChangeKm(part.id);
   const baseline = lastChange != null ? lastChange : odo;
   const sinceChange = odo - baseline;
   const remaining = part.intervalKm - sinceChange;
-  return { sinceChange, remaining, overdue: remaining < 0 };
+  return { unit:'km', sinceChange, remaining, overdue: remaining < 0 };
 }
 function vehicleMonthCost(vehicleId, mKey){
   return DB.vehicleLogs.filter(l=>l.vehicleId===vehicleId && monthKey(l.date)===mKey)
@@ -809,11 +837,22 @@ function vehicleLogCategoryId(log){
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
-    .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date}));
+    .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction'}));
   const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
-    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date}));
+    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
-    .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date}));
+    .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
+  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
+}
+// Same as above but scoped to "live" activity only (excludes the historical-archive account's
+// transactions) — this is what Dashboard "This Month" cards should reflect, not full history.
+function liveExpenseEntries(){
+  const txnEntries = liveTransactions().filter(t=>t.type==='expense')
+    .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction', note:t.note}));
+  const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
+    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
+  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
+    .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
   return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
 }
 function categorySpendInMonth(catId, mKey){
@@ -1080,15 +1119,15 @@ function renderDashboard(){
   `;
 
   document.getElementById('dash-month-cards').innerHTML = `
-    <div class="card">
+    <div class="card" data-open-modal="month-detail" data-month-detail-type="income" style="cursor:pointer;">
       <h3>This Month — Income</h3>
       <div class="big" style="color:var(--positive)">EGP ${fmtMoney(mt.income)}</div>
-      <div class="delta">${thisMonthKey()}</div>
+      <div class="delta">${thisMonthKey()} · tap for details</div>
     </div>
-    <div class="card">
+    <div class="card" data-open-modal="month-detail" data-month-detail-type="expense" style="cursor:pointer;">
       <h3>This Month — Expenses</h3>
       <div class="big" style="color:var(--negative)">EGP ${fmtMoney(mt.expense)}</div>
-      <div class="delta ${mt.net>=0?'up':'down'}">Net: ${mt.net>=0?'+':''}${fmtMoney(mt.net)} EGP</div>
+      <div class="delta ${mt.net>=0?'up':'down'}">Net: ${mt.net>=0?'+':''}${fmtMoney(mt.net)} EGP · tap for details</div>
     </div>
   `;
 
@@ -1147,10 +1186,13 @@ function renderDashboard(){
   });
   DB.vehicleParts.forEach(p=>{
     const st = vehiclePartDueStatus(p);
-    if(st && st.remaining <= 500){
+    if(!st) return;
+    const threshold = st.unit==='km' ? 500 : 30;
+    if(st.remaining <= threshold){
       const veh = vehicleById(p.vehicleId);
+      const unitLabel = st.unit==='km' ? 'km' : 'day'+(Math.abs(st.remaining)===1?'':'s');
       dueItems.push({
-        label: `${veh?veh.name:'Vehicle'} — ${p.name} ${st.overdue?'overdue by '+fmtMoney(Math.abs(st.remaining))+' km':'in '+fmtMoney(st.remaining)+' km'}`,
+        label: `${veh?veh.name:'Vehicle'} — ${p.name} ${st.overdue?'overdue by '+fmtMoney(Math.abs(st.remaining))+' '+unitLabel:'in '+fmtMoney(st.remaining)+' '+unitLabel}`,
         date: null, days: st.overdue ? -1 : 5, kind:'part'
       });
     }
@@ -1580,7 +1622,7 @@ function openModal(kind, ctx={}){
         </div>
         <div class="field-row">
           <div class="field"><label>Opening Balance</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
-          <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${editing?editing.openingDate:new Date().toISOString().slice(0,10)}"></div>
+          <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
         </div>
         <div class="field">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -1679,7 +1721,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="expense">
         </div>
         <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
           <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" required placeholder="0.00"></div>
         </div>
         <div class="field" id="txn-account-field">
@@ -1746,7 +1788,7 @@ function openModal(kind, ctx={}){
           <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" required></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${todayLocalISO()}" required></div>
           <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12"></div>
         </div>
         <div class="field" id="commit-payout-field" style="display:none;">
@@ -1768,7 +1810,7 @@ function openModal(kind, ctx={}){
       <form id="form-payment">
         <input type="hidden" name="commitmentId" value="${c.id}">
         <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
           <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${c.installmentAmount}" required></div>
         </div>
         <div class="field">
@@ -1798,7 +1840,7 @@ function openModal(kind, ctx={}){
       <form id="form-payout">
         <input type="hidden" name="commitmentId" value="${c.id}">
         <div class="field-row">
-          <div class="field"><label>Date Received</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Date Received</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
           <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${c.totalAmount}" required></div>
         </div>
         <div class="field">
@@ -1810,6 +1852,39 @@ function openModal(kind, ctx={}){
           <button type="submit" class="btn">Confirm Payout</button>
         </div>
       </form>
+    </div>`;
+  }
+
+  if(kind==='month-detail'){
+    const mKey = thisMonthKey();
+    const isIncome = ctx.type === 'income';
+    let rows;
+    if(isIncome){
+      rows = liveTransactions().filter(t=>t.type==='income' && monthKey(t.date)===mKey)
+        .map(t=>({date:t.date, label: categoryLabel(t.categoryId), note:t.note, amount:t.amount, currency:t.currency}));
+    } else {
+      rows = liveExpenseEntries().filter(e=>monthKey(e.date)===mKey)
+        .map(e=>({date:e.date, label: categoryLabel(e.categoryId), note:e.note, amount:e.amount, currency:e.currency}));
+    }
+    rows.sort((a,b)=> b.date.localeCompare(a.date));
+    const total = rows.reduce((s,r)=> s + toEGP(r.amount, r.currency), 0);
+    html = `<div class="modal" style="width:560px;">
+      <h2>This Month — ${isIncome?'Income':'Expenses'} Breakdown</h2>
+      <div class="help-text">${mKey} · ${rows.length} entr${rows.length===1?'y':'ies'} · total EGP ${fmtMoney(total)}</div>
+      <div class="table-wrap" style="margin-top:14px;">
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr>
+              <td>${fmtDate(r.date)}</td>
+              <td>${r.label}</td>
+              <td style="color:var(--text-muted);">${r.note||''}</td>
+              <td class="amt ${isIncome?'pos':'neg'}">${r.currency} ${fmtMoney(r.amount)}</td>
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">No entries yet this month</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
     </div>`;
   }
 
@@ -1872,9 +1947,15 @@ function openModal(kind, ctx={}){
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
         ${parts.map(p=>{
           const st = vehiclePartDueStatus(p);
+          const isTime = p.intervalType==='time';
+          const meta = isTime
+            ? `every ${fmtMoney(p.intervalDays)} days${st?' · last changed '+fmtDate(vehiclePartLastChangeDate(p.id)||p.createdDate):''}`
+            : `every ${fmtMoney(p.intervalKm)} km${st?' · changed at '+(vehiclePartLastChangeKm(p.id)!=null?fmtMoney(vehiclePartLastChangeKm(p.id))+' km':'—'):''}`;
+          const threshold = isTime ? 30 : 500;
+          const unitLabel = isTime ? ' days' : ' km';
           return `<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
-            <div><div style="font-weight:600;font-size:13px;">${p.name}</div><div class="meta">every ${fmtMoney(p.intervalKm)} km${st?' · changed at '+(vehiclePartLastChangeKm(p.id)!=null?fmtMoney(vehiclePartLastChangeKm(p.id))+' km':'—'):''}</div></div>
-            ${st ? `<span class="tag ${st.overdue?'expense':(st.remaining<=500?'warning':'income')}">${st.overdue?'Overdue '+fmtMoney(Math.abs(st.remaining))+' km':fmtMoney(st.remaining)+' km left'}</span>` : '<span class="tag">—</span>'}
+            <div><div style="font-weight:600;font-size:13px;">${p.name}</div><div class="meta">${meta}</div></div>
+            ${st ? `<span class="tag ${st.overdue?'expense':(st.remaining<=threshold?'warning':'income')}">${st.overdue?'Overdue '+fmtMoney(Math.abs(st.remaining))+unitLabel:fmtMoney(st.remaining)+unitLabel+' left'}</span>` : '<span class="tag">—</span>'}
           </div>`;
         }).join('') || `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">No parts tracked yet</div>`}
       </div>
@@ -1935,7 +2016,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="fuel">
         </div>
         <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
           <div class="field"><label>Amount (EGP)</label><input type="number" step="0.01" name="amount" required></div>
         </div>
         <div class="field-row">
@@ -1977,8 +2058,23 @@ function openModal(kind, ctx={}){
       <form id="form-vehicle-part">
         <input type="hidden" name="vehicleId" value="${v.id}">
         <div class="field"><label>Part Name</label><input name="name" required placeholder="e.g. إطارات، فرامل، فلتر هواء، بطارية"></div>
-        <div class="field"><label>Replace every (km)</label><input type="number" step="100" name="intervalKm" required placeholder="e.g. 20000"></div>
-        <div class="help-text">After this, tag your log entries to this part (in the Part dropdown when logging maintenance) so FinTrack can track when it's next due — same as oil.</div>
+        <div class="field">
+          <label>Replace based on</label>
+          <div class="radio-group" id="vpart-type-group">
+            <div class="radio-opt selected" data-val="km">Distance (km)</div>
+            <div class="radio-opt" data-val="time">Time (days)</div>
+          </div>
+          <input type="hidden" name="intervalType" value="km">
+        </div>
+        <div class="field" id="vpart-km-field">
+          <label>Replace every (km)</label>
+          <input type="number" step="100" name="intervalKm" placeholder="e.g. 20000">
+        </div>
+        <div class="field" id="vpart-days-field" style="display:none;">
+          <label>Replace every (days)</label>
+          <input type="number" step="1" name="intervalDays" placeholder="e.g. 730 for ~2 years">
+        </div>
+        <div class="help-text">Distance-based: tag your maintenance log entries to this part so FinTrack can measure km since the last change (same as oil). Time-based: the countdown starts from today, or from your last log tagged to this part.</div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
           <button type="submit" class="btn">Save Part</button>
@@ -2168,6 +2264,10 @@ function wireModal(kind){
       if(group.id==='vlog-method-group'){
         document.getElementById('vlog-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
       }
+      if(group.id==='vpart-type-group'){
+        document.getElementById('vpart-km-field').style.display = opt.dataset.val==='km' ? 'block' : 'none';
+        document.getElementById('vpart-days-field').style.display = opt.dataset.val==='time' ? 'block' : 'none';
+      }
     });
   });
 
@@ -2214,7 +2314,7 @@ const submitHandlers = {
     const diff = actual - computed;
     if(Math.abs(diff) < 0.01){ toast('No difference to record'); return; }
     DB.transactions.push({
-      id: uid('txn'), date: new Date().toISOString().slice(0,10), accountId: a.id,
+      id: uid('txn'), date: todayLocalISO(), accountId: a.id,
       categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
       amount: Math.abs(diff), currency: a.currency,
       note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
@@ -2222,7 +2322,7 @@ const submitHandlers = {
     saveDB(); toast('Adjustment recorded — balance now matches');
   },
   'reconcile-all'(data){
-    const today = new Date().toISOString().slice(0,10);
+    const today = todayLocalISO();
     let recorded = 0;
     Object.keys(data).forEach(key=>{
       if(!key.startsWith('actual_') || data[key]==='') return;
@@ -2339,8 +2439,14 @@ const submitHandlers = {
   'vehicle-part'(data){
     const v = vehicleById(data.vehicleId);
     if(!v) throw new Error('Vehicle not found');
+    if(data.intervalType==='time' && !data.intervalDays) throw new Error('Enter an interval in days');
+    if(data.intervalType==='km' && !data.intervalKm) throw new Error('Enter an interval in km');
     DB.vehicleParts.push({
-      id: uid('vpart'), vehicleId: v.id, name: data.name.trim(), intervalKm: Number(data.intervalKm)
+      id: uid('vpart'), vehicleId: v.id, name: data.name.trim(),
+      intervalType: data.intervalType,
+      intervalKm: data.intervalType==='km' ? Number(data.intervalKm) : null,
+      intervalDays: data.intervalType==='time' ? Number(data.intervalDays) : null,
+      createdDate: todayLocalISO()
     });
     saveDB(); toast('Part tracked');
   },
@@ -2363,7 +2469,7 @@ const submitHandlers = {
 
 document.addEventListener('click', e=>{
   const opener = e.target.closest('[data-open-modal]');
-  if(opener) openModal(opener.dataset.openModal);
+  if(opener) openModal(opener.dataset.openModal, opener.dataset.monthDetailType ? {type: opener.dataset.monthDetailType} : {});
 });
 
 /* ---------------------------- BACKUP / RESTORE ---------------------------- */
@@ -2371,7 +2477,7 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
   const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `fintrack-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.href = url; a.download = `fintrack-backup-${todayLocalISO()}.json`;
   a.click(); URL.revokeObjectURL(url);
   toast('Backup exported');
 });

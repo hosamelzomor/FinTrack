@@ -1590,11 +1590,29 @@ function accountOptions(selected){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
 }
 function categoryOptions(type, selected){
-  const parents = DB.categories.filter(c=>c.type===type);
-  return parents.map(c=>{
-    const label = c.parentId ? '— ' + c.name : c.name;
-    return `<option value="${c.id}" ${c.id===selected?'selected':''}>${label}</option>`;
-  }).join('');
+  // Build tree with <optgroup> for parents and indented children
+  const parents = DB.categories.filter(c=>c.type===type && !c.parentId);
+  const rows = [];
+  parents.forEach(p=>{
+    const children = DB.categories.filter(c=>c.type===type && c.parentId===p.id);
+    if(children.length){
+      // Parent is selectable + has children shown in group
+      rows.push(`<optgroup label="${p.name}">`);
+      rows.push(`<option value="${p.id}" ${p.id===selected?'selected':''}>${p.name} (كل البند)</option>`);
+      children.forEach(c=>{
+        rows.push(`<option value="${c.id}" ${c.id===selected?'selected':''}>　└ ${c.name}</option>`);
+      });
+      rows.push(`</optgroup>`);
+    } else {
+      rows.push(`<option value="${p.id}" ${p.id===selected?'selected':''} style="font-weight:600;">${p.name}</option>`);
+    }
+  });
+  return rows.join('');
+}
+
+function categoryParentOptions(type, selected){
+  return DB.categories.filter(c=>c.type===type && !c.parentId)
+    .map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${c.name}</option>`).join('');
 }
 
 function openModal(kind, ctx={}){
@@ -1760,7 +1778,7 @@ function openModal(kind, ctx={}){
         <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء"></div>
         <div class="field">
           <label>Parent category (optional)</label>
-          <select name="parentId" id="cat-parent-select"><option value="">— None (top-level) —</option>${categoryOptions('expense')}</select>
+          <select name="parentId" id="cat-parent-select"><option value="">— None (top-level) —</option>${categoryParentOptions('expense')}</select>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2249,7 +2267,7 @@ function wireModal(kind){
       }
       if(group.id==='cat-type-group'){
         const val = opt.dataset.val;
-        document.getElementById('cat-parent-select').innerHTML = '<option value="">— None (top-level) —</option>' + categoryOptions(val);
+        document.getElementById('cat-parent-select').innerHTML = '<option value="">— None (top-level) —</option>' + categoryParentOptions(val);
       }
       if(group.id==='commit-type-group'){
         document.getElementById('commit-payout-field').style.display = opt.dataset.val==='rotating_saving' ? 'block' : 'none';

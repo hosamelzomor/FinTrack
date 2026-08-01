@@ -718,7 +718,11 @@ function commitmentPayments(commitId){
 
 function isArchiveTxn(t){
   const acc = accountById(t.accountId);
-  return acc ? !!acc.excludeFromNetWorth : false;
+  if(!acc) return false;
+  // Only treat as archive if the account is explicitly an archive/history bucket
+  // (name contains 'أرشيف' or 'Archive' or 'سجل تاريخي')
+  return acc.excludeFromNetWorth &&
+    (acc.name.includes('أرشيف') || acc.name.includes('Archive') || acc.name.includes('سجل تاريخي'));
 }
 function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
 function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
@@ -836,12 +840,35 @@ function vehicleLogCategoryId(log){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
+  // Transactions are always counted.
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction'}));
-  const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
+
+  // Vehicle logs that already have a matching expense transaction (linkedTransactionId set,
+  // OR the transaction was imported separately as an expense) should NOT be double-counted.
+  // Only include vehicle logs that represent standalone cash payments with no corresponding
+  // transaction — identified by: no linkedTransactionId AND no expense transaction on the
+  // same date+amount+vehicle-category exists.
+  const linkedTxnIds = new Set(DB.vehicleLogs.map(l=>l.linkedTransactionId).filter(Boolean));
+  const vlogEntries = DB.vehicleLogs
+    .filter(l=>!l.linkedTransactionId && !linkedTxnIds.has(l.id))
+    .filter(l=>{
+      // If the archive account (excludeFromNetWorth) has an expense transaction
+      // on this date with a matching category, the vehicle detail was imported
+      // as a transaction and the log is odometer-only.
+      const catid = vehicleLogCategoryId(l);
+      const hasMatchingTxn = DB.transactions.some(t=>
+        t.type==='expense' && t.date===l.date &&
+        Math.abs(t.amount-l.amount)<0.01 &&
+        (t.categoryId===catid || (t.categoryId||'').startsWith(catid.split('_')[0]+'_'+catid.split('_')[1]))
+      );
+      return !hasMatchingTxn;
+    })
     .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
+
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
+
   return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
 }
 // Same as above but scoped to "live" activity only (excludes the historical-archive account's

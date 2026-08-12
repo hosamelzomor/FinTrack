@@ -468,23 +468,50 @@
     <!-- REPORTS -->
     <section class="view" id="view-reports">
       <div class="topbar">
-        <div><h1>Reports</h1><div class="today">Where your money goes — across your full history, by category and by month</div></div>
+        <div><h1>Reports</h1><div class="today">Where your money goes — filter by category, sub-category, and date range</div></div>
       </div>
+
+      <!-- Global date range filter -->
+      <div class="card" style="margin-bottom:20px;padding:14px 18px;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">DATE RANGE</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;" id="reports-period-pills">
+            <button class="filter-pill active" data-period="all">All Time</button>
+            <button class="filter-pill" data-period="ytd">This Year</button>
+            <button class="filter-pill" data-period="6m">Last 6 Mo</button>
+            <button class="filter-pill" data-period="3m">Last 3 Mo</button>
+            <button class="filter-pill" data-period="1m">This Month</button>
+            <button class="filter-pill" data-period="custom">Custom</button>
+          </div>
+          <div id="reports-custom-range" style="display:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="month" id="reports-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 9px;font-size:12px;">
+            <span style="color:var(--text-faint);">→</span>
+            <input type="month" id="reports-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 9px;font-size:12px;">
+          </div>
+        </div>
+      </div>
+
       <div class="section-title">By Category<span class="hint">parent categories roll up their sub-categories</span></div>
       <div class="table-wrap" style="margin-bottom:24px;">
         <table>
-          <thead><tr><th>Category</th><th class="amt">This Month</th><th class="amt">All Time</th></tr></thead>
+          <thead><tr><th>Category</th><th class="amt">This Month</th><th class="amt">Selected Period</th></tr></thead>
           <tbody id="reports-tree-body"></tbody>
         </table>
       </div>
+
       <div class="section-title">Monthly Breakdown</div>
-      <div class="field" style="max-width:340px;margin-bottom:14px;">
-        <label>Category</label>
-        <select id="reports-category-select"></select>
+      <!-- Multi-select category filter for monthly breakdown -->
+      <div class="card" style="margin-bottom:14px;padding:14px 18px;">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:10px;">CATEGORIES <span style="font-weight:400;">(select one or more — Ctrl+click / Cmd+click)</span></div>
+        <select id="reports-category-select" multiple size="6" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px;font-size:13px;"></select>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn ghost sm" id="reports-select-all-cats">Select All</button>
+          <button class="btn ghost sm" id="reports-clear-cats">Clear</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Month</th><th class="amt">Amount</th></tr></thead>
+          <thead><tr><th>Month</th><th id="reports-monthly-cat-header" class="amt">Amount</th></tr></thead>
           <tbody id="reports-monthly-body"></tbody>
         </table>
       </div>
@@ -493,15 +520,58 @@
     <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
     <section class="view" id="view-history">
       <div class="topbar">
-        <div><h1>History</h1><div class="today">Imported or archived records — kept for reference, excluded from Net Worth &amp; live Accounts</div></div>
+        <div><h1>History</h1><div class="today">Imported &amp; archived records — full history, filter by category, type, and date</div></div>
       </div>
       <div class="section-title">Archive Accounts</div>
-      <div class="table-wrap">
+      <div class="table-wrap" style="margin-bottom:20px;">
         <table>
           <thead><tr><th>Name</th><th>Currency</th><th class="amt">Balance</th></tr></thead>
           <tbody id="history-accounts-body"></tbody>
         </table>
       </div>
+
+      <!-- History filters -->
+      <div class="card" style="margin-bottom:14px;padding:14px 18px;">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
+          <!-- Type filter -->
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:7px;">TYPE</div>
+            <div style="display:flex;gap:5px;" id="history-type-pills">
+              <button class="filter-pill active" data-htype="all">All</button>
+              <button class="filter-pill" data-htype="income">Income</button>
+              <button class="filter-pill" data-htype="expense">Expense</button>
+            </div>
+          </div>
+          <!-- Date range -->
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:7px;">PERIOD</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;" id="history-period-pills">
+              <button class="filter-pill active" data-hperiod="all">All Time</button>
+              <button class="filter-pill" data-hperiod="ytd">This Year</button>
+              <button class="filter-pill" data-hperiod="2025">2025</button>
+              <button class="filter-pill" data-hperiod="2024">2024</button>
+              <button class="filter-pill" data-hperiod="2023">2023</button>
+              <button class="filter-pill" data-hperiod="custom">Custom</button>
+            </div>
+            <div id="history-custom-range" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;">
+              <input type="month" id="history-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 9px;font-size:12px;">
+              <span style="color:var(--text-faint);">→</span>
+              <input type="month" id="history-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 9px;font-size:12px;">
+            </div>
+          </div>
+          <!-- Category multi-select -->
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:7px;">CATEGORIES <span style="font-weight:400;">(Ctrl+click multi-select)</span></div>
+            <select id="history-cat-select" multiple size="4" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px;font-size:12.5px;"></select>
+            <div style="margin-top:6px;display:flex;gap:6px;">
+              <button class="btn ghost sm" id="history-select-all-cats">All</button>
+              <button class="btn ghost sm" id="history-clear-cats">None</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text-faint);" id="history-count-label"></div>
+      </div>
+
       <div class="section-title">Historical Transactions</div>
       <div class="table-wrap">
         <table>
@@ -836,30 +906,51 @@ function vehicleLogCategoryId(log){
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
 }
-// Unified expense list for category totals: regular expense transactions only.
-// Vehicle logs are NOT included here because:
-//   - Logs paid by bank_transfer already create a linked expense transaction in DB.transactions.
-//   - Odometer-only logs (the imported historical data model) carry no financial amount.
-// Including vlogEntries here caused double-counting against the existing transactions.
+// Unified expense list for category totals: regular expense transactions, PLUS vehicle logs that
+// were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
+// transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
+  // Transactions are always counted.
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction'}));
 
+  // Vehicle logs that already have a matching expense transaction (linkedTransactionId set,
+  // OR the transaction was imported separately as an expense) should NOT be double-counted.
+  // Only include vehicle logs that represent standalone cash payments with no corresponding
+  // transaction — identified by: no linkedTransactionId AND no expense transaction on the
+  // same date+amount+vehicle-category exists.
+  const linkedTxnIds = new Set(DB.vehicleLogs.map(l=>l.linkedTransactionId).filter(Boolean));
+  const vlogEntries = DB.vehicleLogs
+    .filter(l=>!l.linkedTransactionId && !linkedTxnIds.has(l.id))
+    .filter(l=>{
+      // If the archive account (excludeFromNetWorth) has an expense transaction
+      // on this date with a matching category, the vehicle detail was imported
+      // as a transaction and the log is odometer-only.
+      const catid = vehicleLogCategoryId(l);
+      const hasMatchingTxn = DB.transactions.some(t=>
+        t.type==='expense' && t.date===l.date &&
+        Math.abs(t.amount-l.amount)<0.01 &&
+        (t.categoryId===catid || (t.categoryId||'').startsWith(catid.split('_')[0]+'_'+catid.split('_')[1]))
+      );
+      return !hasMatchingTxn;
+    })
+    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
+
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
 
-  return txnEntries.concat(cmPmtEntries);
+  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
 }
 // Same as above but scoped to "live" activity only (excludes the historical-archive account's
 // transactions) — this is what Dashboard "This Month" cards should reflect, not full history.
-// Vehicle logs are excluded for the same reason as allExpenseEntries: their financial amounts
-// are already captured in DB.transactions via linkedTransactionId.
 function liveExpenseEntries(){
   const txnEntries = liveTransactions().filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction', note:t.note}));
+  const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
+    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
-  return txnEntries.concat(cmPmtEntries);
+  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -879,7 +970,7 @@ function budgetFor(catId){ return DB.budgets.find(b=>b.categoryId===catId); }
 
 /* ---------------------------- REPORTS ---------------------------- */
 // Reports (and Budgets, via categorySpendInMonth above) look across ALL expense entries —
-// all expense transactions (including those on archive/historical accounts) — for full analysis.
+// transactions plus vehicle logs — since the point is full analysis, not just current-account activity.
 function categoryTotal(catId, mKey){
   const ids = categoryAndDescendantIds(catId);
   return allExpenseEntries()
@@ -1331,15 +1422,18 @@ function renderCategories(){
       return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-weight:600;font-size:13.5px;">${p.name}</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn ghost sm" data-edit-cat="${p.id}">Edit</button>
-            <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn ghost sm" data-add-sub="${p.id}" data-add-sub-type="${type}" title="Add sub-category">+ Sub</button>
+            <button class="btn ghost sm" data-edit-cat="${p.id}" title="Edit">✎ Edit</button>
+            <button class="btn ghost sm" data-del-cat="${p.id}" title="Delete">Delete</button>
           </div>
         </div>
         ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
-          ${children.map(c=>`<span class="tag" style="display:inline-flex;align-items:center;gap:5px;">${c.name}
-            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.7;font-size:10px;" title="Edit">✎</span>
-            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.6;">✕</span></span>`).join('')}
+          ${children.map(c=>`<span class="tag" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;">
+            ${c.name}
+            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.65;font-size:11px;" title="Edit">✎</span>
+            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.55;font-size:11px;" title="Delete">✕</span>
+          </span>`).join('')}
         </div>` : ''}
       </div>`;
     }).join('');
@@ -1348,8 +1442,13 @@ function renderCategories(){
   document.getElementById('cat-income-list').innerHTML = listFor('income');
 }
 document.getElementById('view-categories').addEventListener('click', e=>{
+  // Add sub-category shortcut — opens modal with parent pre-selected
+  const addSubId = e.target.dataset.addSub;
+  if(addSubId){ openModal('category', {parentId: addSubId, parentType: e.target.dataset.addSubType}); return; }
+  // Edit category
   const editId = e.target.dataset.editCat;
   if(editId){ openModal('category', {categoryId: editId}); return; }
+  // Delete category
   const id = e.target.dataset.delCat; if(!id) return;
   const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
   if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
@@ -1359,21 +1458,15 @@ document.getElementById('view-categories').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
 function renderCommitments(){
-  if(!DB.commitments.length){
-    document.getElementById('commitments-grid').innerHTML = `
-      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
-        <div class="big-ic">◷</div>
-        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
-      </div>`;
-    return;
-  }
-  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
+  const grid = document.getElementById('commitments-grid');
+
+  // ── Active/tracked commitments ────────────────────────────────────────────
+  const activeCards = DB.commitments.map(c=>{
     const paid = commitmentPayments(c.id).length;
     const remaining = Math.max(0, c.totalInstallments - paid);
     const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
     const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
     const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
-
     let extra = '';
     if(c.type==='rotating_saving'){
       extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
@@ -1381,7 +1474,6 @@ function renderCommitments(){
         ${c.payoutReceived ? '<span class="tag income" style="margin-left:6px;">Received</span>' : `expected ${fmtDate(c.payoutDate)}`}
       </div>`;
     }
-
     return `<div class="commit-card">
       <div class="top">
         <div>
@@ -1404,6 +1496,60 @@ function renderCommitments(){
       </div>
     </div>`;
   }).join('');
+
+  // ── Historical commitment payments from archive transactions ──────────────
+  // Group cat_commit transactions by note (= commitment name) so we can show
+  // how many months each was paid and the total spent — even before a formal
+  // DB.commitments entry exists (e.g. after an Excel import).
+  const archiveCmTxns = DB.transactions.filter(t=>t.categoryId==='cat_commit' && isArchiveTxn(t));
+  const historicalByName = {};
+  archiveCmTxns.forEach(t=>{
+    const name = t.note || 'Unknown';
+    if(!historicalByName[name]) historicalByName[name] = {months:[], total:0};
+    historicalByName[name].months.push(t.date.slice(0,7));
+    historicalByName[name].total += Number(t.amount)||0;
+  });
+  const historicalCards = Object.entries(historicalByName).map(([name, data])=>{
+    const months = [...new Set(data.months)].sort();
+    const monthCount = months.length;
+    const first = months[0]||'', last = months[months.length-1]||'';
+    const avg = monthCount ? data.total/monthCount : 0;
+    return `<div class="commit-card" style="opacity:.85;">
+      <div class="top">
+        <div>
+          <div class="name">${name}</div>
+          <div class="meta">Historical · ${first}${first!==last?' → '+last:''}</div>
+        </div>
+        <span class="tag">Archive</span>
+      </div>
+      <div class="stats" style="margin-top:10px;">
+        <span>Months paid</span><span class="num">${monthCount}</span>
+      </div>
+      <div class="stats">
+        <span>Total paid</span><span class="num">EGP ${fmtMoney(data.total)}</span>
+      </div>
+      <div class="stats">
+        <span>Avg / month</span><span class="num">EGP ${fmtMoney(avg)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(!DB.commitments.length && !historicalCards){
+    grid.innerHTML = `
+      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+        <div class="big-ic">◷</div>
+        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
+      </div>`;
+    return;
+  }
+
+  // Show active cards first, then historical summary (with a section header)
+  let out = activeCards;
+  if(historicalCards){
+    if(DB.commitments.length) out += `<div style="grid-column:1/-1;margin-top:8px;font-family:var(--font-display);font-size:13px;color:var(--text-faint);font-weight:600;letter-spacing:.04em;text-transform:uppercase;">Historical (imported)</div>`;
+    out += historicalCards;
+  }
+  grid.innerHTML = out;
 }
 document.getElementById('view-commitments').addEventListener('click', e=>{
   const payId = e.target.dataset.recordPayment;
@@ -1419,7 +1565,20 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
+let historyTypeFilter = 'all';
+let historyPeriodFilter = 'all';
+let historyCustomFrom = '', historyCustomTo = '';
+
+function historyPeriodRange(){
+  if(historyPeriodFilter==='all') return {from:null, to:null};
+  if(historyPeriodFilter==='ytd'){ const y=new Date().getFullYear(); return {from:`${y}-01`, to:`${y}-12`}; }
+  if(/^\d{4}$/.test(historyPeriodFilter)) return {from:`${historyPeriodFilter}-01`, to:`${historyPeriodFilter}-12`};
+  if(historyPeriodFilter==='custom') return {from:historyCustomFrom||null, to:historyCustomTo||null};
+  return {from:null, to:null};
+}
+
 function renderHistory(){
+  // Accounts summary
   const archiveAccounts = DB.accounts.filter(a=>a.excludeFromNetWorth);
   document.getElementById('history-accounts-body').innerHTML = archiveAccounts.map(a=>{
     const bal = accountBalance(a);
@@ -1430,18 +1589,94 @@ function renderHistory(){
     </tr>`;
   }).join('') || `<tr><td colspan="3" class="empty">No archived accounts</td></tr>`;
 
-  const txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
+  // Rebuild category multi-select — keep selections
+  const catSel = document.getElementById('history-cat-select');
+  if(catSel){
+    const prevSel = new Set([...catSel.selectedOptions].map(o=>o.value));
+    catSel.innerHTML = '';
+    // All categories present in archive transactions
+    const usedCatIds = new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
+    DB.categories.filter(c=>usedCatIds.has(c.id)).forEach(c=>{
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      const par = c.parentId ? DB.categories.find(p=>p.id===c.parentId) : null;
+      opt.textContent = par ? `　└ ${c.name}` : c.name;
+      // Default: all selected on first render
+      opt.selected = prevSel.size===0 || prevSel.has(c.id);
+      catSel.appendChild(opt);
+    });
+  }
+
+  renderHistoryTxns();
+}
+
+function renderHistoryTxns(){
+  const catSel = document.getElementById('history-cat-select');
+  const selectedCats = catSel ? new Set([...catSel.selectedOptions].map(o=>o.value)) : new Set();
+  const {from, to} = historyPeriodRange();
+
+  let txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
+
+  // Type filter
+  if(historyTypeFilter==='income')  txns = txns.filter(t=>t.type==='income');
+  if(historyTypeFilter==='expense') txns = txns.filter(t=>t.type==='expense');
+
+  // Period filter
+  if(from) txns = txns.filter(t=>monthKey(t.date)>=from);
+  if(to)   txns = txns.filter(t=>monthKey(t.date)<=to);
+
+  // Category filter (if nothing selected = show all)
+  if(selectedCats.size>0) txns = txns.filter(t=>!t.categoryId || selectedCats.has(t.categoryId));
+
+  const total = txns.reduce((s,t)=> s + (t.type==='income'?1:-1)*Number(t.amount), 0);
+  const el = document.getElementById('history-count-label');
+  if(el) el.textContent = `${txns.length} transaction${txns.length===1?'':'s'} · Net: ${total>=0?'+':''}EGP ${fmtMoney(total)}`;
+
   document.getElementById('history-txn-body').innerHTML = txns.map(t=>{
     const acc = accountById(t.accountId);
+    const isInc = t.type==='income';
     return `<tr>
       <td>${fmtDate(t.date)}</td>
       <td>${acc?acc.name:'—'}</td>
       <td>${categoryLabel(t.categoryId)}</td>
       <td style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt neg">-${t.currency} ${fmtMoney(t.amount)}</td>
+      <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No records match this filter</td></tr>`;
 }
+
+// History filter event wiring (deferred so elements exist)
+document.addEventListener('click', e=>{
+  const typePill = e.target.closest('#history-type-pills [data-htype]');
+  if(typePill){
+    historyTypeFilter = typePill.dataset.htype;
+    document.querySelectorAll('#history-type-pills .filter-pill').forEach(p=>p.classList.remove('active'));
+    typePill.classList.add('active');
+    renderHistoryTxns(); return;
+  }
+  const periodPill = e.target.closest('#history-period-pills [data-hperiod]');
+  if(periodPill){
+    historyPeriodFilter = periodPill.dataset.hperiod;
+    document.querySelectorAll('#history-period-pills .filter-pill').forEach(p=>p.classList.remove('active'));
+    periodPill.classList.add('active');
+    const cr = document.getElementById('history-custom-range');
+    if(cr) cr.style.display = historyPeriodFilter==='custom' ? 'flex' : 'none';
+    renderHistoryTxns(); return;
+  }
+  if(e.target.id==='history-select-all-cats'){
+    [...document.getElementById('history-cat-select').options].forEach(o=>o.selected=true);
+    renderHistoryTxns(); return;
+  }
+  if(e.target.id==='history-clear-cats'){
+    [...document.getElementById('history-cat-select').options].forEach(o=>o.selected=false);
+    renderHistoryTxns(); return;
+  }
+});
+document.addEventListener('change', e=>{
+  if(e.target.id==='history-from'){ historyCustomFrom=e.target.value; renderHistoryTxns(); }
+  if(e.target.id==='history-to'){   historyCustomTo=e.target.value;   renderHistoryTxns(); }
+  if(e.target.id==='history-cat-select') renderHistoryTxns();
+});
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
@@ -1563,39 +1798,152 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: REPORTS ---------------------------- */
+// ── Period helpers ────────────────────────────────────────────────────────────
+let reportsPeriod = 'all';
+let reportsCustomFrom = '', reportsCustomTo = '';
+
+function reportsPeriodRange(){
+  const now = new Date();
+  const thisM = thisMonthKey();
+  if(reportsPeriod==='all') return {from:null, to:null};
+  if(reportsPeriod==='ytd') return {from: now.getFullYear()+'-01', to: thisM};
+  if(reportsPeriod==='6m'){
+    const d = new Date(now.getFullYear(), now.getMonth()-5, 1);
+    return {from: d.toISOString().slice(0,7), to: thisM};
+  }
+  if(reportsPeriod==='3m'){
+    const d = new Date(now.getFullYear(), now.getMonth()-2, 1);
+    return {from: d.toISOString().slice(0,7), to: thisM};
+  }
+  if(reportsPeriod==='1m') return {from: thisM, to: thisM};
+  if(reportsPeriod==='custom') return {from: reportsCustomFrom||null, to: reportsCustomTo||null};
+  return {from:null, to:null};
+}
+
+// Total for a category across an optional from/to month range
+function categoryTotalRange(catId, from, to){
+  const ids = categoryAndDescendantIds(catId);
+  return allExpenseEntries()
+    .filter(e=>{
+      if(!ids.includes(e.categoryId)) return false;
+      const mk = monthKey(e.date);
+      if(from && mk < from) return false;
+      if(to   && mk > to)   return false;
+      return true;
+    })
+    .reduce((s,e)=> s + toEGP(e.amount, e.currency), 0);
+}
+function categorySelfTotalRange(catId, from, to){
+  return allExpenseEntries()
+    .filter(e=>{
+      if(e.categoryId!==catId) return false;
+      const mk = monthKey(e.date);
+      if(from && mk < from) return false;
+      if(to   && mk > to)   return false;
+      return true;
+    })
+    .reduce((s,e)=> s + toEGP(e.amount, e.currency), 0);
+}
+
 function renderReports(){
   const mKey = thisMonthKey();
+  const {from, to} = reportsPeriodRange();
   const topCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
+
   document.getElementById('reports-tree-body').innerHTML = topCats.map(c=>{
     const children = DB.categories.filter(ch=>ch.parentId===c.id);
     const parentRow = `<tr>
       <td style="font-weight:600;">${c.name}</td>
       <td class="amt">${fmtMoney(categoryTotal(c.id, mKey))}</td>
-      <td class="amt">${fmtMoney(categoryTotal(c.id, null))}</td>
+      <td class="amt">${fmtMoney(categoryTotalRange(c.id, from, to))}</td>
     </tr>`;
     const childRows = children.map(ch=>`<tr>
       <td style="padding-left:28px;color:var(--text-muted);font-size:12.5px;">— ${ch.name}</td>
       <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, mKey))}</td>
-      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, null))}</td>
+      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotalRange(ch.id, from, to))}</td>
     </tr>`).join('');
     return parentRow + childRows;
   }).join('') || `<tr><td colspan="3" class="empty">No expense categories yet</td></tr>`;
 
-  const select = document.getElementById('reports-category-select');
-  const prevSelection = select.value;
-  select.innerHTML = categoryOptions('expense');
-  if(prevSelection && [...select.options].some(o=>o.value===prevSelection)) select.value = prevSelection;
+  // Rebuild multi-select category list — preserve current selections
+  const sel = document.getElementById('reports-category-select');
+  const prevSelected = new Set([...sel.selectedOptions].map(o=>o.value));
+  sel.innerHTML = '';
+  DB.categories.filter(c=>c.type==='expense').forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    const parent = c.parentId ? DB.categories.find(p=>p.id===c.parentId) : null;
+    opt.textContent = parent ? `　└ ${c.name} (${parent.name})` : c.name;
+    opt.style.fontWeight = c.parentId ? '400' : '600';
+    if(prevSelected.size===0 || prevSelected.has(c.id)) opt.selected = true;
+    sel.appendChild(opt);
+  });
   renderReportsMonthly();
 }
+
 function renderReportsMonthly(){
-  const catId = document.getElementById('reports-category-select').value;
-  const months = allMonthsWithActivity();
+  const sel = document.getElementById('reports-category-select');
+  const selectedIds = [...sel.selectedOptions].map(o=>o.value);
+  const {from, to} = reportsPeriodRange();
+
+  // Filter months to the period
+  let months = allMonthsWithActivity();
+  if(from) months = months.filter(m=> m >= from);
+  if(to)   months = months.filter(m=> m <= to);
+  months.sort().reverse();
+
+  // Header label
+  const catNames = selectedIds.map(id=>{ const c=categoryById(id); return c?c.name:''; }).filter(Boolean);
+  const hdr = selectedIds.length===0 ? 'Amount' :
+    selectedIds.length<=2 ? catNames.join(' + ') :
+    catNames[0]+' + '+(selectedIds.length-1)+' more';
+  document.getElementById('reports-monthly-cat-header').textContent = hdr;
+
+  if(!selectedIds.length){
+    document.getElementById('reports-monthly-body').innerHTML =
+      `<tr><td colspan="2" class="empty">Select at least one category above</td></tr>`;
+    return;
+  }
+
   document.getElementById('reports-monthly-body').innerHTML = months.map(mk=>{
-    const amt = categoryTotal(catId, mk);
-    return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
-  }).join('') || `<tr><td colspan="2" class="empty">No activity recorded yet</td></tr>`;
+    // Sum across all selected categories (deduplicated — categorySelfTotal for each)
+    const amt = selectedIds.reduce((sum, id)=>{
+      // Use self-total per selected id (avoids double-counting when parent + child both selected)
+      return sum + categorySelfTotalRange(id, mk, mk);
+    }, 0);
+    if(amt===0) return '';  // hide zero months
+    return `<tr>
+      <td>${mk}</td>
+      <td class="amt">${fmtMoney(amt)}</td>
+    </tr>`;
+  }).filter(Boolean).join('') || `<tr><td colspan="2" class="empty">No activity in this period</td></tr>`;
 }
+
+// Period pill clicks
+document.getElementById('reports-period-pills').addEventListener('click', e=>{
+  const pill = e.target.closest('[data-period]'); if(!pill) return;
+  reportsPeriod = pill.dataset.period;
+  document.querySelectorAll('#reports-period-pills .filter-pill').forEach(p=>p.classList.remove('active'));
+  pill.classList.add('active');
+  const customEl = document.getElementById('reports-custom-range');
+  customEl.style.display = reportsPeriod==='custom' ? 'flex' : 'none';
+  renderReports();
+});
+document.getElementById('reports-from').addEventListener('change', e=>{
+  reportsCustomFrom = e.target.value; renderReportsMonthly();
+});
+document.getElementById('reports-to').addEventListener('change', e=>{
+  reportsCustomTo = e.target.value; renderReportsMonthly();
+});
 document.getElementById('reports-category-select').addEventListener('change', renderReportsMonthly);
+document.getElementById('reports-select-all-cats').addEventListener('click', ()=>{
+  [...document.getElementById('reports-category-select').options].forEach(o=>o.selected=true);
+  renderReportsMonthly();
+});
+document.getElementById('reports-clear-cats').addEventListener('click', ()=>{
+  [...document.getElementById('reports-category-select').options].forEach(o=>o.selected=false);
+  renderReportsMonthly();
+});
 
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
@@ -1777,8 +2125,10 @@ function openModal(kind, ctx={}){
 
   if(kind==='category'){
     const editing = ctx.categoryId ? DB.categories.find(c=>c.id===ctx.categoryId) : null;
-    const editType = editing ? editing.type : 'expense';
-    const editParent = editing ? (editing.parentId || '') : '';
+    // When opened via "+ Sub", prefill the parent
+    const preParentId = editing ? (editing.parentId||'') : (ctx.parentId||'');
+    const preType     = editing ? editing.type : (ctx.parentType||'expense');
+    const preName     = editing ? editing.name : '';
     html = `<div class="modal">
       <h2>${editing ? 'Edit Category' : 'New Category'}</h2>
       <form id="form-category">
@@ -1786,17 +2136,17 @@ function openModal(kind, ctx={}){
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="cat-type-group">
-            <div class="radio-opt ${editType==='expense'?'selected':''}" data-val="expense">Expense</div>
-            <div class="radio-opt ${editType==='income'?'selected':''}" data-val="income">Income</div>
+            <div class="radio-opt ${preType==='expense'?'selected':''}" data-val="expense">Expense</div>
+            <div class="radio-opt ${preType==='income'?'selected':''}" data-val="income">Income</div>
           </div>
-          <input type="hidden" name="type" value="${editType}">
+          <input type="hidden" name="type" value="${preType}">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء" value="${editing?editing.name:''}"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء" value="${preName}"></div>
         <div class="field">
-          <label>Parent category (optional)</label>
+          <label>Parent category <span style="color:var(--text-faint);font-weight:400;">(optional — leave blank for top-level)</span></label>
           <select name="parentId" id="cat-parent-select">
             <option value="">— None (top-level) —</option>
-            ${categoryParentOptions(editType, editParent)}
+            ${categoryParentOptions(preType, preParentId)}
           </select>
         </div>
         <div class="modal-actions">
@@ -2400,16 +2750,12 @@ const submitHandlers = {
   },
   category(data){
     if(data.categoryId){
-      // Editing an existing category
       const cat = DB.categories.find(c=>c.id===data.categoryId);
       if(!cat) throw new Error('Category not found');
-      cat.name = data.name.trim();
-      cat.type = data.type;
-      cat.parentId = data.parentId || null;
+      cat.name = data.name.trim(); cat.type = data.type; cat.parentId = data.parentId||null;
       saveDB(); toast('Category updated');
     } else {
-      // Creating a new category
-      DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+      DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId||null});
       saveDB(); toast('Category created');
     }
   },

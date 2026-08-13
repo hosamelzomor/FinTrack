@@ -493,66 +493,19 @@
     <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
     <section class="view" id="view-history">
       <div class="topbar">
-        <div><h1>History</h1><div class="today">All imported records — income &amp; expenses, filter by type, period, and category</div></div>
+        <div><h1>History</h1><div class="today">Imported or archived records — kept for reference, excluded from Net Worth &amp; live Accounts</div></div>
       </div>
       <div class="section-title">Archive Accounts</div>
-      <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-wrap">
         <table>
           <thead><tr><th>Name</th><th>Currency</th><th class="amt">Balance</th></tr></thead>
           <tbody id="history-accounts-body"></tbody>
         </table>
       </div>
-
-      <!-- Filters -->
-      <div class="card" style="margin-bottom:14px;padding:14px 18px;">
-        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">
-
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Type</div>
-            <div style="display:flex;gap:5px;" id="hist-type-pills">
-              <button class="filter-pill active" data-ht="all">All</button>
-              <button class="filter-pill" data-ht="income">Income</button>
-              <button class="filter-pill" data-ht="expense">Expense</button>
-            </div>
-          </div>
-
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Period</div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;" id="hist-period-pills">
-              <button class="filter-pill active" data-hp="all">All Time</button>
-              <button class="filter-pill" data-hp="2026">2026</button>
-              <button class="filter-pill" data-hp="2025">2025</button>
-              <button class="filter-pill" data-hp="2024">2024</button>
-              <button class="filter-pill" data-hp="2023">2023</button>
-              <button class="filter-pill" data-hp="custom">Custom ▾</button>
-            </div>
-            <div id="hist-custom-wrap" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;">
-              <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-              <span style="color:var(--text-faint);">→</span>
-              <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-            </div>
-          </div>
-
-          <div style="flex:1;min-width:200px;">
-            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;">Category <span style="font-weight:400;text-transform:none;">(Ctrl+click multi)</span></div>
-            <select id="hist-cat-select" multiple size="4" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px;font-size:12.5px;"></select>
-            <div style="margin-top:5px;display:flex;gap:6px;">
-              <button class="btn ghost sm" id="hist-cats-all">All</button>
-              <button class="btn ghost sm" id="hist-cats-none">None</button>
-            </div>
-          </div>
-
-        </div>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-          <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
-          <div id="hist-net" style="font-size:13px;font-weight:600;"></div>
-        </div>
-      </div>
-
       <div class="section-title">Historical Transactions</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Source</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
           <tbody id="history-txn-body"></tbody>
         </table>
       </div>
@@ -766,10 +719,9 @@ function commitmentPayments(commitId){
 function isArchiveTxn(t){
   const acc = accountById(t.accountId);
   if(!acc) return false;
-  // Only treat as archive if the account is explicitly an archive/history bucket
-  // (name contains 'أرشيف' or 'Archive' or 'سجل تاريخي')
-  return acc.excludeFromNetWorth &&
-    (acc.name.includes('أرشيف') || acc.name.includes('Archive') || acc.name.includes('سجل تاريخي'));
+  // Any account flagged excludeFromNetWorth is treated as a historical/archive account.
+  // This covers "الرصيد العام" and any future archive accounts regardless of name.
+  return acc.excludeFromNetWorth === true;
 }
 function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
 function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
@@ -1421,90 +1373,51 @@ document.getElementById('view-categories').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
 function renderCommitments(){
-  const grid = document.getElementById('commitments-grid');
-
-  // ── Active tracked commitments (from DB.commitments) ──────────────────────
-  const activeCards = DB.commitments.map(c=>{
+  if(!DB.commitments.length){
+    document.getElementById('commitments-grid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+        <div class="big-ic">◷</div>
+        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
+      </div>`;
+    return;
+  }
+  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
     const paid = commitmentPayments(c.id).length;
     const remaining = Math.max(0, c.totalInstallments - paid);
     const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
     const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
     const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
+
     let extra = '';
     if(c.type==='rotating_saving'){
-      extra = `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+      extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
         Payout: <span class="num" style="color:var(--text);">${fmtMoney(c.totalAmount)}</span>
         ${c.payoutReceived ? '<span class="tag income" style="margin-left:6px;">Received</span>' : `expected ${fmtDate(c.payoutDate)}`}
       </div>`;
     }
+
     return `<div class="commit-card">
       <div class="top">
         <div>
           <div class="name">${c.name}</div>
-          <div class="meta">${c.type==='rotating_saving'?'جمعية':'Installment'} · started ${fmtDate(c.startDate)}</div>
+          <div class="meta">${c.type==='rotating_saving' ? 'جمعية (Rotating Savings)' : 'Installment'} · started ${fmtDate(c.startDate)}</div>
         </div>
         <span class="tag ${isDone?'income':''}">${isDone?'Completed':'Active'}</span>
       </div>
       <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
-      <div class="stats"><span>${paid}/${c.totalInstallments} paid</span><span class="num">${remaining} remaining</span></div>
-      ${nextDue?`<div class="meta" style="margin-top:6px;">Next due: ${fmtDate(nextDue)}</div>`:''}
+      <div class="stats">
+        <span>${paid}/${c.totalInstallments} paid</span>
+        <span class="num">${remaining} left</span>
+      </div>
+      ${nextDue ? `<div class="meta" style="margin-top:6px;">Next due: ${fmtDate(nextDue)}</div>` : ''}
       ${extra}
       <div class="actions">
-        ${remaining>0?`<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>`:''}
-        ${c.type==='rotating_saving'&&!c.payoutReceived?`<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>`:''}
+        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>` : ''}
+        ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>` : ''}
         <button class="btn ghost sm" data-del-commit="${c.id}">Delete</button>
       </div>
     </div>`;
   }).join('');
-
-  // ── Historical commitments — built from archive cat_commit transactions ────
-  // Group by note (= commitment name), compute months paid, total, avg
-  const archTxns = DB.transactions.filter(t=>t.categoryId==='cat_commit' && isArchiveTxn(t));
-  const byName = {};
-  archTxns.forEach(t=>{
-    const k = t.note||'(unnamed)';
-    if(!byName[k]) byName[k]={months:[],total:0,amounts:[]};
-    const mk = t.date.slice(0,7);
-    if(!byName[k].months.includes(mk)) byName[k].months.push(mk);
-    byName[k].total += Number(t.amount)||0;
-    byName[k].amounts.push(Number(t.amount)||0);
-  });
-  const histCards = Object.entries(byName).map(([name,d])=>{
-    d.months.sort();
-    const count = d.months.length;
-    const first = d.months[0]||''; const last = d.months[count-1]||'';
-    const avg = count ? d.total/count : 0;
-    const isDone = !['الجمعيه 1','الجمعيه 2','la Casa','Mama سلفه'].some(n=>name.includes(n.split(' ')[0]));
-    return `<div class="commit-card" style="opacity:.88;">
-      <div class="top">
-        <div>
-          <div class="name">${name}</div>
-          <div class="meta">Historical · ${first}${first!==last?' → '+last:''}</div>
-        </div>
-        <span class="tag ${isDone?'income':''}">${isDone?'Completed':'Ongoing'}</span>
-      </div>
-      <div class="progress-bar"><div class="fill" style="width:100%;background:var(--text-faint);"></div></div>
-      <div class="stats">
-        <span>${count} month${count!==1?'s':''} paid</span>
-        <span class="num">EGP ${fmtMoney(d.total)}</span>
-      </div>
-      <div class="stats"><span>Avg / month</span><span class="num">EGP ${fmtMoney(avg)}</span></div>
-    </div>`;
-  }).join('');
-
-  if(!DB.commitments.length && !histCards){
-    grid.innerHTML=`<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
-      <div class="big-ic">◷</div>
-      No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
-    </div>`;
-    return;
-  }
-  let out = activeCards;
-  if(histCards){
-    if(DB.commitments.length) out += `<div style="grid-column:1/-1;margin-top:4px;font-size:11.5px;font-weight:600;color:var(--text-faint);letter-spacing:.05em;text-transform:uppercase;">Historical (Imported from Excel)</div>`;
-    out += histCards;
-  }
-  grid.innerHTML = out;
 }
 document.getElementById('view-commitments').addEventListener('click', e=>{
   const payId = e.target.dataset.recordPayment;
@@ -1520,90 +1433,29 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
-let _histType='all', _histPeriod='all', _histFrom='', _histTo='';
-
 function renderHistory(){
-  // Archive accounts summary
-  const archAccs = DB.accounts.filter(a=>a.excludeFromNetWorth);
-  document.getElementById('history-accounts-body').innerHTML = archAccs.map(a=>{
+  const archiveAccounts = DB.accounts.filter(a=>a.excludeFromNetWorth);
+  document.getElementById('history-accounts-body').innerHTML = archiveAccounts.map(a=>{
     const bal = accountBalance(a);
-    return `<tr><td>${a.name}</td><td>${a.currency}</td><td class="amt ${bal<0?'neg':'pos'}">${bal>=0?'+':''}${fmtMoney(bal)}</td></tr>`;
+    return `<tr>
+      <td>${a.name}</td>
+      <td>${a.currency}</td>
+      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
+    </tr>`;
   }).join('') || `<tr><td colspan="3" class="empty">No archived accounts</td></tr>`;
 
-  // Build category multi-select
-  const catSel = document.getElementById('hist-cat-select');
-  if(catSel){
-    const prev = new Set([...catSel.selectedOptions].map(o=>o.value));
-    const fresh = prev.size===0;
-    catSel.innerHTML='';
-    const usedIds = new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
-    DB.categories.filter(c=>usedIds.has(c.id)).sort((a,b)=>{
-      const pa = a.parentId||a.id, pb = b.parentId||b.id;
-      if(pa!==pb) return pa.localeCompare(pb);
-      return (a.parentId?1:0)-(b.parentId?1:0);
-    }).forEach(c=>{
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      const par = c.parentId ? DB.categories.find(p=>p.id===c.parentId) : null;
-      opt.textContent = par ? `  └ ${c.name}` : c.name;
-      opt.style.fontWeight = c.parentId ? '400' : '600';
-      opt.selected = fresh || prev.has(c.id);
-      catSel.appendChild(opt);
-    });
-  }
-  _renderHistoryTxns();
-}
-
-function _renderHistoryTxns(){
-  const catSel = document.getElementById('hist-cat-select');
-  const selCats = catSel ? new Set([...catSel.selectedOptions].map(o=>o.value)) : new Set();
-  const allCatsSelected = !catSel || selCats.size===catSel.options.length;
-
-  // Period range
-  let from=null, to=null;
-  if(_histPeriod==='custom'){ from=_histFrom||null; to=_histTo||null; }
-  else if(/^\d{4}$/.test(_histPeriod)){ from=`${_histPeriod}-01`; to=`${_histPeriod}-12`; }
-
-  let txns = archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
-  if(_histType==='income')  txns=txns.filter(t=>t.type==='income');
-  if(_histType==='expense') txns=txns.filter(t=>t.type==='expense');
-  if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
-  if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
-  if(!allCatsSelected) txns=txns.filter(t=>selCats.has(t.categoryId)||(!t.categoryId&&selCats.has('')));
-
-  const totInc  = txns.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
-  const totExp  = txns.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
-  const net     = totInc - totExp;
-  const sumEl   = document.getElementById('hist-summary');
-  const netEl   = document.getElementById('hist-net');
-  if(sumEl) sumEl.textContent = `${txns.length} record${txns.length!==1?'s':''} · Income EGP ${fmtMoney(totInc)} · Expense EGP ${fmtMoney(totExp)}`;
-  if(netEl){ netEl.textContent = `Net: ${net>=0?'+':''}EGP ${fmtMoney(net)}`; netEl.className = net>=0?'pos':'neg'; netEl.style.fontSize='13px'; netEl.style.fontWeight='600'; }
-
+  const txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
   document.getElementById('history-txn-body').innerHTML = txns.map(t=>{
-    const isInc = t.type==='income';
+    const acc = accountById(t.accountId);
     return `<tr>
-      <td style="white-space:nowrap;">${fmtDate(t.date)}</td>
+      <td>${fmtDate(t.date)}</td>
+      <td>${acc?acc.name:'—'}</td>
       <td>${categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);font-size:11.5px;max-width:220px;">${t.note||''}</td>
-      <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td class="amt neg">-${t.currency} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="4" class="empty">No records match this filter</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
 }
-
-// Wire filter events
-document.addEventListener('click', e=>{
-  const tp = e.target.closest('#hist-type-pills [data-ht]');
-  if(tp){ _histType=tp.dataset.ht; document.querySelectorAll('#hist-type-pills .filter-pill').forEach(p=>p.classList.remove('active')); tp.classList.add('active'); _renderHistoryTxns(); return; }
-  const pp = e.target.closest('#hist-period-pills [data-hp]');
-  if(pp){ _histPeriod=pp.dataset.hp; document.querySelectorAll('#hist-period-pills .filter-pill').forEach(p=>p.classList.remove('active')); pp.classList.add('active'); const cw=document.getElementById('hist-custom-wrap'); if(cw) cw.style.display=_histPeriod==='custom'?'flex':'none'; _renderHistoryTxns(); return; }
-  if(e.target.id==='hist-cats-all'){ [...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=true); _renderHistoryTxns(); return; }
-  if(e.target.id==='hist-cats-none'){ [...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=false); _renderHistoryTxns(); return; }
-});
-document.addEventListener('change', e=>{
-  if(e.target.id==='hist-from'){ _histFrom=e.target.value; _renderHistoryTxns(); }
-  if(e.target.id==='hist-to'){   _histTo=e.target.value;   _renderHistoryTxns(); }
-  if(e.target.id==='hist-cat-select') _renderHistoryTxns();
-});
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){

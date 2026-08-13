@@ -468,47 +468,133 @@
     <!-- REPORTS -->
     <section class="view" id="view-reports">
       <div class="topbar">
-        <div><h1>Reports</h1><div class="today">Where your money goes — across your full history, by category and by month</div></div>
+        <div><h1>Reports</h1><div class="today">تحليل مصاريفك — حسب الكاتيجوري والشهر مع فلاتر مرنة</div></div>
       </div>
-      <div class="section-title">By Category<span class="hint">parent categories roll up their sub-categories</span></div>
+
+      <!-- Period filter bar -->
+      <div class="card" style="margin-bottom:20px;padding:12px 16px;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <span style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;">الفترة</span>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;" id="rep-period-pills">
+            <button class="filter-pill active" data-rp="all">كل الوقت</button>
+            <button class="filter-pill" data-rp="ytd">هذه السنة</button>
+            <button class="filter-pill" data-rp="6m">6 أشهر</button>
+            <button class="filter-pill" data-rp="3m">3 أشهر</button>
+            <button class="filter-pill" data-rp="1m">هذا الشهر</button>
+            <button class="filter-pill" data-rp="custom">تخصيص ▾</button>
+          </div>
+          <div id="rep-custom-wrap" style="display:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
+            <span style="color:var(--text-faint);">←→</span>
+            <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 1: Totals summary strip -->
+      <div id="rep-summary-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+      <!-- Section 2: By Category (tree) -->
+      <div class="section-title">مصاريف حسب الكاتيجوري <span class="hint">الكاتيجوريز الرئيسية تشمل الفروع</span></div>
       <div class="table-wrap" style="margin-bottom:24px;">
         <table>
-          <thead><tr><th>Category</th><th class="amt">This Month</th><th class="amt">All Time</th></tr></thead>
+          <thead><tr><th>الكاتيجوري</th><th class="amt">هذا الشهر</th><th class="amt" id="rep-period-header">الكل</th></tr></thead>
           <tbody id="reports-tree-body"></tbody>
         </table>
       </div>
-      <div class="section-title">Monthly Breakdown</div>
-      <div class="field" style="max-width:340px;margin-bottom:14px;">
-        <label>Category</label>
-        <select id="reports-category-select"></select>
+
+      <!-- Section 3: Monthly Breakdown with multi-select category filter -->
+      <div class="section-title">التفصيل الشهري</div>
+      <div class="card" style="margin-bottom:14px;padding:14px 16px;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">اختر كاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click لأكثر من واحد)</span></div>
+        <select id="reports-category-select" multiple size="5" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px;font-size:13px;"></select>
+        <div style="margin-top:7px;display:flex;gap:7px;">
+          <button class="btn ghost sm" id="rep-cats-all">الكل</button>
+          <button class="btn ghost sm" id="rep-cats-none">إلغاء</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Month</th><th class="amt">Amount</th></tr></thead>
+          <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-header">المبلغ</th></tr></thead>
           <tbody id="reports-monthly-body"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
+    <!-- HISTORY -->
     <section class="view" id="view-history">
       <div class="topbar">
-        <div><h1>History</h1><div class="today">Imported or archived records — kept for reference, excluded from Net Worth &amp; live Accounts</div></div>
+        <div><h1>History</h1><div class="today">كل السجلات التاريخية المستوردة — دخل ومصاريف مع فلاتر كاملة</div></div>
       </div>
-      <div class="section-title">Archive Accounts</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Currency</th><th class="amt">Balance</th></tr></thead>
-          <tbody id="history-accounts-body"></tbody>
-        </table>
+
+      <!-- Archive account summary strip -->
+      <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;"></div>
+
+      <!-- Filters card -->
+      <div class="card" style="margin-bottom:14px;padding:14px 16px;">
+        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">
+
+          <!-- Type -->
+          <div>
+            <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">النوع</div>
+            <div style="display:flex;gap:5px;" id="hist-type-pills">
+              <button class="filter-pill active" data-ht="all">الكل</button>
+              <button class="filter-pill" data-ht="income">دخل</button>
+              <button class="filter-pill" data-ht="expense">مصاريف</button>
+            </div>
+          </div>
+
+          <!-- Period -->
+          <div>
+            <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">الفترة</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;" id="hist-period-pills">
+              <button class="filter-pill active" data-hp="all">الكل</button>
+              <button class="filter-pill" data-hp="2026">2026</button>
+              <button class="filter-pill" data-hp="2025">2025</button>
+              <button class="filter-pill" data-hp="2024">2024</button>
+              <button class="filter-pill" data-hp="2023">2023</button>
+              <button class="filter-pill" data-hp="custom">تخصيص ▾</button>
+            </div>
+            <div id="hist-custom-wrap" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;">
+              <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
+              <span style="color:var(--text-faint);">←→</span>
+              <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
+            </div>
+          </div>
+
+          <!-- Category -->
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">الكاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click لأكثر من واحد)</span></div>
+            <select id="hist-cat-select" multiple size="4" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px;font-size:12.5px;"></select>
+            <div style="margin-top:5px;display:flex;gap:6px;">
+              <button class="btn ghost sm" id="hist-cats-all">الكل</button>
+              <button class="btn ghost sm" id="hist-cats-none">إلغاء</button>
+            </div>
+          </div>
+
+        </div>
+        <!-- Summary bar -->
+        <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
+          <div id="hist-net" style="font-size:13px;font-weight:700;"></div>
+        </div>
       </div>
+
       <div class="section-title">Historical Transactions</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Source</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Note</th>
+              <th class="amt">Amount</th>
+            </tr>
+          </thead>
           <tbody id="history-txn-body"></tbody>
         </table>
       </div>
+      <div id="hist-pagination" style="display:flex;gap:7px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;"></div>
     </section>
 
   </main>
@@ -719,10 +805,7 @@ function commitmentPayments(commitId){
 function isArchiveTxn(t){
   const acc = accountById(t.accountId);
   if(!acc) return false;
-  // Only treat as archive if the account is explicitly an archive/history bucket
-  // (name contains 'أرشيف' or 'Archive' or 'سجل تاريخي')
-  return acc.excludeFromNetWorth &&
-    (acc.name.includes('أرشيف') || acc.name.includes('Archive') || acc.name.includes('سجل تاريخي'));
+  return acc.excludeFromNetWorth === true;
 }
 function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
 function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
@@ -1433,30 +1516,116 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
   }
 });
 
-/* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
-function renderHistory(){
-  const archiveAccounts = DB.accounts.filter(a=>a.excludeFromNetWorth);
-  document.getElementById('history-accounts-body').innerHTML = archiveAccounts.map(a=>{
-    const bal = accountBalance(a);
-    return `<tr>
-      <td>${a.name}</td>
-      <td>${a.currency}</td>
-      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="3" class="empty">No archived accounts</td></tr>`;
+/* ---------------------------- RENDER: HISTORY ---------------------------- */
+let _hType='all', _hPeriod='all', _hFrom='', _hTo='', _hPage=0;
+const H_PAGE = 100;
 
-  const txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
-  document.getElementById('history-txn-body').innerHTML = txns.map(t=>{
-    const acc = accountById(t.accountId);
-    return `<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
-      <td>${categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt neg">-${t.currency} ${fmtMoney(t.amount)}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
+function renderHistory(){
+  // Archive account summary strip
+  const archAccs = DB.accounts.filter(a=>a.excludeFromNetWorth);
+  const strip = document.getElementById('hist-acc-strip');
+  if(strip) strip.innerHTML = archAccs.map(a=>{
+    const bal = accountBalance(a);
+    return `<div class="card" style="padding:10px 16px;flex:1;min-width:160px;">
+      <div style="font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
+      <div style="font-size:15px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
+    </div>`;
+  }).join('');
+
+  // Build category multi-select — all categories that appear in archive transactions
+  const catSel = document.getElementById('hist-cat-select');
+  if(catSel){
+    const prev = new Set([...catSel.selectedOptions].map(o=>o.value));
+    const fresh = prev.size===0;
+    catSel.innerHTML='';
+    const usedIds = new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
+    const sorted = DB.categories.filter(c=>usedIds.has(c.id)).sort((a,b)=>{
+      const pa=a.parentId||a.id, pb=b.parentId||b.id;
+      if(pa!==pb) return pa.localeCompare(pb);
+      return (a.parentId?1:0)-(b.parentId?1:0);
+    });
+    sorted.forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c.id;
+      const par=c.parentId?DB.categories.find(p=>p.id===c.parentId):null;
+      opt.textContent=par?`  └ ${c.name}`:c.name;
+      opt.style.fontWeight=c.parentId?'400':'600';
+      opt.selected=fresh||prev.has(c.id);
+      catSel.appendChild(opt);
+    });
+  }
+  _hPage=0;
+  _renderHistTxns();
 }
+
+function _renderHistTxns(){
+  const catSel = document.getElementById('hist-cat-select');
+  const selCats = catSel?new Set([...catSel.selectedOptions].map(o=>o.value)):new Set();
+  const allCatsSel = !catSel||selCats.size===catSel.options.length;
+
+  let from=null,to=null;
+  if(_hPeriod==='custom'){from=_hFrom||null;to=_hTo||null;}
+  else if(/^\d{4}$/.test(_hPeriod)){from=`${_hPeriod}-01`;to=`${_hPeriod}-12`;}
+
+  let txns = archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
+  if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
+  if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
+  if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
+  if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
+  if(!allCatsSel) txns=txns.filter(t=>selCats.has(t.categoryId));
+
+  const totInc = txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const totExp = txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const net    = totInc-totExp;
+
+  const sumEl=document.getElementById('hist-summary');
+  const netEl=document.getElementById('hist-net');
+  if(sumEl) sumEl.textContent=`${txns.length} معاملة · دخل EGP ${fmtMoney(totInc)} · مصاريف EGP ${fmtMoney(totExp)}`;
+  if(netEl){netEl.textContent=`صافي: ${net>=0?'+':''}EGP ${fmtMoney(net)}`;netEl.style.color=net>=0?'var(--positive)':'var(--negative)';}
+
+  // Pagination
+  const pages=Math.ceil(txns.length/H_PAGE)||1;
+  if(_hPage>=pages)_hPage=pages-1;
+  const slice=txns.slice(_hPage*H_PAGE,(_hPage+1)*H_PAGE);
+
+  document.getElementById('history-txn-body').innerHTML = slice.map(t=>{
+    const isInc=t.type==='income';
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;">${fmtDate(t.date)}</td>
+      <td style="font-size:12px;">${categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
+      <td class="amt ${isInc?'pos':'neg'}" style="font-size:12.5px;">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات تطابق هذا الفلتر</td></tr>`;
+
+  // Pagination controls
+  const pgEl=document.getElementById('hist-pagination');
+  if(!pgEl)return;
+  if(pages<=1){pgEl.innerHTML='';return;}
+  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages}</span>`;
+  if(_hPage>0) pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
+  const s=Math.max(0,_hPage-2),e=Math.min(pages-1,_hPage+2);
+  for(let i=s;i<=e;i++) pg+=`<button class="btn ghost sm ${i===_hPage?'active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
+  if(_hPage<pages-1) pg+=`<button class="btn ghost sm" data-hpage="${_hPage+1}">التالي →</button>`;
+  pgEl.innerHTML=pg;
+}
+
+// History filter events (delegated)
+document.addEventListener('click',e=>{
+  const tp=e.target.closest('#hist-type-pills [data-ht]');
+  if(tp){_hType=tp.dataset.ht;document.querySelectorAll('#hist-type-pills .filter-pill').forEach(p=>p.classList.remove('active'));tp.classList.add('active');_hPage=0;_renderHistTxns();return;}
+  const pp=e.target.closest('#hist-period-pills [data-hp]');
+  if(pp){_hPeriod=pp.dataset.hp;document.querySelectorAll('#hist-period-pills .filter-pill').forEach(p=>p.classList.remove('active'));pp.classList.add('active');const cw=document.getElementById('hist-custom-wrap');if(cw)cw.style.display=_hPeriod==='custom'?'flex':'none';_hPage=0;_renderHistTxns();return;}
+  if(e.target.id==='hist-cats-all'){[...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=true);_hPage=0;_renderHistTxns();return;}
+  if(e.target.id==='hist-cats-none'){[...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=false);_hPage=0;_renderHistTxns();return;}
+  const pg=e.target.closest('[data-hpage]');
+  if(pg){_hPage=parseInt(pg.dataset.hpage);_renderHistTxns();document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});return;}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='hist-from'){_hFrom=e.target.value;_renderHistTxns();}
+  if(e.target.id==='hist-to'){_hTo=e.target.value;_renderHistTxns();}
+  if(e.target.id==='hist-cat-select'){_hPage=0;_renderHistTxns();}
+});
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
@@ -1578,39 +1747,147 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: REPORTS ---------------------------- */
-function renderReports(){
-  const mKey = thisMonthKey();
-  const topCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
-  document.getElementById('reports-tree-body').innerHTML = topCats.map(c=>{
-    const children = DB.categories.filter(ch=>ch.parentId===c.id);
-    const parentRow = `<tr>
-      <td style="font-weight:600;">${c.name}</td>
-      <td class="amt">${fmtMoney(categoryTotal(c.id, mKey))}</td>
-      <td class="amt">${fmtMoney(categoryTotal(c.id, null))}</td>
-    </tr>`;
-    const childRows = children.map(ch=>`<tr>
-      <td style="padding-left:28px;color:var(--text-muted);font-size:12.5px;">— ${ch.name}</td>
-      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, mKey))}</td>
-      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, null))}</td>
-    </tr>`).join('');
-    return parentRow + childRows;
-  }).join('') || `<tr><td colspan="3" class="empty">No expense categories yet</td></tr>`;
+let _rPeriod='all', _rFrom='', _rTo='';
 
-  const select = document.getElementById('reports-category-select');
-  const prevSelection = select.value;
-  select.innerHTML = categoryOptions('expense');
-  if(prevSelection && [...select.options].some(o=>o.value===prevSelection)) select.value = prevSelection;
+function _repRange(){
+  const now=new Date(); const thisM=thisMonthKey();
+  if(_rPeriod==='all')    return {from:null,to:null};
+  if(_rPeriod==='ytd')    return {from:`${now.getFullYear()}-01`,to:thisM};
+  if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:d.toISOString().slice(0,7),to:thisM};}
+  if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:d.toISOString().slice(0,7),to:thisM};}
+  if(_rPeriod==='1m')     return {from:thisM,to:thisM};
+  if(_rPeriod==='custom') return {from:_rFrom||null,to:_rTo||null};
+  return {from:null,to:null};
+}
+
+function _catTotalRange(catId,from,to){
+  const ids=categoryAndDescendantIds(catId);
+  return allExpenseEntries().filter(e=>{
+    if(!ids.includes(e.categoryId)) return false;
+    const mk=monthKey(e.date);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    return true;
+  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+}
+function _catSelfRange(catId,from,to){
+  return allExpenseEntries().filter(e=>{
+    if(e.categoryId!==catId)return false;
+    const mk=monthKey(e.date);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    return true;
+  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+}
+
+function renderReports(){
+  const mKey=thisMonthKey();
+  const {from,to}=_repRange();
+
+  // Period header text
+  const hdrEl=document.getElementById('rep-period-header');
+  if(hdrEl) hdrEl.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':`${from||''}→${to||''}`;
+
+  // Summary strip
+  const allInc  = DB.transactions.filter(t=>t.type==='income'&&(!from||t.date.slice(0,7)>=from)&&(!to||t.date.slice(0,7)<=to)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const allExp  = _catTotalRange('',from,to)||allExpenseEntries().filter(e=>(!from||e.date.slice(0,7)>=from)&&(!to||e.date.slice(0,7)<=to)).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+  const totExp  = allExpenseEntries().filter(e=>(!from||e.date.slice(0,7)>=from)&&(!to||e.date.slice(0,7)<=to)).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+  const totInc  = allInc;
+  const strip   = document.getElementById('rep-summary-strip');
+  if(strip) strip.innerHTML=[
+    {label:'إجمالي الدخل',val:totInc,color:'var(--positive)'},
+    {label:'إجمالي المصاريف',val:totExp,color:'var(--negative)'},
+    {label:'الصافي',val:totInc-totExp,color:totInc-totExp>=0?'var(--positive)':'var(--negative)'},
+  ].map(s=>`<div class="card" style="padding:10px 16px;flex:1;min-width:140px;">
+    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.label}</div>
+    <div style="font-size:15px;font-weight:700;color:${s.color};">${s.val>=0?'+':''}EGP ${fmtMoney(Math.abs(s.val))}</div>
+  </div>`).join('');
+
+  // Category tree
+  const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
+  document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
+    const children=DB.categories.filter(ch=>ch.parentId===c.id);
+    const parentTotal=_catTotalRange(c.id,from,to);
+    const parentThisM=categoryTotal(c.id,mKey);
+    if(parentTotal===0&&parentThisM===0) return '';
+    return `<tr>
+      <td style="font-weight:600;">${c.name}</td>
+      <td class="amt">${fmtMoney(parentThisM)}</td>
+      <td class="amt">${fmtMoney(parentTotal)}</td>
+    </tr>`+children.map(ch=>{
+      const chTot=_catSelfRange(ch.id,from,to);
+      const chM=categorySelfTotal(ch.id,mKey);
+      if(chTot===0&&chM===0) return '';
+      return `<tr>
+        <td style="padding-left:26px;color:var(--text-muted);font-size:12.5px;">└ ${ch.name}</td>
+        <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(chM)}</td>
+        <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(chTot)}</td>
+      </tr>`;
+    }).join('');
+  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف في هذه الفترة</td></tr>`;
+
+  // Build category multi-select
+  const sel=document.getElementById('reports-category-select');
+  const prev=new Set([...sel.selectedOptions].map(o=>o.value));
+  const fresh=prev.size===0;
+  sel.innerHTML='';
+  DB.categories.filter(c=>c.type==='expense').sort((a,b)=>{
+    const pa=a.parentId||a.id,pb=b.parentId||b.id;
+    if(pa!==pb)return pa.localeCompare(pb);
+    return (a.parentId?1:0)-(b.parentId?1:0);
+  }).forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.id;
+    const par=c.parentId?DB.categories.find(p=>p.id===c.parentId):null;
+    opt.textContent=par?`  └ ${c.name}`:c.name;
+    opt.style.fontWeight=c.parentId?'400':'600';
+    opt.selected=fresh||prev.has(c.id);
+    sel.appendChild(opt);
+  });
   renderReportsMonthly();
 }
+
 function renderReportsMonthly(){
-  const catId = document.getElementById('reports-category-select').value;
-  const months = allMonthsWithActivity();
-  document.getElementById('reports-monthly-body').innerHTML = months.map(mk=>{
-    const amt = categoryTotal(catId, mk);
+  const {from,to}=_repRange();
+  const sel=document.getElementById('reports-category-select');
+  const selIds=[...sel.selectedOptions].map(o=>o.value);
+
+  // Header
+  const hdr=document.getElementById('rep-monthly-header');
+  if(hdr) hdr.textContent=selIds.length===0?'المبلغ':selIds.length<=2?selIds.map(id=>{const c=categoryById(id);return c?c.name:id;}).join(' + '):selIds.length+' كاتيجوري';
+
+  if(!selIds.length){
+    document.getElementById('reports-monthly-body').innerHTML=`<tr><td colspan="2" class="empty">اختر كاتيجوري واحدة على الأقل</td></tr>`;
+    return;
+  }
+
+  let months=allMonthsWithActivity();
+  if(from) months=months.filter(m=>m>=from);
+  if(to)   months=months.filter(m=>m<=to);
+  months.sort().reverse();
+
+  document.getElementById('reports-monthly-body').innerHTML=months.map(mk=>{
+    const amt=selIds.reduce((s,id)=>s+_catSelfRange(id,mk,mk),0);
+    if(amt===0) return '';
     return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
-  }).join('') || `<tr><td colspan="2" class="empty">No activity recorded yet</td></tr>`;
+  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات في هذه الفترة</td></tr>`;
 }
-document.getElementById('reports-category-select').addEventListener('change', renderReportsMonthly);
+
+// Reports event wiring
+document.getElementById('rep-period-pills').addEventListener('click',e=>{
+  const pill=e.target.closest('[data-rp]');if(!pill)return;
+  _rPeriod=pill.dataset.rp;
+  document.querySelectorAll('#rep-period-pills .filter-pill').forEach(p=>p.classList.remove('active'));
+  pill.classList.add('active');
+  const cw=document.getElementById('rep-custom-wrap');
+  if(cw)cw.style.display=_rPeriod==='custom'?'flex':'none';
+  renderReports();
+});
+document.getElementById('rep-from').addEventListener('change',e=>{_rFrom=e.target.value;renderReports();});
+document.getElementById('rep-to').addEventListener('change',e=>{_rTo=e.target.value;renderReports();});
+document.getElementById('reports-category-select').addEventListener('change',renderReportsMonthly);
+document.getElementById('rep-cats-all').addEventListener('click',()=>{[...document.getElementById('reports-category-select').options].forEach(o=>o.selected=true);renderReportsMonthly();});
+document.getElementById('rep-cats-none').addEventListener('click',()=>{[...document.getElementById('reports-category-select').options].forEach(o=>o.selected=false);renderReportsMonthly();});
 
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
@@ -1816,99 +2093,83 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='commitment'){
-    // Calculate current monthly income from last 3 months average (archive + live)
+    // Average monthly income — last 3 months with data (archive + live)
     const now = new Date();
-    let totalInc = 0, incMonths = 0;
+    let incSum = 0, incMos = 0;
     for(let i=1; i<=3; i++){
       const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
       const mk = d.toISOString().slice(0,7);
-      const mInc = DB.transactions.filter(t=>t.type==='income' && t.date.startsWith(mk))
-        .reduce((s,t)=>s+Number(t.amount),0);
-      if(mInc>0){ totalInc+=mInc; incMonths++; }
+      const m = DB.transactions.filter(t=>t.type==='income' && t.date.startsWith(mk))
+                               .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+      if(m>0){ incSum+=m; incMos++; }
     }
-    const avgMonthlyIncome = incMonths>0 ? Math.round(totalInc/incMonths) : 0;
-
-    // Current total active monthly commitments
-    const currentCommitTotal = DB.commitments
-      .filter(c=>commitmentRemaining(c)>0)
+    const avgInc = incMos>0 ? Math.round(incSum/incMos) : 0;
+    // Current active monthly commitments
+    const existingMonthly = DB.commitments
+      .filter(c=>{ const paid=commitmentPayments(c.id).length; return paid < (c.totalInstallments||Infinity); })
       .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
 
-    html = `<div class="modal" style="width:480px;">
+    html = `<div class="modal" style="max-width:520px;">
       <h2>New Commitment</h2>
       <form id="form-commitment">
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="commit-type-group">
-            <div class="radio-opt selected" data-val="installment">Installment (قسط)</div>
+            <div class="radio-opt selected" data-val="installment">قسط (Installment)</div>
             <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
           </div>
           <input type="hidden" name="type" value="installment">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت أو الجمعيه 3"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت، جمعية 3"></div>
         <div class="field-row">
-          <div class="field"><label>Total Amount (EGP)</label><input type="number" step="0.01" name="totalAmount" required placeholder="0.00" id="commit-total-amount"></div>
-          <div class="field"><label>Monthly Installment (EGP)</label><input type="number" step="0.01" name="installmentAmount" required placeholder="0.00" id="commit-installment"></div>
+          <div class="field"><label>Total Amount (EGP)</label><input type="number" step="0.01" name="totalAmount" required placeholder="0.00" id="cm-total-amt"></div>
+          <div class="field"><label>Monthly Installment (EGP)</label><input type="number" step="0.01" name="installmentAmount" required placeholder="0.00" id="cm-inst-amt"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12" id="commit-total-inst"></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12" id="cm-total-inst"></div>
         </div>
         <div class="field" id="commit-payout-field" style="display:none;">
-          <label>Expected Payout Date (جمعية)</label>
+          <label>Expected Payout Date</label>
           <input type="date" name="payoutDate">
         </div>
 
-        <!-- ── Budget Impact Panel ── -->
-        <div id="commit-budget-panel" style="
-          background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
-          padding:14px 16px;margin:4px 0 14px 0;">
+        <!-- ── Budget Impact Panel ─────────────────────────────── -->
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:8px 0 14px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">📊 Monthly Budget Impact</div>
 
-          <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
-            📊 Monthly Budget Impact
-          </div>
-
-          <!-- Income row -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">Average monthly income</span>
-            <span class="num" style="font-size:13px;color:var(--positive);" id="bud-income">
-              ${avgMonthlyIncome>0 ? 'EGP '+avgMonthlyIncome.toLocaleString() : '— (no data yet)'}
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12.5px;color:var(--text-muted);">Avg. monthly income (last 3 mo.)</span>
+            <span style="font-size:13px;font-weight:600;color:var(--positive);" id="bud-inc">
+              ${avgInc>0?'EGP '+avgInc.toLocaleString():'— no income data yet'}
             </span>
           </div>
-
-          <!-- Existing commitments row -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
             <span style="font-size:12.5px;color:var(--text-muted);">Existing monthly commitments</span>
-            <span class="num" style="font-size:13px;color:var(--warning);" id="bud-existing">
-              ${currentCommitTotal>0 ? '− EGP '+currentCommitTotal.toLocaleString() : '— none'}
+            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-exist">
+              ${existingMonthly>0?'− EGP '+existingMonthly.toLocaleString():'— none'}
             </span>
           </div>
-
-          <!-- New installment row -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
             <span style="font-size:12.5px;color:var(--text-muted);">This new installment</span>
-            <span class="num" style="font-size:13px;color:var(--warning);" id="bud-new">— enter amount above</span>
+            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new">— أدخل المبلغ أعلاه</span>
           </div>
 
-          <!-- Divider -->
           <div style="border-top:1px solid var(--border);margin-bottom:10px;"></div>
 
-          <!-- Remaining row -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;font-weight:600;color:var(--text);">Remaining after all commitments</span>
-            <span class="num" style="font-size:15px;font-weight:700;" id="bud-remaining">—</span>
+            <span style="font-size:13px;font-weight:600;">المتبقي بعد كل الالتزامات</span>
+            <span style="font-size:16px;font-weight:700;" id="bud-rem">—</span>
           </div>
 
-          <!-- Progress bar -->
-          <div style="background:var(--surface-3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px;">
-            <div id="bud-bar" style="height:100%;border-radius:6px;background:var(--positive);width:0%;transition:width .25s,background .25s;"></div>
+          <div style="background:var(--surface-3);border-radius:6px;height:9px;overflow:hidden;margin-bottom:10px;">
+            <div id="bud-bar" style="height:100%;border-radius:6px;width:0%;transition:width .2s,background .2s;background:var(--positive);"></div>
           </div>
 
-          <!-- Advice text -->
-          <div id="bud-advice" style="font-size:12px;color:var(--text-muted);line-height:1.5;"></div>
-
-          <!-- Extra income needed hint -->
-          <div id="bud-extra" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(226,114,124,.08);border:1px solid rgba(226,114,124,.25);border-radius:8px;font-size:12px;color:var(--negative);"></div>
+          <div id="bud-msg" style="font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
+          <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.22);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
         </div>
+        <!-- ─────────────────────────────────────────────────────── -->
 
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2335,94 +2596,6 @@ function openModal(kind, ctx={}){
     }
     inputs.forEach(inp=> inp.addEventListener('input', recalc));
   }
-
-  // ── Commitment Budget Impact Calculator ──────────────────────────────────
-  if(kind==='commitment'){
-    const backdrop = document.getElementById('modal-backdrop');
-    const instInput  = backdrop.querySelector('#commit-installment');
-    const totalAmtInput = backdrop.querySelector('#commit-total-amount');
-    const totalInstInput = backdrop.querySelector('#commit-total-inst');
-
-    // Average monthly income (last 3 months with income data)
-    const now2 = new Date();
-    let totalInc2 = 0, incMos = 0;
-    for(let i=1; i<=3; i++){
-      const d = new Date(now2.getFullYear(), now2.getMonth()-i, 1);
-      const mk = d.toISOString().slice(0,7);
-      const mInc = DB.transactions.filter(t=>t.type==='income' && t.date.startsWith(mk))
-        .reduce((s,t)=>s+Number(t.amount),0);
-      if(mInc>0){ totalInc2+=mInc; incMos++; }
-    }
-    const avgInc = incMos>0 ? Math.round(totalInc2/incMos) : 0;
-    const existingCommits = DB.commitments
-      .filter(c=>commitmentRemaining(c)>0)
-      .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-
-    function updateBudgetPanel(){
-      const newAmt = Number(instInput.value)||0;
-      const totalCommits = existingCommits + newAmt;
-      const remaining = avgInc - totalCommits;
-      const pct = avgInc>0 ? Math.min(100, Math.round(totalCommits/avgInc*100)) : 0;
-
-      // New installment display
-      const newEl = backdrop.querySelector('#bud-new');
-      newEl.textContent = newAmt>0 ? `− EGP ${newAmt.toLocaleString()}` : '— enter amount above';
-      newEl.style.color = newAmt>0 ? 'var(--warning)' : 'var(--text-faint)';
-
-      // Remaining display
-      const remEl = backdrop.querySelector('#bud-remaining');
-      if(avgInc===0){
-        remEl.textContent = '—';
-        remEl.style.color = 'var(--text-faint)';
-      } else {
-        remEl.textContent = (remaining>=0?'EGP ':'− EGP ') + Math.abs(remaining).toLocaleString();
-        remEl.style.color = remaining>=0 ? 'var(--positive)' : 'var(--negative)';
-      }
-
-      // Progress bar
-      const bar = backdrop.querySelector('#bud-bar');
-      bar.style.width = pct+'%';
-      bar.style.background = pct>=100 ? 'var(--negative)' : pct>=80 ? 'var(--warning)' : 'var(--positive)';
-
-      // Advice text
-      const advice = backdrop.querySelector('#bud-advice');
-      const extraEl = backdrop.querySelector('#bud-extra');
-      if(avgInc===0){
-        advice.textContent = 'No income data found — add income transactions to see budget impact.';
-        extraEl.style.display='none';
-      } else if(remaining<0){
-        const over = Math.abs(remaining);
-        advice.textContent = `⚠️ هذا الالتزام يتجاوز دخلك الشهري — الالتزامات الكلية ${pct}% من دخلك.`;
-        extraEl.style.display='block';
-        extraEl.innerHTML = `💡 محتاج دخل إضافي شهري: <strong>EGP ${over.toLocaleString()}</strong> — إما تخفض القسط أو تلاقي مصدر دخل تاني.`;
-      } else if(pct>=80){
-        advice.textContent = `⚠️ الالتزامات وصلت ${pct}% من دخلك — هامش أمان ضيق جداً.`;
-        extraEl.style.display='none';
-      } else if(pct>=50){
-        advice.textContent = `الالتزامات ${pct}% من دخلك — متقبلة، بس خلي بالك.`;
-        extraEl.style.display='none';
-      } else if(newAmt>0){
-        advice.textContent = `✅ الالتزامات ${pct}% من دخلك — نسبة صحية، وفاضلك EGP ${remaining.toLocaleString()} شهرياً.`;
-        extraEl.style.display='none';
-      } else {
-        advice.textContent = `الالتزامات الحالية ${pct}% من دخلك.`;
-        extraEl.style.display='none';
-      }
-    }
-
-    // Auto-fill totalInstallments when totalAmount & installmentAmount are both filled
-    function autoFillInst(){
-      const tot = Number(totalAmtInput.value);
-      const inst = Number(instInput.value);
-      if(tot>0 && inst>0 && !totalInstInput.value){
-        totalInstInput.value = Math.ceil(tot/inst);
-      }
-    }
-
-    instInput.addEventListener('input', ()=>{ updateBudgetPanel(); autoFillInst(); });
-    totalAmtInput.addEventListener('input', autoFillInst);
-    updateBudgetPanel(); // initial render
-  }
 }
 
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
@@ -2456,8 +2629,7 @@ function wireModal(kind){
       }
       if(group.id==='commit-type-group'){
         document.getElementById('commit-payout-field').style.display = opt.dataset.val==='rotating_saving' ? 'block' : 'none';
-      }
-      if(group.id==='pay-method-group'){
+      }      if(group.id==='pay-method-group'){
         document.getElementById('pay-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
       }
       if(group.id==='vlog-type-group'){
@@ -2473,6 +2645,74 @@ function wireModal(kind){
       }
     });
   });
+
+  // ── Commitment live budget calculator ──────────────────────────────────
+  if(kind==='commitment'){
+    const instEl      = backdrop.querySelector('#cm-inst-amt');
+    const totalAmtEl  = backdrop.querySelector('#cm-total-amt');
+    const totalInstEl = backdrop.querySelector('#cm-total-inst');
+    if(!instEl) return;
+
+    const nowC = new Date();
+    let incS=0, incM=0;
+    for(let i=1;i<=3;i++){
+      const d=new Date(nowC.getFullYear(),nowC.getMonth()-i,1);
+      const mk=d.toISOString().slice(0,7);
+      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk))
+                             .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+      if(m>0){incS+=m;incM++;}
+    }
+    const avgIncC = incM>0?Math.round(incS/incM):0;
+    const existC  = DB.commitments
+      .filter(c=>{const p=commitmentPayments(c.id).length;return p<(c.totalInstallments||Infinity);})
+      .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
+
+    function recalcBudget(){
+      const newInst = Number(instEl.value)||0;
+      const total   = existC + newInst;
+      const rem     = avgIncC - total;
+      const pct     = avgIncC>0?Math.min(100,Math.round(total/avgIncC*100)):0;
+
+      const newEl  = backdrop.querySelector('#bud-new');
+      const remEl  = backdrop.querySelector('#bud-rem');
+      const barEl  = backdrop.querySelector('#bud-bar');
+      const msgEl  = backdrop.querySelector('#bud-msg');
+      const extEl  = backdrop.querySelector('#bud-extra');
+
+      if(newEl) newEl.textContent = newInst>0?`− EGP ${newInst.toLocaleString()}`:'— أدخل المبلغ أعلاه';
+      if(remEl){
+        if(avgIncC===0){remEl.textContent='—';remEl.style.color='var(--text-faint)';}
+        else{remEl.textContent=(rem>=0?'':'− ')+'EGP '+Math.abs(rem).toLocaleString();remEl.style.color=rem>=0?'var(--positive)':'var(--negative)';}
+      }
+      if(barEl){barEl.style.width=pct+'%';barEl.style.background=pct>=100?'var(--negative)':pct>=80?'var(--warning)':'var(--positive)';}
+      if(msgEl){
+        if(avgIncC===0){msgEl.textContent='لا توجد بيانات دخل بعد.';if(extEl)extEl.style.display='none';}
+        else if(rem<0){
+          msgEl.innerHTML=`<span style="color:var(--negative);">⚠️ الالتزامات (${pct}٪) تتجاوز دخلك!</span>`;
+          if(extEl){extEl.style.display='block';extEl.innerHTML=`💡 تحتاج دخلاً إضافياً: <strong>EGP ${Math.abs(rem).toLocaleString()}</strong> شهرياً — خفّض القسط أو أضف مصدر دخل آخر.`;}
+        } else if(pct>=80){
+          msgEl.innerHTML=`<span style="color:var(--warning);">⚠️ ${pct}٪ من دخلك — هامش أمان ضيق جداً.</span>`;
+          if(extEl)extEl.style.display='none';
+        } else if(pct>=50){
+          msgEl.innerHTML=`<span style="color:var(--warning);">${pct}٪ من دخلك — مقبول، لكن ابقَ منتبهاً.</span>`;
+          if(extEl)extEl.style.display='none';
+        } else if(newInst>0){
+          msgEl.innerHTML=`<span style="color:var(--positive);">✅ ${pct}٪ من دخلك — نسبة صحية، يتبقى EGP ${rem.toLocaleString()} شهرياً.</span>`;
+          if(extEl)extEl.style.display='none';
+        } else {
+          msgEl.textContent=`الالتزامات الحالية ${pct}٪ من دخلك.`;
+          if(extEl)extEl.style.display='none';
+        }
+      }
+    }
+    function autoFill(){
+      const tot=Number(totalAmtEl.value);const inst=Number(instEl.value);
+      if(tot>0&&inst>0&&!totalInstEl.value)totalInstEl.value=Math.ceil(tot/inst);
+    }
+    instEl.addEventListener('input',()=>{recalcBudget();autoFill();});
+    totalAmtEl.addEventListener('input',autoFill);
+    recalcBudget();
+  }
 
   const form = backdrop.querySelector('form');
   if(!form) return;

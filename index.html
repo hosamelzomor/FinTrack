@@ -408,6 +408,17 @@
         <div><h1>Transactions</h1><div class="today" id="txn-count-label"></div></div>
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
+      <!-- Search + filters row -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+        <input type="search" id="txn-search" placeholder="Search by note or category…"
+          style="flex:1;min-width:180px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;">
+        <select id="txn-month-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;">
+          <option value="">All months</option>
+        </select>
+        <select id="txn-cat-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;">
+          <option value="">All categories</option>
+        </select>
+      </div>
       <div class="pill-row" id="txn-filters"></div>
       <div class="table-wrap">
         <table>
@@ -415,6 +426,7 @@
           <tbody id="txn-body"></tbody>
         </table>
       </div>
+      <div id="txn-pagination" style="display:flex;gap:8px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;"></div>
     </section>
 
     <!-- CATEGORIES -->
@@ -691,14 +703,24 @@ function totalLiabilitiesEGP(){
 }
 
 function monthTotals(mKey){
-  let income=0;
-  liveTransactions().forEach(t=>{
-    if(monthKey(t.date) !== mKey) return;
+  // Try live transactions first. If the user's setup stores everything in the
+  // archive account (الرصيد العام), live will be empty — fall back to archive so
+  // the Dashboard "This Month" cards always show meaningful numbers.
+  const liveTxns = liveTransactions().filter(t=>monthKey(t.date)===mKey);
+  const srcTxns = liveTxns.length > 0
+    ? liveTxns
+    : DB.transactions.filter(t=>monthKey(t.date)===mKey);
+
+  let income = 0, expense = 0;
+  srcTxns.forEach(t=>{
     if(t.type==='income') income += toEGP(t.amount, t.currency);
+    else if(t.type==='expense') expense += toEGP(t.amount, t.currency);
   });
-  const expense = liveExpenseEntries()
-    .filter(e=> monthKey(e.date)===mKey)
-    .reduce((sum,e)=> sum + toEGP(e.amount, e.currency), 0);
+  // commitmentPayments with no linked transaction count as live expenses
+  const cmExp = DB.commitmentPayments
+    .filter(p=>!p.linkedTransactionId && monthKey(p.date)===mKey)
+    .reduce((s,p)=>s+Number(p.amount),0);
+  expense += cmExp;
   return {income, expense, net: income-expense};
 }
 
@@ -719,8 +741,6 @@ function commitmentPayments(commitId){
 function isArchiveTxn(t){
   const acc = accountById(t.accountId);
   if(!acc) return false;
-  // Any account flagged excludeFromNetWorth is treated as a historical/archive account.
-  // This covers "الرصيد العام" and any future archive accounts regardless of name.
   return acc.excludeFromNetWorth === true;
 }
 function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
@@ -835,51 +855,27 @@ function vehicleLogCategoryId(log){
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
 }
-// Unified expense list for category totals: regular expense transactions, PLUS vehicle logs that
-// were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
-// transaction with the same category, so they're skipped here to avoid double-counting.
+// Unified expense list used by Reports & Budgets — ALL history including archive,
+// but NOT vehicle logs (they already have linked transactions in the archive account).
+// commitmentPayments that have NO linked transaction are included (they're standalone).
 function allExpenseEntries(){
-  // Transactions are always counted.
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction'}));
-
-  // Vehicle logs that already have a matching expense transaction (linkedTransactionId set,
-  // OR the transaction was imported separately as an expense) should NOT be double-counted.
-  // Only include vehicle logs that represent standalone cash payments with no corresponding
-  // transaction — identified by: no linkedTransactionId AND no expense transaction on the
-  // same date+amount+vehicle-category exists.
-  const linkedTxnIds = new Set(DB.vehicleLogs.map(l=>l.linkedTransactionId).filter(Boolean));
-  const vlogEntries = DB.vehicleLogs
-    .filter(l=>!l.linkedTransactionId && !linkedTxnIds.has(l.id))
-    .filter(l=>{
-      // If the archive account (excludeFromNetWorth) has an expense transaction
-      // on this date with a matching category, the vehicle detail was imported
-      // as a transaction and the log is odometer-only.
-      const catid = vehicleLogCategoryId(l);
-      const hasMatchingTxn = DB.transactions.some(t=>
-        t.type==='expense' && t.date===l.date &&
-        Math.abs(t.amount-l.amount)<0.01 &&
-        (t.categoryId===catid || (t.categoryId||'').startsWith(catid.split('_')[0]+'_'+catid.split('_')[1]))
-      );
-      return !hasMatchingTxn;
-    })
-    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
-
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
-
-  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
+  return txnEntries.concat(cmPmtEntries);
 }
-// Same as above but scoped to "live" activity only (excludes the historical-archive account's
-// transactions) — this is what Dashboard "This Month" cards should reflect, not full history.
+// Live-only expense entries (excludes archive account) — used by Dashboard "This Month"
+// and by Budgets current-month progress.
+// Vehicle logs with linkedTransactionId already appear as transactions on the archive account —
+// they must NOT be added again here. Logs without a linked transaction (pure cash, manual) are
+// only relevant if they're on a live account, which is already captured via liveTransactions().
 function liveExpenseEntries(){
   const txnEntries = liveTransactions().filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction', note:t.note}));
-  const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
-    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
-  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
+  return txnEntries.concat(cmPmtEntries);
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -1233,17 +1229,19 @@ function renderDashboard(){
       <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
     </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">Nothing due soon</div>`;
 
-  const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
+  // Recent transactions: show all (live + archive) most recent 8
+  const recent = DB.transactions.slice().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
     const acc = accountById(t.accountId);
     const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
     const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
-    return `<tr>
+    const isArchive = isArchiveTxn(t);
+    return `<tr style="${isArchive?'opacity:.7;':''}">
       <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
+      <td style="font-size:11.5px;">${acc?acc.name:'—'}</td>
       <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
       <td style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+      <td class="amt ${cls}">${sign}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
 }
@@ -1298,44 +1296,111 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
 let txnFilter = 'all';
-function renderTransactions(){
-  const liveTxns = liveTransactions();
-  document.getElementById('txn-count-label').textContent = `${liveTxns.length} transaction${liveTxns.length===1?'':'s'}`;
+let txnPage = 0;
+const TXN_PAGE_SIZE = 50;
 
-  const filters = [
-    {k:'all', label:'All'},
-    {k:'income', label:'Income'},
-    {k:'expense', label:'Expense'},
-    {k:'transfer', label:'Transfers'}
-  ];
+function renderTransactions(){
+  // All transactions visible on this page = live + archive (full picture)
+  const allTxns = DB.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date));
+
+  // Build month filter options (only months that have transactions)
+  const monthSel = document.getElementById('txn-month-filter');
+  const prevMonth = monthSel.value;
+  const months = [...new Set(allTxns.map(t=>t.date.slice(0,7)))].sort().reverse();
+  monthSel.innerHTML = '<option value="">All months</option>' +
+    months.map(m=>`<option value="${m}" ${m===prevMonth?'selected':''}>${m}</option>`).join('');
+
+  // Category filter options
+  const catSel = document.getElementById('txn-cat-filter');
+  const prevCat = catSel.value;
+  catSel.innerHTML = '<option value="">All categories</option>' +
+    DB.categories.map(c=>{
+      const par = c.parentId ? DB.categories.find(p=>p.id===c.parentId) : null;
+      const label = par ? `  └ ${c.name}` : c.name;
+      return `<option value="${c.id}" ${c.id===prevCat?'selected':''}>${label}</option>`;
+    }).join('');
+
+  // Type pill filters
+  const filters = [{k:'all',label:'All'},{k:'income',label:'Income'},{k:'expense',label:'Expense'},{k:'transfer',label:'Transfers'}];
   document.getElementById('txn-filters').innerHTML = filters.map(f=>
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
   ).join('');
 
-  let list = [...liveTxns].sort((a,b)=> b.date.localeCompare(a.date));
-  if(txnFilter==='income') list = list.filter(t=>t.type==='income');
+  // Apply filters
+  const searchQ = (document.getElementById('txn-search').value||'').trim().toLowerCase();
+  const selMonth = monthSel.value;
+  const selCat = catSel.value;
+
+  let list = allTxns;
+  if(txnFilter==='income')   list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
+  if(selMonth) list = list.filter(t=>t.date.startsWith(selMonth));
+  if(selCat)   list = list.filter(t=>t.categoryId===selCat);
+  if(searchQ)  list = list.filter(t=>{
+    const note = (t.note||'').toLowerCase();
+    const cat = categoryLabel(t.categoryId).toLowerCase();
+    return note.includes(searchQ) || cat.includes(searchQ);
+  });
 
-  document.getElementById('txn-body').innerHTML = list.map(t=>{
+  const total = list.length;
+  const totInc = list.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
+  const totExp = list.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
+  document.getElementById('txn-count-label').textContent =
+    `${total} transaction${total===1?'':'s'} · Income EGP ${fmtMoney(totInc)} · Expense EGP ${fmtMoney(totExp)}`;
+
+  // Pagination
+  const pages = Math.ceil(total / TXN_PAGE_SIZE) || 1;
+  if(txnPage >= pages) txnPage = pages - 1;
+  const pageList = list.slice(txnPage * TXN_PAGE_SIZE, (txnPage+1) * TXN_PAGE_SIZE);
+
+  document.getElementById('txn-body').innerHTML = pageList.map(t=>{
     const acc = accountById(t.accountId);
+    const isArchive = isArchiveTxn(t);
     const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
-    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
-    return `<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
+    const cls  = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
+    return `<tr style="${isArchive?'opacity:.75;':''}" title="${isArchive?'Archive (historical record)':''}">
+      <td style="white-space:nowrap;">${fmtDate(t.date)}</td>
+      <td style="font-size:11.5px;color:var(--text-muted);">${acc?acc.name:'—'}${isArchive?' 🕘':''}</td>
       <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
-      <td><button class="btn ghost sm" data-del-txn="${t.id}">Delete</button></td>
+      <td style="color:var(--text-muted);font-size:11.5px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
+      <td class="amt ${cls}">${sign}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn ghost sm" data-edit-txn="${t.id}" style="margin-right:4px;">Edit</button>
+        <button class="btn ghost sm" data-del-txn="${t.id}">Del</button>
+      </td>
     </tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">No transactions match this filter</td></tr>`;
+
+  // Pagination controls
+  const pgEl = document.getElementById('txn-pagination');
+  if(pages <= 1){ pgEl.innerHTML=''; return; }
+  let pgHtml = `<span style="font-size:12px;color:var(--text-muted);">Page ${txnPage+1} of ${pages}</span>`;
+  if(txnPage > 0) pgHtml += `<button class="btn ghost sm" data-txn-page="${txnPage-1}">← Prev</button>`;
+  // Page number buttons (show max 5 around current)
+  const start = Math.max(0, txnPage-2), end = Math.min(pages-1, txnPage+2);
+  for(let i=start; i<=end; i++){
+    pgHtml += `<button class="btn ghost sm ${i===txnPage?'active':''}" data-txn-page="${i}" style="${i===txnPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
+  }
+  if(txnPage < pages-1) pgHtml += `<button class="btn ghost sm" data-txn-page="${txnPage+1}">Next →</button>`;
+  pgEl.innerHTML = pgHtml;
 }
+
 document.getElementById('txn-filters').addEventListener('click', e=>{
   const btn = e.target.closest('[data-filter]'); if(!btn) return;
-  txnFilter = btn.dataset.filter; renderTransactions();
+  txnFilter = btn.dataset.filter; txnPage = 0; renderTransactions();
+});
+document.getElementById('txn-search').addEventListener('input', ()=>{ txnPage=0; renderTransactions(); });
+document.getElementById('txn-month-filter').addEventListener('change', ()=>{ txnPage=0; renderTransactions(); });
+document.getElementById('txn-cat-filter').addEventListener('change', ()=>{ txnPage=0; renderTransactions(); });
+document.getElementById('txn-pagination').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-txn-page]'); if(!btn) return;
+  txnPage = parseInt(btn.dataset.txnPage); renderTransactions();
+  document.querySelector('#view-transactions .topbar').scrollIntoView({behavior:'smooth'});
 });
 document.getElementById('view-transactions').addEventListener('click', e=>{
+  const editId = e.target.dataset.editTxn;
+  if(editId){ openModal('transaction', {transactionId: editId}); return; }
   const id = e.target.dataset.delTxn; if(!id) return;
   DB.transactions = DB.transactions.filter(t=>t.id!==id);
   saveDB(); renderAll(); toast('Transaction deleted');
@@ -1752,38 +1817,42 @@ function openModal(kind, ctx={}){
 
   if(kind==='transaction'){
     if(!DB.accounts.length){ toast('Add an account first'); return; }
+    const editing = ctx.transactionId ? DB.transactions.find(t=>t.id===ctx.transactionId) : null;
+    const eType = editing ? (editing.type.startsWith('transfer')?'transfer':editing.type) : 'expense';
+    const eCatType = eType==='income' ? 'income' : 'expense';
     html = `<div class="modal">
-      <h2>New Transaction</h2>
+      <h2>${editing?'Edit Transaction':'New Transaction'}</h2>
       <form id="form-transaction">
+        ${editing ? `<input type="hidden" name="transactionId" value="${editing.id}">` : ''}
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="txn-type-group">
-            <div class="radio-opt selected" data-val="expense">Expense</div>
-            <div class="radio-opt" data-val="income">Income</div>
-            <div class="radio-opt" data-val="transfer">Transfer</div>
+            <div class="radio-opt ${eType==='expense'?'selected':''}" data-val="expense">Expense</div>
+            <div class="radio-opt ${eType==='income'?'selected':''}" data-val="income">Income</div>
+            <div class="radio-opt ${eType==='transfer'?'selected':''}" data-val="transfer">Transfer</div>
           </div>
-          <input type="hidden" name="type" value="expense">
+          <input type="hidden" name="type" value="${eType}">
         </div>
         <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" required placeholder="0.00"></div>
+          <div class="field"><label>Date</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
+          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" required placeholder="0.00" value="${editing?editing.amount:''}"></div>
         </div>
         <div class="field" id="txn-account-field">
           <label>Account</label>
-          <select name="accountId">${accountOptions()}</select>
+          <select name="accountId">${accountOptions(editing?editing.accountId:'')}</select>
         </div>
-        <div class="field" id="txn-dest-field" style="display:none;">
+        <div class="field" id="txn-dest-field" style="display:${eType==='transfer'?'block':'none'};">
           <label>To Account</label>
-          <select name="destAccountId">${accountOptions()}</select>
+          <select name="destAccountId">${accountOptions('')}</select>
         </div>
-        <div class="field" id="txn-category-field">
+        <div class="field" id="txn-category-field" style="display:${eType==='transfer'?'none':'block'};">
           <label>Category</label>
-          <select name="categoryId">${categoryOptions('expense')}</select>
+          <select name="categoryId">${categoryOptions(eCatType, editing?editing.categoryId:'')}</select>
         </div>
-        <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. صيانه العربيه"></div>
+        <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. صيانه العربيه" value="${editing?editing.note||'':''}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Save Transaction</button>
+          <button type="submit" class="btn">${editing?'Save Changes':'Save Transaction'}</button>
         </div>
       </form>
     </div>`;
@@ -2388,6 +2457,22 @@ const submitHandlers = {
     saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
   },
   transaction(data){
+    // EDIT existing transaction
+    if(data.transactionId){
+      const t = DB.transactions.find(x=>x.id===data.transactionId);
+      if(!t) throw new Error('Transaction not found');
+      const acc = accountById(data.accountId);
+      t.date = data.date;
+      t.accountId = data.accountId;
+      t.categoryId = data.categoryId || null;
+      t.amount = Number(data.amount);
+      t.currency = acc ? acc.currency : (t.currency||'EGP');
+      t.note = data.note || '';
+      t.type = data.type;
+      saveDB(); toast('Transaction updated');
+      return;
+    }
+    // NEW transaction
     if(data.type==='transfer'){
       if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
       const from = accountById(data.accountId), to = accountById(data.destAccountId);

@@ -468,29 +468,50 @@
     <!-- REPORTS -->
     <section class="view" id="view-reports">
       <div class="topbar">
-        <div><h1>Reports</h1><div class="today">تحليل المصاريف حسب الكاتيجوري والشهر</div></div>
+        <div><h1>Reports</h1><div class="today">تحليل المصاريف — فلتر حسب الكاتيجوري والفترة</div></div>
       </div>
-      <!-- Period filter -->
-      <div class="card" style="margin-bottom:18px;padding:12px 16px;">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;">الفترة</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;" id="rep-period-pills">
-            <button class="filter-pill active" data-rp="all">كل الوقت</button>
-            <button class="filter-pill" data-rp="ytd">هذه السنة</button>
-            <button class="filter-pill" data-rp="6m">6 أشهر</button>
-            <button class="filter-pill" data-rp="3m">3 أشهر</button>
-            <button class="filter-pill" data-rp="1m">هذا الشهر</button>
-            <button class="filter-pill" data-rp="custom">تخصيص ▾</button>
+
+      <!-- Excel-style filter bar -->
+      <div class="card" style="margin-bottom:18px;padding:14px 16px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الفترة</div>
+            <select id="rep-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:140px;">
+              <option value="all">كل الوقت</option>
+              <option value="ytd">هذه السنة</option>
+              <option value="6m">آخر 6 أشهر</option>
+              <option value="3m">آخر 3 أشهر</option>
+              <option value="1m">هذا الشهر</option>
+              <option value="custom">تخصيص...</option>
+            </select>
           </div>
-          <div id="rep-custom-wrap" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-            <span style="color:var(--text-faint);">→</span>
-            <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
+          <div id="rep-custom-from-wrap" style="display:none;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">من</div>
+            <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
+          <div id="rep-custom-to-wrap" style="display:none;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">إلى</div>
+            <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الكاتيجوري</div>
+            <select id="rep-cat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:200px;">
+              <option value="">كل الكاتيجوريز</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الصب-كاتيجوري</div>
+            <select id="rep-subcat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:180px;">
+              <option value="">كل الفروع</option>
+            </select>
+          </div>
+          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح الفلاتر</button>
         </div>
       </div>
+
       <!-- Summary strip -->
       <div id="rep-summary-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
       <!-- By Category tree -->
       <div class="section-title">حسب الكاتيجوري <span class="hint">الفروع مضمّنة في الأصل</span></div>
       <div class="table-wrap" style="margin-bottom:24px;">
@@ -499,16 +520,9 @@
           <tbody id="reports-tree-body"></tbody>
         </table>
       </div>
+
       <!-- Monthly breakdown -->
       <div class="section-title">التفصيل الشهري</div>
-      <div class="card" style="margin-bottom:14px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">الكاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click لأكثر من واحد)</span></div>
-        <select id="reports-category-select" multiple size="5" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px;font-size:13px;"></select>
-        <div style="margin-top:7px;display:flex;gap:7px;">
-          <button class="btn ghost sm" id="rep-cats-all">الكل</button>
-          <button class="btn ghost sm" id="rep-cats-none">إلغاء</button>
-        </div>
-      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
@@ -520,47 +534,55 @@
     <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
     <section class="view" id="view-history">
       <div class="topbar">
-        <div><h1>History</h1><div class="today">كل السجلات التاريخية — دخل ومصاريف مع فلاتر كاملة</div></div>
+        <div><h1>History</h1><div class="today">السجلات التاريخية المستوردة — دخل ومصاريف</div></div>
       </div>
 
       <!-- Archive balances strip -->
       <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
-      <!-- Filter card -->
+      <!-- Excel-style filter bar -->
       <div class="card" style="margin-bottom:14px;padding:14px 16px;">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
           <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">النوع</div>
-            <div style="display:flex;gap:5px;" id="hist-type-pills">
-              <button class="filter-pill active" data-ht="all">الكل</button>
-              <button class="filter-pill" data-ht="income">دخل</button>
-              <button class="filter-pill" data-ht="expense">مصاريف</button>
-            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">النوع</div>
+            <select id="hist-type-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:120px;">
+              <option value="all">الكل</option>
+              <option value="income">دخل فقط</option>
+              <option value="expense">مصاريف فقط</option>
+            </select>
           </div>
           <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">الفترة</div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;" id="hist-period-pills">
-              <button class="filter-pill active" data-hp="all">الكل</button>
-              <button class="filter-pill" data-hp="2026">2026</button>
-              <button class="filter-pill" data-hp="2025">2025</button>
-              <button class="filter-pill" data-hp="2024">2024</button>
-              <button class="filter-pill" data-hp="2023">2023</button>
-              <button class="filter-pill" data-hp="custom">تخصيص ▾</button>
-            </div>
-            <div id="hist-custom-wrap" style="display:none;margin-top:8px;flex;gap:8px;align-items:center;">
-              <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-              <span style="color:var(--text-faint);margin:0 4px;">→</span>
-              <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الفترة</div>
+            <select id="hist-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:140px;">
+              <option value="all">كل الوقت</option>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="custom">تخصيص...</option>
+            </select>
           </div>
-          <div style="flex:1;min-width:190px;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">الكاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click)</span></div>
-            <select id="hist-cat-select" multiple size="4" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px;font-size:12.5px;"></select>
-            <div style="margin-top:5px;display:flex;gap:6px;">
-              <button class="btn ghost sm" id="hist-cats-all">الكل</button>
-              <button class="btn ghost sm" id="hist-cats-none">إلغاء</button>
-            </div>
+          <div id="hist-custom-from-wrap" style="display:none;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">من</div>
+            <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
+          <div id="hist-custom-to-wrap" style="display:none;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">إلى</div>
+            <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الكاتيجوري</div>
+            <select id="hist-cat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:200px;">
+              <option value="">كل الكاتيجوريز</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الصب-كاتيجوري</div>
+            <select id="hist-subcat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:180px;">
+              <option value="">كل الفروع</option>
+            </select>
+          </div>
+          <button class="btn ghost sm" id="hist-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح الفلاتر</button>
         </div>
         <div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
@@ -758,14 +780,15 @@ function totalLiabilitiesEGP(){
 }
 
 function monthTotals(mKey){
-  let income=0;
-  liveTransactions().forEach(t=>{
-    if(monthKey(t.date) !== mKey) return;
-    if(t.type==='income') income += toEGP(t.amount, t.currency);
+  const liveTxns = liveTransactions().filter(t=>monthKey(t.date)===mKey);
+  const src = liveTxns.length > 0 ? liveTxns : DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  let income=0, expense=0;
+  src.forEach(t=>{
+    if(t.type==='income') income += toEGP(Number(t.amount),t.currency);
+    else if(t.type==='expense') expense += toEGP(Number(t.amount),t.currency);
   });
-  const expense = liveExpenseEntries()
-    .filter(e=> monthKey(e.date)===mKey)
-    .reduce((sum,e)=> sum + toEGP(e.amount, e.currency), 0);
+  expense += DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey)
+    .reduce((s,p)=>s+Number(p.amount),0);
   return {income, expense, net: income-expense};
 }
 
@@ -904,38 +927,18 @@ function vehicleLogCategoryId(log){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  // All expense transactions (live + archive). Vehicle logs are excluded because
-  // every financial log already has a matching linkedTransactionId in DB.transactions.
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
-    .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction'}));
+    .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction'}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
-    .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
+    .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
   return txnEntries.concat(cmPmtEntries);
 }
 function liveExpenseEntries(){
-  // Live-only (excludes archive account). No vehicle logs — same reason as above.
   const txnEntries = liveTransactions().filter(t=>t.type==='expense')
-    .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction', note:t.note}));
+    .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
-    .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
+    .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
   return txnEntries.concat(cmPmtEntries);
-}
-function monthTotals(mKey){
-  // Try live first. If empty (all data in archive account), fall back to all transactions.
-  const liveTxns = liveTransactions().filter(t=>monthKey(t.date)===mKey);
-  const src = liveTxns.length > 0
-    ? liveTxns
-    : DB.transactions.filter(t=>monthKey(t.date)===mKey);
-  let income=0, expense=0;
-  src.forEach(t=>{
-    if(t.type==='income') income += toEGP(Number(t.amount), t.currency);
-    else if(t.type==='expense') expense += toEGP(Number(t.amount), t.currency);
-  });
-  const cmExp = DB.commitmentPayments
-    .filter(p=>!p.linkedTransactionId && monthKey(p.date)===mKey)
-    .reduce((s,p)=>s+Number(p.amount),0);
-  expense += cmExp;
-  return {income, expense, net: income-expense};
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -1405,14 +1408,21 @@ function renderCategories(){
     return parents.map(p=>{
       const children = DB.categories.filter(c=>c.parentId===p.id);
       return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-weight:600;font-size:13.5px;">${p.name}</div>
-          <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div style="font-weight:600;font-size:13.5px;flex:1;">${p.name}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="btn ghost sm" data-add-sub="${p.id}" data-sub-type="${type}" title="Add sub-category">+ Sub</button>
+            <button class="btn ghost sm" data-edit-cat="${p.id}" title="Edit">✎</button>
+            <button class="btn ghost sm" data-del-cat="${p.id}" title="Delete">✕</button>
+          </div>
         </div>
         ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
-          ${children.map(c=>`<span class="tag" style="display:flex;align-items:center;gap:6px;">${c.name}
-            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.6;">✕</span></span>`).join('')}
-        </div>` : ''}
+          ${children.map(c=>`<span class="tag" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;">
+            ${c.name}
+            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.65;font-size:10px;" title="Edit">✎</span>
+            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.55;font-size:10px;" title="Delete">✕</span>
+          </span>`).join('')}
+        </div>` : `<div style="margin-top:7px;font-size:11px;color:var(--text-faint);">No sub-categories — click + Sub to add</div>`}
       </div>`;
     }).join('');
   }
@@ -1420,6 +1430,13 @@ function renderCategories(){
   document.getElementById('cat-income-list').innerHTML = listFor('income');
 }
 document.getElementById('view-categories').addEventListener('click', e=>{
+  // Add sub-category
+  const addSubId = e.target.dataset.addSub;
+  if(addSubId){ openModal('category', {parentId: addSubId, parentType: e.target.dataset.subType}); return; }
+  // Edit category
+  const editId = e.target.dataset.editCat;
+  if(editId){ openModal('category', {editId}); return; }
+  // Delete category
   const id = e.target.dataset.delCat; if(!id) return;
   const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
   if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
@@ -1429,57 +1446,51 @@ document.getElementById('view-categories').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
 function renderCommitments(){
-  const grid = document.getElementById('commitments-grid');
-
-  // Active commitment cards from DB.commitments
-  const activeHtml = DB.commitments.map(c=>{
+  if(!DB.commitments.length){
+    document.getElementById('commitments-grid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+        <div class="big-ic">◷</div>
+        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
+      </div>`;
+    return;
+  }
+  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
     const paid = commitmentPayments(c.id).length;
     const remaining = Math.max(0, c.totalInstallments - paid);
     const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
     const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
     const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
+
     let extra = '';
     if(c.type==='rotating_saving'){
-      extra = `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
-        Payout: <span class="num" style="color:var(--text);">EGP ${fmtMoney(c.totalAmount)}</span>
-        ${c.payoutReceived?'<span class="tag income" style="margin-left:6px;">Received ✅</span>':`<span style="color:var(--text-muted);"> — ${c.payoutDate?fmtDate(c.payoutDate):'date TBD'}</span>`}
+      extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+        Payout: <span class="num" style="color:var(--text);">${fmtMoney(c.totalAmount)}</span>
+        ${c.payoutReceived ? '<span class="tag income" style="margin-left:6px;">Received</span>' : `expected ${fmtDate(c.payoutDate)}`}
       </div>`;
     }
+
     return `<div class="commit-card">
       <div class="top">
         <div>
           <div class="name">${c.name}</div>
-          <div class="meta">${c.type==='rotating_saving'?'جمعية':'قسط'} · بدأ ${fmtDate(c.startDate)}</div>
+          <div class="meta">${c.type==='rotating_saving' ? 'جمعية (Rotating Savings)' : 'Installment'} · started ${fmtDate(c.startDate)}</div>
         </div>
-        <span class="tag ${isDone?'income':''}">${isDone?'مكتمل ✅':'نشط'}</span>
+        <span class="tag ${isDone?'income':''}">${isDone?'Completed':'Active'}</span>
       </div>
       <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
       <div class="stats">
-        <span>${paid} / ${c.totalInstallments} مدفوع</span>
-        <span class="num">${remaining} متبقي × EGP ${fmtMoney(c.installmentAmount)}</span>
+        <span>${paid}/${c.totalInstallments} paid</span>
+        <span class="num">${remaining} left</span>
       </div>
-      <div class="stats" style="margin-top:4px;">
-        <span>إجمالي المدفوع</span>
-        <span class="num">EGP ${fmtMoney(paid * c.installmentAmount)}</span>
-      </div>
-      ${nextDue?`<div class="meta" style="margin-top:6px;">القسط القادم: ${fmtDate(nextDue)}</div>`:''}
+      ${nextDue ? `<div class="meta" style="margin-top:6px;">Next due: ${fmtDate(nextDue)}</div>` : ''}
       ${extra}
       <div class="actions">
-        ${remaining>0?`<button class="btn secondary sm" data-record-payment="${c.id}">تسجيل دفعة</button>`:''}
-        ${c.type==='rotating_saving'&&!c.payoutReceived?`<button class="btn sm" data-record-payout="${c.id}">تم القبض ✅</button>`:''}
-        <button class="btn ghost sm" data-del-commit="${c.id}">حذف</button>
+        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>` : ''}
+        ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>` : ''}
+        <button class="btn ghost sm" data-del-commit="${c.id}">Delete</button>
       </div>
     </div>`;
   }).join('');
-
-  if(!DB.commitments.length){
-    grid.innerHTML=`<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
-      <div class="big-ic">◷</div>
-      No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
-    </div>`;
-    return;
-  }
-  grid.innerHTML = activeHtml;
 }
 document.getElementById('view-commitments').addEventListener('click', e=>{
   const payId = e.target.dataset.recordPayment;
@@ -1495,8 +1506,42 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: HISTORY ---------------------------- */
-let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hPage=0;
+let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hCat='',_hSubcat='',_hPage=0;
 const H_PG=100;
+
+function _histRange(){
+  if(_hPeriod==='all')return{from:null,to:null};
+  if(/^\d{4}$/.test(_hPeriod))return{from:`${_hPeriod}-01`,to:`${_hPeriod}-12`};
+  if(_hPeriod==='custom')return{from:_hFrom||null,to:_hTo||null};
+  return{from:null,to:null};
+}
+
+function _buildHistCatDropdown(){
+  const sel=document.getElementById('hist-cat-sel');
+  if(!sel)return;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">كل الكاتيجوريز</option>';
+  const usedIds=new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
+  DB.categories.filter(c=>!c.parentId&&usedIds.has(c.id)).forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id; o.textContent=c.name;
+    if(c.id===prev)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+function _buildHistSubcatDropdown(parentId){
+  const sel=document.getElementById('hist-subcat-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">كل الفروع</option>';
+  if(!parentId)return;
+  const usedIds=new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
+  DB.categories.filter(c=>c.parentId===parentId&&usedIds.has(c.id)).forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id; o.textContent=c.name;
+    if(c.id===_hSubcat)o.selected=true;
+    sel.appendChild(o);
+  });
+}
 
 function renderHistory(){
   // Archive balances strip
@@ -1506,48 +1551,31 @@ function renderHistory(){
     return `<div class="card" style="padding:10px 15px;flex:1;min-width:160px;">
       <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
       <div style="font-size:15px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
-      <div style="font-size:10.5px;color:var(--text-faint);margin-top:2px;">Balance (income − expenses)</div>
     </div>`;
   }).join('');
-
-  // Category multi-select — categories used in archive transactions
-  const catSel=document.getElementById('hist-cat-select');
-  if(catSel){
-    const prev=new Set([...catSel.selectedOptions].map(o=>o.value));
-    const fresh=prev.size===0;
-    catSel.innerHTML='';
-    const usedIds=new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
-    DB.categories.filter(c=>usedIds.has(c.id)).sort((a,b)=>{
-      const pa=a.parentId||a.id,pb=b.parentId||b.id;
-      return pa!==pb?pa.localeCompare(pb):(a.parentId?1:0)-(b.parentId?1:0);
-    }).forEach(c=>{
-      const o=document.createElement('option');
-      o.value=c.id;
-      const par=c.parentId?DB.categories.find(p=>p.id===c.parentId):null;
-      o.textContent=par?`  └ ${c.name}`:c.name;
-      o.style.fontWeight=c.parentId?'400':'600';
-      o.selected=fresh||prev.has(c.id);
-      catSel.appendChild(o);
-    });
-  }
+  _buildHistCatDropdown();
+  _buildHistSubcatDropdown(_hCat);
   _hPage=0;
   _renderHistTxns();
 }
 
 function _renderHistTxns(){
-  const catSel=document.getElementById('hist-cat-select');
-  const selCats=catSel?new Set([...catSel.selectedOptions].map(o=>o.value)):new Set();
-  const allCatsSel=!catSel||selCats.size===catSel.options.length;
-  let from=null,to=null;
-  if(_hPeriod==='custom'){from=_hFrom||null;to=_hTo||null;}
-  else if(/^\d{4}$/.test(_hPeriod)){from=`${_hPeriod}-01`;to=`${_hPeriod}-12`;}
+  const{from,to}=_histRange();
+  const effectiveCat=_hSubcat||_hCat;
 
   let txns=archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
   if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
   if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
   if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
   if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
-  if(!allCatsSel) txns=txns.filter(t=>selCats.has(t.categoryId));
+  if(effectiveCat){
+    if(_hSubcat){
+      txns=txns.filter(t=>t.categoryId===_hSubcat);
+    } else {
+      const ids=categoryAndDescendantIds(_hCat);
+      txns=txns.filter(t=>ids.includes(t.categoryId));
+    }
+  }
 
   const totInc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
   const totExp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
@@ -1569,36 +1597,59 @@ function _renderHistTxns(){
       <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
       <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تحقق من الفلاتر أو استورد الداتا</td></tr>`;
+  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تحقق من استيراد الداتا</td></tr>`;
 
   // Pagination
   const pgEl=document.getElementById('hist-pagination');
-  if(!pgEl) return;
+  if(!pgEl)return;
   if(pages<=1){pgEl.innerHTML='';return;}
-  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages} (${txns.length} إجمالي)</span>`;
+  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages}</span>`;
   if(_hPage>0) pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
-  const s=Math.max(0,_hPage-2),en=Math.min(pages-1,_hPage+2);
-  for(let i=s;i<=en;i++) pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
+  for(let i=Math.max(0,_hPage-2);i<=Math.min(pages-1,_hPage+2);i++)
+    pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
   if(_hPage<pages-1) pg+=`<button class="btn ghost sm" data-hpage="${_hPage+1}">التالي →</button>`;
   pgEl.innerHTML=pg;
 }
 
-// History filter events (delegated on document to avoid re-wiring on re-render)
-document.addEventListener('click',e=>{
-  const tp=e.target.closest('#hist-type-pills [data-ht]');
-  if(tp){_hType=tp.dataset.ht;document.querySelectorAll('#hist-type-pills .filter-pill').forEach(p=>p.classList.remove('active'));tp.classList.add('active');_hPage=0;_renderHistTxns();return;}
-  const pp=e.target.closest('#hist-period-pills [data-hp]');
-  if(pp){_hPeriod=pp.dataset.hp;document.querySelectorAll('#hist-period-pills .filter-pill').forEach(p=>p.classList.remove('active'));pp.classList.add('active');const cw=document.getElementById('hist-custom-wrap');if(cw)cw.style.display=_hPeriod==='custom'?'flex':'none';_hPage=0;_renderHistTxns();return;}
-  if(e.target.id==='hist-cats-all'){[...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=true);_hPage=0;_renderHistTxns();return;}
-  if(e.target.id==='hist-cats-none'){[...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=false);_hPage=0;_renderHistTxns();return;}
-  const pg=e.target.closest('[data-hpage]');
-  if(pg&&document.getElementById('view-history').classList.contains('active')){_hPage=parseInt(pg.dataset.hpage);_renderHistTxns();document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});return;}
-});
-document.addEventListener('change',e=>{
-  if(e.target.id==='hist-from'){_hFrom=e.target.value;_renderHistTxns();}
-  if(e.target.id==='hist-to'){_hTo=e.target.value;_renderHistTxns();}
-  if(e.target.id==='hist-cat-select'){_hPage=0;_renderHistTxns();}
-});
+// History filter wiring
+(function(){
+  const typeSel   =document.getElementById('hist-type-sel');
+  const periodSel =document.getElementById('hist-period-sel');
+  const catSel    =document.getElementById('hist-cat-sel');
+  const subcatSel =document.getElementById('hist-subcat-sel');
+  const fromInp   =document.getElementById('hist-from');
+  const toInp     =document.getElementById('hist-to');
+  const resetBtn  =document.getElementById('hist-reset');
+  const pgEl      =document.getElementById('hist-pagination');
+
+  typeSel.addEventListener('change',()=>{_hType=typeSel.value;_hPage=0;_renderHistTxns();});
+  periodSel.addEventListener('change',()=>{
+    _hPeriod=periodSel.value;
+    document.getElementById('hist-custom-from-wrap').style.display=_hPeriod==='custom'?'block':'none';
+    document.getElementById('hist-custom-to-wrap').style.display=_hPeriod==='custom'?'block':'none';
+    _hPage=0;_renderHistTxns();
+  });
+  fromInp.addEventListener('change',()=>{_hFrom=fromInp.value;_renderHistTxns();});
+  toInp.addEventListener('change',()=>{_hTo=toInp.value;_renderHistTxns();});
+  catSel.addEventListener('change',()=>{
+    _hCat=catSel.value;_hSubcat='';
+    _buildHistSubcatDropdown(_hCat);
+    _hPage=0;_renderHistTxns();
+  });
+  subcatSel.addEventListener('change',()=>{_hSubcat=subcatSel.value;_hPage=0;_renderHistTxns();});
+  resetBtn.addEventListener('click',()=>{
+    _hType='all';_hPeriod='all';_hFrom='';_hTo='';_hCat='';_hSubcat='';_hPage=0;
+    typeSel.value='all';periodSel.value='all';fromInp.value='';toInp.value='';
+    document.getElementById('hist-custom-from-wrap').style.display='none';
+    document.getElementById('hist-custom-to-wrap').style.display='none';
+    renderHistory();
+  });
+  pgEl.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-hpage]');if(!btn)return;
+    _hPage=parseInt(btn.dataset.hpage);_renderHistTxns();
+    document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});
+  });
+})();
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
@@ -1720,117 +1771,152 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: REPORTS ---------------------------- */
-let _rPeriod='all',_rFrom='',_rTo='';
+let _rPeriod='all',_rFrom='',_rTo='',_rCat='',_rSubcat='';
 
 function _repRange(){
   const now=new Date(),thisM=thisMonthKey();
-  if(_rPeriod==='all') return {from:null,to:null};
-  if(_rPeriod==='ytd') return {from:`${now.getFullYear()}-01`,to:thisM};
+  if(_rPeriod==='all')  return{from:null,to:null};
+  if(_rPeriod==='ytd')  return{from:`${now.getFullYear()}-01`,to:thisM};
   if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:d.toISOString().slice(0,7),to:thisM};}
   if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:d.toISOString().slice(0,7),to:thisM};}
-  if(_rPeriod==='1m') return {from:thisM,to:thisM};
-  if(_rPeriod==='custom') return {from:_rFrom||null,to:_rTo||null};
-  return {from:null,to:null};
+  if(_rPeriod==='1m')   return{from:thisM,to:thisM};
+  if(_rPeriod==='custom')return{from:_rFrom||null,to:_rTo||null};
+  return{from:null,to:null};
 }
-function _catRange(catId,from,to){
-  const ids=categoryAndDescendantIds(catId);
+function _filteredExpenses(from,to,catId,subcatId){
+  const effectiveCat=subcatId||catId;
   return allExpenseEntries().filter(e=>{
-    if(!ids.includes(e.categoryId))return false;
     const mk=monthKey(e.date);
-    return !(from&&mk<from)&&!(to&&mk>to);
-  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    if(effectiveCat){
+      if(subcatId) return e.categoryId===subcatId;
+      const ids=categoryAndDescendantIds(catId);
+      return ids.includes(e.categoryId);
+    }
+    return true;
+  });
 }
-function _catSelfRange(catId,from,to){
-  return allExpenseEntries().filter(e=>{
-    if(e.categoryId!==catId)return false;
-    const mk=monthKey(e.date);
-    return !(from&&mk<from)&&!(to&&mk>to);
-  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+
+function _buildRepCatDropdown(){
+  const sel=document.getElementById('rep-cat-sel');
+  if(!sel)return;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">كل الكاتيجوريز</option>';
+  DB.categories.filter(c=>c.type==='expense'&&!c.parentId).forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id; o.textContent=c.name;
+    if(c.id===prev)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+function _buildRepSubcatDropdown(parentId){
+  const sel=document.getElementById('rep-subcat-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">كل الفروع</option>';
+  if(!parentId)return;
+  DB.categories.filter(c=>c.parentId===parentId).forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id; o.textContent=c.name;
+    if(c.id===_rSubcat)o.selected=true;
+    sel.appendChild(o);
+  });
 }
 
 function renderReports(){
+  _buildRepCatDropdown();
+  _buildRepSubcatDropdown(_rCat);
   const mKey=thisMonthKey();
-  const {from,to}=_repRange();
-  const pHdr=document.getElementById('rep-period-hdr');
-  if(pHdr) pHdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة المختارة';
+  const{from,to}=_repRange();
+  const hdr=document.getElementById('rep-period-hdr');
+  if(hdr) hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
 
-  // Summary strip: income / expense / net for period
+  // Summary strip
   const totInc=DB.transactions.filter(t=>t.type==='income'&&(!from||t.date.slice(0,7)>=from)&&(!to||t.date.slice(0,7)<=to)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const totExp=allExpenseEntries().filter(e=>(!from||e.date.slice(0,7)>=from)&&(!to||e.date.slice(0,7)<=to)).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+  const totExp=_filteredExpenses(from,to,_rCat,_rSubcat).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
   const net=totInc-totExp;
   const strip=document.getElementById('rep-summary-strip');
   if(strip) strip.innerHTML=[
-    {label:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
-    {label:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
-    {label:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'},
+    {l:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
+    {l:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
+    {l:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'},
   ].map(s=>`<div class="card" style="flex:1;min-width:130px;padding:10px 14px;">
-    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.label}</div>
+    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
     <div style="font-size:15px;font-weight:700;color:${s.c};">${s.v>=0?'+':''}EGP ${fmtMoney(Math.abs(s.v))}</div>
   </div>`).join('');
 
-  // Category tree
-  const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
-  document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
-    const ch=DB.categories.filter(x=>x.parentId===c.id);
-    const pt=_catRange(c.id,from,to),pm=categoryTotal(c.id,mKey);
-    if(pt===0&&pm===0) return '';
-    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pm)}</td><td class="amt">${fmtMoney(pt)}</td></tr>`
-      +ch.map(x=>{const ct=_catSelfRange(x.id,from,to),cm=categorySelfTotal(x.id,mKey);if(ct===0&&cm===0)return '';return `<tr><td style="padding-left:24px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;}).join('');
-  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف</td></tr>`;
+  // Category tree — filtered
+  const topCats = _rCat
+    ? DB.categories.filter(c=>c.id===_rCat)
+    : DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
 
-  // Multi-select category list
-  const sel=document.getElementById('reports-category-select');
-  const prev=new Set([...sel.selectedOptions].map(o=>o.value));
-  const fresh=prev.size===0;
-  sel.innerHTML='';
-  DB.categories.filter(c=>c.type==='expense').sort((a,b)=>{
-    const pa=a.parentId||a.id,pb=b.parentId||b.id;
-    return pa!==pb?pa.localeCompare(pb):(a.parentId?1:0)-(b.parentId?1:0);
-  }).forEach(c=>{
-    const o=document.createElement('option');
-    o.value=c.id;
-    const par=c.parentId?DB.categories.find(p=>p.id===c.parentId):null;
-    o.textContent=par?`  └ ${c.name}`:c.name;
-    o.style.fontWeight=c.parentId?'400':'600';
-    o.selected=fresh||prev.has(c.id);
-    sel.appendChild(o);
-  });
+  document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
+    const ch=_rSubcat
+      ? DB.categories.filter(x=>x.id===_rSubcat)
+      : DB.categories.filter(x=>x.parentId===c.id);
+    const pt=_filteredExpenses(from,to,c.id,'').reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+    const pm=_filteredExpenses(mKey,mKey,c.id,'').reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+    if(pt===0&&pm===0)return '';
+    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pm)}</td><td class="amt">${fmtMoney(pt)}</td></tr>`
+      +ch.map(x=>{
+        const ct=_filteredExpenses(from,to,'',x.id).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+        const cm=_filteredExpenses(mKey,mKey,'',x.id).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+        if(ct===0&&cm===0)return '';
+        return `<tr><td style="padding-left:24px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;
+      }).join('');
+  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف في هذه الفترة</td></tr>`;
+
   renderReportsMonthly();
 }
 
 function renderReportsMonthly(){
-  const {from,to}=_repRange();
-  const sel=document.getElementById('reports-category-select');
-  const selIds=[...sel.selectedOptions].map(o=>o.value);
+  const{from,to}=_repRange();
   const hdr=document.getElementById('rep-monthly-hdr');
-  if(hdr) hdr.textContent=selIds.length<=2&&selIds.length>0?selIds.map(id=>{const c=categoryById(id);return c?c.name:id;}).join(' + '):`${selIds.length} كاتيجوري`;
-  if(!selIds.length){document.getElementById('reports-monthly-body').innerHTML=`<tr><td colspan="2" class="empty">اختر كاتيجوري واحدة على الأقل</td></tr>`;return;}
+  const selCat=_rSubcat||_rCat;
+  const catName=selCat?DB.categories.find(c=>c.id===selCat)?.name:'كل الكاتيجوريز';
+  if(hdr) hdr.textContent=catName;
   let months=allMonthsWithActivity();
-  if(from) months=months.filter(m=>m>=from);
-  if(to)   months=months.filter(m=>m<=to);
+  if(from)months=months.filter(m=>m>=from);
+  if(to)months=months.filter(m=>m<=to);
   months.sort().reverse();
   document.getElementById('reports-monthly-body').innerHTML=months.map(mk=>{
-    const amt=selIds.reduce((s,id)=>s+_catSelfRange(id,mk,mk),0);
-    if(amt===0) return '';
+    const amt=_filteredExpenses(mk,mk,_rCat,_rSubcat).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+    if(amt===0)return '';
     return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
   }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
 }
 
-// Reports wiring
-document.getElementById('rep-period-pills').addEventListener('click',e=>{
-  const pill=e.target.closest('[data-rp]');if(!pill)return;
-  _rPeriod=pill.dataset.rp;
-  document.querySelectorAll('#rep-period-pills .filter-pill').forEach(p=>p.classList.remove('active'));
-  pill.classList.add('active');
-  const cw=document.getElementById('rep-custom-wrap');
-  if(cw)cw.style.display=_rPeriod==='custom'?'flex':'none';
-  renderReports();
-});
-document.getElementById('rep-from').addEventListener('change',e=>{_rFrom=e.target.value;renderReports();});
-document.getElementById('rep-to').addEventListener('change',e=>{_rTo=e.target.value;renderReports();});
-document.getElementById('reports-category-select').addEventListener('change',renderReportsMonthly);
-document.getElementById('rep-cats-all').addEventListener('click',()=>{[...document.getElementById('reports-category-select').options].forEach(o=>o.selected=true);renderReportsMonthly();});
-document.getElementById('rep-cats-none').addEventListener('click',()=>{[...document.getElementById('reports-category-select').options].forEach(o=>o.selected=false);renderReportsMonthly();});
+// Reports event wiring
+(function(){
+  const periodSel=document.getElementById('rep-period-sel');
+  const catSel=document.getElementById('rep-cat-sel');
+  const subcatSel=document.getElementById('rep-subcat-sel');
+  const fromInp=document.getElementById('rep-from');
+  const toInp=document.getElementById('rep-to');
+  const resetBtn=document.getElementById('rep-reset');
+
+  periodSel.addEventListener('change',()=>{
+    _rPeriod=periodSel.value;
+    document.getElementById('rep-custom-from-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    document.getElementById('rep-custom-to-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    renderReports();
+  });
+  fromInp.addEventListener('change',()=>{_rFrom=fromInp.value;renderReports();});
+  toInp.addEventListener('change',()=>{_rTo=toInp.value;renderReports();});
+  catSel.addEventListener('change',()=>{
+    _rCat=catSel.value; _rSubcat='';
+    _buildRepSubcatDropdown(_rCat);
+    renderReports();
+  });
+  subcatSel.addEventListener('change',()=>{_rSubcat=subcatSel.value;renderReports();});
+  resetBtn.addEventListener('click',()=>{
+    _rPeriod='all';_rFrom='';_rTo='';_rCat='';_rSubcat='';
+    periodSel.value='all';fromInp.value='';toInp.value='';
+    document.getElementById('rep-custom-from-wrap').style.display='none';
+    document.getElementById('rep-custom-to-wrap').style.display='none';
+    renderReports();
+  });
+})();
 
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
@@ -1886,7 +1972,18 @@ function openModal(kind, ctx={}){
           </div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Opening Balance</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
+          <div class="field">
+            <label>Opening Balance</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button type="button" id="ob-sign-btn" onclick="(function(){
+                const inp=document.getElementById('ob-inp');
+                const v=parseFloat(inp.value)||0;
+                inp.value=(-v).toFixed(2);
+                document.getElementById('ob-sign-btn').textContent=(-v)<0?'− neg':'+ pos';
+              })()" style="flex:none;background:var(--surface-3);border:1px solid var(--border);color:var(--text-muted);border-radius:7px;padding:8px 10px;font-size:12px;cursor:pointer;">${editing&&editing.openingBalance<0?'− neg':'+ pos'}</button>
+              <input id="ob-inp" type="text" inputmode="decimal" name="openingBalance" value="${editing?editing.openingBalance:0}" style="flex:1;">
+            </div>
+          </div>
           <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
         </div>
         <div class="field">
@@ -2011,47 +2108,50 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='category'){
+    const editing = ctx.editId ? DB.categories.find(c=>c.id===ctx.editId) : null;
+    const preType   = editing ? editing.type    : (ctx.parentType||'expense');
+    const preName   = editing ? editing.name    : '';
+    const preParent = editing ? (editing.parentId||'') : (ctx.parentId||'');
     html = `<div class="modal">
-      <h2>New Category</h2>
+      <h2>${editing?'Edit Category':'New Category'}</h2>
       <form id="form-category">
+        ${editing?`<input type="hidden" name="editId" value="${editing.id}">`:''}
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="cat-type-group">
-            <div class="radio-opt selected" data-val="expense">Expense</div>
-            <div class="radio-opt" data-val="income">Income</div>
+            <div class="radio-opt ${preType==='expense'?'selected':''}" data-val="expense">Expense</div>
+            <div class="radio-opt ${preType==='income'?'selected':''}" data-val="income">Income</div>
           </div>
-          <input type="hidden" name="type" value="expense">
+          <input type="hidden" name="type" value="${preType}">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء" value="${preName}"></div>
         <div class="field">
-          <label>Parent category (optional)</label>
-          <select name="parentId" id="cat-parent-select"><option value="">— None (top-level) —</option>${categoryParentOptions('expense')}</select>
+          <label>Parent category <span style="color:var(--text-faint);font-weight:400;">(optional — leave blank for top-level)</span></label>
+          <select name="parentId" id="cat-parent-select">
+            <option value="">— None (top-level) —</option>
+            ${categoryParentOptions(preType, preParent)}
+          </select>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Create Category</button>
+          <button type="submit" class="btn">${editing?'Save Changes':'Create Category'}</button>
         </div>
       </form>
     </div>`;
   }
 
   if(kind==='commitment'){
-    // compute avg monthly income (last 3 months, archive + live)
-    const _now = new Date();
-    let _incSum=0, _incMos=0;
+    const _now=new Date();
+    let _iS=0,_iM=0;
     for(let i=1;i<=3;i++){
       const d=new Date(_now.getFullYear(),_now.getMonth()-i,1);
       const mk=d.toISOString().slice(0,7);
-      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk))
-                             .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-      if(m>0){_incSum+=m;_incMos++;}
+      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+      if(m>0){_iS+=m;_iM++;}
     }
-    const _avgInc = _incMos>0 ? Math.round(_incSum/_incMos) : 0;
-    const _existMonthly = DB.commitments
-      .filter(c=>commitmentPayments(c.id).length < (c.totalInstallments||Infinity))
-      .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-
-    html = `<div class="modal" style="max-width:500px;">
+    const _avgInc=_iM>0?Math.round(_iS/_iM):0;
+    const _exist=DB.commitments.filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity)).reduce((s,c)=>s+Number(c.installmentAmount||0),0);
+    html=`<div class="modal" style="max-width:500px;">
       <h2>New Commitment</h2>
       <form id="form-commitment">
         <div class="field">
@@ -2075,26 +2175,24 @@ function openModal(kind, ctx={}){
           <label>Expected Payout Date (جمعية)</label>
           <input type="date" name="payoutDate">
         </div>
-
-        <!-- Budget Impact Panel -->
         <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:6px 0 14px;">
           <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;">📊 تأثير على الميزانية الشهرية</div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">متوسط دخلك الشهري (آخر 3 شهور)</span>
+            <span style="font-size:12.5px;color:var(--text-muted);">متوسط دخلك (آخر 3 شهور)</span>
             <span style="font-size:13px;font-weight:600;color:var(--positive);">${_avgInc>0?'EGP '+_avgInc.toLocaleString():'لا توجد بيانات'}</span>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">الالتزامات الشهرية الحالية</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);">${_existMonthly>0?'− EGP '+_existMonthly.toLocaleString():'لا يوجد'}</span>
+            <span style="font-size:12.5px;color:var(--text-muted);">الالتزامات الحالية</span>
+            <span style="font-size:13px;font-weight:600;color:var(--warning);">${_exist>0?'− EGP '+_exist.toLocaleString():'لا يوجد'}</span>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">القسط الجديد</span>
+            <span style="font-size:12.5px;color:var(--text-muted);">هذا القسط الجديد</span>
             <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new-lbl">— أدخل المبلغ</span>
           </div>
           <div style="border-top:1px solid var(--border);margin-bottom:10px;"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span style="font-size:13px;font-weight:700;">المتبقي بعد كل الالتزامات</span>
-            <span style="font-size:15px;font-weight:700;" id="bud-rem-lbl">—</span>
+            <span style="font-size:16px;font-weight:700;" id="bud-rem-lbl">—</span>
           </div>
           <div style="background:var(--surface-3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:9px;">
             <div id="bud-bar" style="height:100%;border-radius:6px;width:0%;transition:width .2s,background .2s;background:var(--positive);"></div>
@@ -2102,7 +2200,6 @@ function openModal(kind, ctx={}){
           <div id="bud-msg" style="font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
           <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.2);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
         </div>
-
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
           <button type="submit" class="btn">Create Commitment</button>
@@ -2581,73 +2678,6 @@ function wireModal(kind){
 
   const form = backdrop.querySelector('form');
   if(!form) return;
-
-  // ── Commitment budget calculator ─────────────────────────────────────────
-  if(kind==='commitment'){
-    const instEl      = backdrop.querySelector('#cm-inst-amt');
-    const totalAmtEl  = backdrop.querySelector('#cm-total-amt');
-    const totalInstEl = backdrop.querySelector('#cm-total-inst');
-    if(instEl){
-      // Re-derive income & existing (captured in modal HTML vars but recalculate for safety)
-      const nowC=new Date();
-      let iS=0,iM=0;
-      for(let i=1;i<=3;i++){
-        const d=new Date(nowC.getFullYear(),nowC.getMonth()-i,1);
-        const mk=d.toISOString().slice(0,7);
-        const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk))
-                               .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-        if(m>0){iS+=m;iM++;}
-      }
-      const avgI=iM>0?Math.round(iS/iM):0;
-      const existM=DB.commitments
-        .filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity))
-        .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-
-      function recalcBudget(){
-        const newI=Number(instEl.value)||0;
-        const tot=existM+newI;
-        const rem=avgI-tot;
-        const pct=avgI>0?Math.min(100,Math.round(tot/avgI*100)):0;
-        const newLbl=backdrop.querySelector('#bud-new-lbl');
-        const remLbl=backdrop.querySelector('#bud-rem-lbl');
-        const bar=backdrop.querySelector('#bud-bar');
-        const msg=backdrop.querySelector('#bud-msg');
-        const extra=backdrop.querySelector('#bud-extra');
-        if(newLbl) newLbl.textContent=newI>0?`− EGP ${newI.toLocaleString()}`:'— أدخل المبلغ';
-        if(remLbl){
-          if(avgI===0){remLbl.textContent='—';remLbl.style.color='var(--text-faint)';}
-          else{remLbl.textContent=(rem>=0?'':'− ')+'EGP '+Math.abs(rem).toLocaleString();remLbl.style.color=rem>=0?'var(--positive)':'var(--negative)';}
-        }
-        if(bar){bar.style.width=pct+'%';bar.style.background=pct>=100?'var(--negative)':pct>=80?'var(--warning)':'var(--positive)';}
-        if(msg){
-          if(avgI===0){msg.textContent='لا توجد بيانات دخل بعد — سجّل معاملات دخل لرؤية التأثير.';if(extra)extra.style.display='none';}
-          else if(rem<0){
-            msg.innerHTML=`<span style="color:var(--negative);">⚠️ الالتزامات (${pct}٪ من دخلك) تتجاوز دخلك الشهري!</span>`;
-            if(extra){extra.style.display='block';extra.innerHTML=`💡 تحتاج دخلاً إضافياً: <strong>EGP ${Math.abs(rem).toLocaleString()}</strong>/شهر — خفّض القسط أو أضف مصدر دخل آخر.`;}
-          } else if(pct>=80){
-            msg.innerHTML=`<span style="color:var(--warning);">⚠️ الالتزامات ${pct}٪ من دخلك — هامش أمان ضيق جداً.</span>`;
-            if(extra)extra.style.display='none';
-          } else if(pct>=50){
-            msg.innerHTML=`<span style="color:var(--warning);">${pct}٪ من دخلك — مقبول، ابقَ منتبهاً.</span>`;
-            if(extra)extra.style.display='none';
-          } else if(newI>0){
-            msg.innerHTML=`<span style="color:var(--positive);">✅ ${pct}٪ من دخلك — نسبة صحية، يتبقى EGP ${rem.toLocaleString()} شهرياً.</span>`;
-            if(extra)extra.style.display='none';
-          } else {
-            msg.textContent=`الالتزامات الحالية ${pct}٪ من دخلك.`;
-            if(extra)extra.style.display='none';
-          }
-        }
-      }
-      function autoFill(){
-        const t=Number(totalAmtEl.value),i=Number(instEl.value);
-        if(t>0&&i>0&&!totalInstEl.value)totalInstEl.value=Math.ceil(t/i);
-      }
-      instEl.addEventListener('input',()=>{recalcBudget();autoFill();});
-      if(totalAmtEl)totalAmtEl.addEventListener('input',autoFill);
-      recalcBudget();
-    }
-  }
   form.addEventListener('submit', e=>{
     e.preventDefault();
     const fd = new FormData(form);
@@ -2737,8 +2767,17 @@ const submitHandlers = {
     saveDB(); toast('Transaction saved');
   },
   category(data){
-    DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
-    saveDB(); toast('Category created');
+    if(data.editId){
+      const cat = DB.categories.find(c=>c.id===data.editId);
+      if(!cat) throw new Error('Category not found');
+      cat.name = data.name.trim();
+      cat.type = data.type;
+      cat.parentId = data.parentId || null;
+      saveDB(); toast('Category updated');
+    } else {
+      DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+      saveDB(); toast('Category created');
+    }
   },
   commitment(data){
     DB.commitments.push({

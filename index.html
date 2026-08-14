@@ -468,13 +468,12 @@
     <!-- REPORTS -->
     <section class="view" id="view-reports">
       <div class="topbar">
-        <div><h1>Reports</h1><div class="today">تحليل مصاريفك — حسب الكاتيجوري والشهر مع فلاتر مرنة</div></div>
+        <div><h1>Reports</h1><div class="today">تحليل المصاريف حسب الكاتيجوري والشهر</div></div>
       </div>
-
-      <!-- Period filter bar -->
-      <div class="card" style="margin-bottom:20px;padding:12px 16px;">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          <span style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;">الفترة</span>
+      <!-- Period filter -->
+      <div class="card" style="margin-bottom:18px;padding:12px 16px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;">الفترة</span>
           <div style="display:flex;gap:5px;flex-wrap:wrap;" id="rep-period-pills">
             <button class="filter-pill active" data-rp="all">كل الوقت</button>
             <button class="filter-pill" data-rp="ytd">هذه السنة</button>
@@ -483,30 +482,27 @@
             <button class="filter-pill" data-rp="1m">هذا الشهر</button>
             <button class="filter-pill" data-rp="custom">تخصيص ▾</button>
           </div>
-          <div id="rep-custom-wrap" style="display:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div id="rep-custom-wrap" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-            <span style="color:var(--text-faint);">←→</span>
+            <span style="color:var(--text-faint);">→</span>
             <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
           </div>
         </div>
       </div>
-
-      <!-- Section 1: Totals summary strip -->
+      <!-- Summary strip -->
       <div id="rep-summary-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
-
-      <!-- Section 2: By Category (tree) -->
-      <div class="section-title">مصاريف حسب الكاتيجوري <span class="hint">الكاتيجوريز الرئيسية تشمل الفروع</span></div>
+      <!-- By Category tree -->
+      <div class="section-title">حسب الكاتيجوري <span class="hint">الفروع مضمّنة في الأصل</span></div>
       <div class="table-wrap" style="margin-bottom:24px;">
         <table>
-          <thead><tr><th>الكاتيجوري</th><th class="amt">هذا الشهر</th><th class="amt" id="rep-period-header">الكل</th></tr></thead>
+          <thead><tr><th>الكاتيجوري</th><th class="amt">هذا الشهر</th><th class="amt" id="rep-period-hdr">كل الوقت</th></tr></thead>
           <tbody id="reports-tree-body"></tbody>
         </table>
       </div>
-
-      <!-- Section 3: Monthly Breakdown with multi-select category filter -->
+      <!-- Monthly breakdown -->
       <div class="section-title">التفصيل الشهري</div>
       <div class="card" style="margin-bottom:14px;padding:14px 16px;">
-        <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">اختر كاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click لأكثر من واحد)</span></div>
+        <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">الكاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click لأكثر من واحد)</span></div>
         <select id="reports-category-select" multiple size="5" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px;font-size:13px;"></select>
         <div style="margin-top:7px;display:flex;gap:7px;">
           <button class="btn ghost sm" id="rep-cats-all">الكل</button>
@@ -515,38 +511,34 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-header">المبلغ</th></tr></thead>
+          <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
           <tbody id="reports-monthly-body"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- HISTORY -->
+    <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
     <section class="view" id="view-history">
       <div class="topbar">
-        <div><h1>History</h1><div class="today">كل السجلات التاريخية المستوردة — دخل ومصاريف مع فلاتر كاملة</div></div>
+        <div><h1>History</h1><div class="today">كل السجلات التاريخية — دخل ومصاريف مع فلاتر كاملة</div></div>
       </div>
 
-      <!-- Archive account summary strip -->
-      <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;"></div>
+      <!-- Archive balances strip -->
+      <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
-      <!-- Filters card -->
+      <!-- Filter card -->
       <div class="card" style="margin-bottom:14px;padding:14px 16px;">
-        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">
-
-          <!-- Type -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
           <div>
-            <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">النوع</div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">النوع</div>
             <div style="display:flex;gap:5px;" id="hist-type-pills">
               <button class="filter-pill active" data-ht="all">الكل</button>
               <button class="filter-pill" data-ht="income">دخل</button>
               <button class="filter-pill" data-ht="expense">مصاريف</button>
             </div>
           </div>
-
-          <!-- Period -->
           <div>
-            <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">الفترة</div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">الفترة</div>
             <div style="display:flex;gap:5px;flex-wrap:wrap;" id="hist-period-pills">
               <button class="filter-pill active" data-hp="all">الكل</button>
               <button class="filter-pill" data-hp="2026">2026</button>
@@ -555,26 +547,22 @@
               <button class="filter-pill" data-hp="2023">2023</button>
               <button class="filter-pill" data-hp="custom">تخصيص ▾</button>
             </div>
-            <div id="hist-custom-wrap" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;">
+            <div id="hist-custom-wrap" style="display:none;margin-top:8px;flex;gap:8px;align-items:center;">
               <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
-              <span style="color:var(--text-faint);">←→</span>
+              <span style="color:var(--text-faint);margin:0 4px;">→</span>
               <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 8px;font-size:12px;">
             </div>
           </div>
-
-          <!-- Category -->
-          <div style="flex:1;min-width:200px;">
-            <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">الكاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click لأكثر من واحد)</span></div>
+          <div style="flex:1;min-width:190px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">الكاتيجوري <span style="font-weight:400;text-transform:none;">(Ctrl+click)</span></div>
             <select id="hist-cat-select" multiple size="4" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px;font-size:12.5px;"></select>
             <div style="margin-top:5px;display:flex;gap:6px;">
               <button class="btn ghost sm" id="hist-cats-all">الكل</button>
               <button class="btn ghost sm" id="hist-cats-none">إلغاء</button>
             </div>
           </div>
-
         </div>
-        <!-- Summary bar -->
-        <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
           <div id="hist-net" style="font-size:13px;font-weight:700;"></div>
         </div>
@@ -583,14 +571,7 @@
       <div class="section-title">Historical Transactions</div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Note</th>
-              <th class="amt">Amount</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
           <tbody id="history-txn-body"></tbody>
         </table>
       </div>
@@ -923,47 +904,38 @@ function vehicleLogCategoryId(log){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  // Transactions are always counted.
+  // All expense transactions (live + archive). Vehicle logs are excluded because
+  // every financial log already has a matching linkedTransactionId in DB.transactions.
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction'}));
-
-  // Vehicle logs that already have a matching expense transaction (linkedTransactionId set,
-  // OR the transaction was imported separately as an expense) should NOT be double-counted.
-  // Only include vehicle logs that represent standalone cash payments with no corresponding
-  // transaction — identified by: no linkedTransactionId AND no expense transaction on the
-  // same date+amount+vehicle-category exists.
-  const linkedTxnIds = new Set(DB.vehicleLogs.map(l=>l.linkedTransactionId).filter(Boolean));
-  const vlogEntries = DB.vehicleLogs
-    .filter(l=>!l.linkedTransactionId && !linkedTxnIds.has(l.id))
-    .filter(l=>{
-      // If the archive account (excludeFromNetWorth) has an expense transaction
-      // on this date with a matching category, the vehicle detail was imported
-      // as a transaction and the log is odometer-only.
-      const catid = vehicleLogCategoryId(l);
-      const hasMatchingTxn = DB.transactions.some(t=>
-        t.type==='expense' && t.date===l.date &&
-        Math.abs(t.amount-l.amount)<0.01 &&
-        (t.categoryId===catid || (t.categoryId||'').startsWith(catid.split('_')[0]+'_'+catid.split('_')[1]))
-      );
-      return !hasMatchingTxn;
-    })
-    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
-
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
-
-  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
+  return txnEntries.concat(cmPmtEntries);
 }
-// Same as above but scoped to "live" activity only (excludes the historical-archive account's
-// transactions) — this is what Dashboard "This Month" cards should reflect, not full history.
 function liveExpenseEntries(){
+  // Live-only (excludes archive account). No vehicle logs — same reason as above.
   const txnEntries = liveTransactions().filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId, amount:t.amount, currency:t.currency, date:t.date, source:'transaction', note:t.note}));
-  const vlogEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId)
-    .map(l=>({categoryId: vehicleLogCategoryId(l), amount:l.amount, currency:'EGP', date:l.date, source:'vehicle', note:l.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit', amount:p.amount, currency:'EGP', date:p.date, source:'commitment'}));
-  return txnEntries.concat(vlogEntries).concat(cmPmtEntries);
+  return txnEntries.concat(cmPmtEntries);
+}
+function monthTotals(mKey){
+  // Try live first. If empty (all data in archive account), fall back to all transactions.
+  const liveTxns = liveTransactions().filter(t=>monthKey(t.date)===mKey);
+  const src = liveTxns.length > 0
+    ? liveTxns
+    : DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  let income=0, expense=0;
+  src.forEach(t=>{
+    if(t.type==='income') income += toEGP(Number(t.amount), t.currency);
+    else if(t.type==='expense') expense += toEGP(Number(t.amount), t.currency);
+  });
+  const cmExp = DB.commitmentPayments
+    .filter(p=>!p.linkedTransactionId && monthKey(p.date)===mKey)
+    .reduce((s,p)=>s+Number(p.amount),0);
+  expense += cmExp;
+  return {income, expense, net: income-expense};
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -1457,51 +1429,57 @@ document.getElementById('view-categories').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
 function renderCommitments(){
-  if(!DB.commitments.length){
-    document.getElementById('commitments-grid').innerHTML = `
-      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
-        <div class="big-ic">◷</div>
-        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
-      </div>`;
-    return;
-  }
-  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
+  const grid = document.getElementById('commitments-grid');
+
+  // Active commitment cards from DB.commitments
+  const activeHtml = DB.commitments.map(c=>{
     const paid = commitmentPayments(c.id).length;
     const remaining = Math.max(0, c.totalInstallments - paid);
     const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
     const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
     const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
-
     let extra = '';
     if(c.type==='rotating_saving'){
-      extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
-        Payout: <span class="num" style="color:var(--text);">${fmtMoney(c.totalAmount)}</span>
-        ${c.payoutReceived ? '<span class="tag income" style="margin-left:6px;">Received</span>' : `expected ${fmtDate(c.payoutDate)}`}
+      extra = `<div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+        Payout: <span class="num" style="color:var(--text);">EGP ${fmtMoney(c.totalAmount)}</span>
+        ${c.payoutReceived?'<span class="tag income" style="margin-left:6px;">Received ✅</span>':`<span style="color:var(--text-muted);"> — ${c.payoutDate?fmtDate(c.payoutDate):'date TBD'}</span>`}
       </div>`;
     }
-
     return `<div class="commit-card">
       <div class="top">
         <div>
           <div class="name">${c.name}</div>
-          <div class="meta">${c.type==='rotating_saving' ? 'جمعية (Rotating Savings)' : 'Installment'} · started ${fmtDate(c.startDate)}</div>
+          <div class="meta">${c.type==='rotating_saving'?'جمعية':'قسط'} · بدأ ${fmtDate(c.startDate)}</div>
         </div>
-        <span class="tag ${isDone?'income':''}">${isDone?'Completed':'Active'}</span>
+        <span class="tag ${isDone?'income':''}">${isDone?'مكتمل ✅':'نشط'}</span>
       </div>
       <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
       <div class="stats">
-        <span>${paid}/${c.totalInstallments} paid</span>
-        <span class="num">${remaining} left</span>
+        <span>${paid} / ${c.totalInstallments} مدفوع</span>
+        <span class="num">${remaining} متبقي × EGP ${fmtMoney(c.installmentAmount)}</span>
       </div>
-      ${nextDue ? `<div class="meta" style="margin-top:6px;">Next due: ${fmtDate(nextDue)}</div>` : ''}
+      <div class="stats" style="margin-top:4px;">
+        <span>إجمالي المدفوع</span>
+        <span class="num">EGP ${fmtMoney(paid * c.installmentAmount)}</span>
+      </div>
+      ${nextDue?`<div class="meta" style="margin-top:6px;">القسط القادم: ${fmtDate(nextDue)}</div>`:''}
       ${extra}
       <div class="actions">
-        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>` : ''}
-        ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>` : ''}
-        <button class="btn ghost sm" data-del-commit="${c.id}">Delete</button>
+        ${remaining>0?`<button class="btn secondary sm" data-record-payment="${c.id}">تسجيل دفعة</button>`:''}
+        ${c.type==='rotating_saving'&&!c.payoutReceived?`<button class="btn sm" data-record-payout="${c.id}">تم القبض ✅</button>`:''}
+        <button class="btn ghost sm" data-del-commit="${c.id}">حذف</button>
       </div>
     </div>`;
   }).join('');
+
+  if(!DB.commitments.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+      <div class="big-ic">◷</div>
+      No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
+    </div>`;
+    return;
+  }
+  grid.innerHTML = activeHtml;
 }
 document.getElementById('view-commitments').addEventListener('click', e=>{
   const payId = e.target.dataset.recordPayment;
@@ -1517,41 +1495,39 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: HISTORY ---------------------------- */
-let _hType='all', _hPeriod='all', _hFrom='', _hTo='', _hPage=0;
-const H_PAGE = 100;
+let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hPage=0;
+const H_PG=100;
 
 function renderHistory(){
-  // Archive account summary strip
-  const archAccs = DB.accounts.filter(a=>a.excludeFromNetWorth);
-  const strip = document.getElementById('hist-acc-strip');
-  if(strip) strip.innerHTML = archAccs.map(a=>{
-    const bal = accountBalance(a);
-    return `<div class="card" style="padding:10px 16px;flex:1;min-width:160px;">
-      <div style="font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
+  // Archive balances strip
+  const strip=document.getElementById('hist-acc-strip');
+  if(strip) strip.innerHTML=DB.accounts.filter(a=>a.excludeFromNetWorth).map(a=>{
+    const bal=accountBalance(a);
+    return `<div class="card" style="padding:10px 15px;flex:1;min-width:160px;">
+      <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
       <div style="font-size:15px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
+      <div style="font-size:10.5px;color:var(--text-faint);margin-top:2px;">Balance (income − expenses)</div>
     </div>`;
   }).join('');
 
-  // Build category multi-select — all categories that appear in archive transactions
-  const catSel = document.getElementById('hist-cat-select');
+  // Category multi-select — categories used in archive transactions
+  const catSel=document.getElementById('hist-cat-select');
   if(catSel){
-    const prev = new Set([...catSel.selectedOptions].map(o=>o.value));
-    const fresh = prev.size===0;
+    const prev=new Set([...catSel.selectedOptions].map(o=>o.value));
+    const fresh=prev.size===0;
     catSel.innerHTML='';
-    const usedIds = new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
-    const sorted = DB.categories.filter(c=>usedIds.has(c.id)).sort((a,b)=>{
-      const pa=a.parentId||a.id, pb=b.parentId||b.id;
-      if(pa!==pb) return pa.localeCompare(pb);
-      return (a.parentId?1:0)-(b.parentId?1:0);
-    });
-    sorted.forEach(c=>{
-      const opt=document.createElement('option');
-      opt.value=c.id;
+    const usedIds=new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
+    DB.categories.filter(c=>usedIds.has(c.id)).sort((a,b)=>{
+      const pa=a.parentId||a.id,pb=b.parentId||b.id;
+      return pa!==pb?pa.localeCompare(pb):(a.parentId?1:0)-(b.parentId?1:0);
+    }).forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.id;
       const par=c.parentId?DB.categories.find(p=>p.id===c.parentId):null;
-      opt.textContent=par?`  └ ${c.name}`:c.name;
-      opt.style.fontWeight=c.parentId?'400':'600';
-      opt.selected=fresh||prev.has(c.id);
-      catSel.appendChild(opt);
+      o.textContent=par?`  └ ${c.name}`:c.name;
+      o.style.fontWeight=c.parentId?'400':'600';
+      o.selected=fresh||prev.has(c.id);
+      catSel.appendChild(o);
     });
   }
   _hPage=0;
@@ -1559,58 +1535,55 @@ function renderHistory(){
 }
 
 function _renderHistTxns(){
-  const catSel = document.getElementById('hist-cat-select');
-  const selCats = catSel?new Set([...catSel.selectedOptions].map(o=>o.value)):new Set();
-  const allCatsSel = !catSel||selCats.size===catSel.options.length;
-
+  const catSel=document.getElementById('hist-cat-select');
+  const selCats=catSel?new Set([...catSel.selectedOptions].map(o=>o.value)):new Set();
+  const allCatsSel=!catSel||selCats.size===catSel.options.length;
   let from=null,to=null;
   if(_hPeriod==='custom'){from=_hFrom||null;to=_hTo||null;}
   else if(/^\d{4}$/.test(_hPeriod)){from=`${_hPeriod}-01`;to=`${_hPeriod}-12`;}
 
-  let txns = archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
+  let txns=archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
   if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
   if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
   if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
   if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
   if(!allCatsSel) txns=txns.filter(t=>selCats.has(t.categoryId));
 
-  const totInc = txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const totExp = txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const net    = totInc-totExp;
-
+  const totInc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const totExp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const net=totInc-totExp;
   const sumEl=document.getElementById('hist-summary');
   const netEl=document.getElementById('hist-net');
   if(sumEl) sumEl.textContent=`${txns.length} معاملة · دخل EGP ${fmtMoney(totInc)} · مصاريف EGP ${fmtMoney(totExp)}`;
   if(netEl){netEl.textContent=`صافي: ${net>=0?'+':''}EGP ${fmtMoney(net)}`;netEl.style.color=net>=0?'var(--positive)':'var(--negative)';}
 
-  // Pagination
-  const pages=Math.ceil(txns.length/H_PAGE)||1;
+  const pages=Math.ceil(txns.length/H_PG)||1;
   if(_hPage>=pages)_hPage=pages-1;
-  const slice=txns.slice(_hPage*H_PAGE,(_hPage+1)*H_PAGE);
+  const slice=txns.slice(_hPage*H_PG,(_hPage+1)*H_PG);
 
-  document.getElementById('history-txn-body').innerHTML = slice.map(t=>{
+  document.getElementById('history-txn-body').innerHTML=slice.map(t=>{
     const isInc=t.type==='income';
     return `<tr>
       <td style="white-space:nowrap;font-size:12px;">${fmtDate(t.date)}</td>
       <td style="font-size:12px;">${categoryLabel(t.categoryId)}</td>
       <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
-      <td class="amt ${isInc?'pos':'neg'}" style="font-size:12.5px;">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+      <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات تطابق هذا الفلتر</td></tr>`;
+  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تحقق من الفلاتر أو استورد الداتا</td></tr>`;
 
-  // Pagination controls
+  // Pagination
   const pgEl=document.getElementById('hist-pagination');
-  if(!pgEl)return;
+  if(!pgEl) return;
   if(pages<=1){pgEl.innerHTML='';return;}
-  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages}</span>`;
+  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages} (${txns.length} إجمالي)</span>`;
   if(_hPage>0) pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
-  const s=Math.max(0,_hPage-2),e=Math.min(pages-1,_hPage+2);
-  for(let i=s;i<=e;i++) pg+=`<button class="btn ghost sm ${i===_hPage?'active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
+  const s=Math.max(0,_hPage-2),en=Math.min(pages-1,_hPage+2);
+  for(let i=s;i<=en;i++) pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
   if(_hPage<pages-1) pg+=`<button class="btn ghost sm" data-hpage="${_hPage+1}">التالي →</button>`;
   pgEl.innerHTML=pg;
 }
 
-// History filter events (delegated)
+// History filter events (delegated on document to avoid re-wiring on re-render)
 document.addEventListener('click',e=>{
   const tp=e.target.closest('#hist-type-pills [data-ht]');
   if(tp){_hType=tp.dataset.ht;document.querySelectorAll('#hist-type-pills .filter-pill').forEach(p=>p.classList.remove('active'));tp.classList.add('active');_hPage=0;_renderHistTxns();return;}
@@ -1619,7 +1592,7 @@ document.addEventListener('click',e=>{
   if(e.target.id==='hist-cats-all'){[...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=true);_hPage=0;_renderHistTxns();return;}
   if(e.target.id==='hist-cats-none'){[...document.getElementById('hist-cat-select').options].forEach(o=>o.selected=false);_hPage=0;_renderHistTxns();return;}
   const pg=e.target.closest('[data-hpage]');
-  if(pg){_hPage=parseInt(pg.dataset.hpage);_renderHistTxns();document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});return;}
+  if(pg&&document.getElementById('view-history').classList.contains('active')){_hPage=parseInt(pg.dataset.hpage);_renderHistTxns();document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});return;}
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='hist-from'){_hFrom=e.target.value;_renderHistTxns();}
@@ -1747,102 +1720,80 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: REPORTS ---------------------------- */
-let _rPeriod='all', _rFrom='', _rTo='';
+let _rPeriod='all',_rFrom='',_rTo='';
 
 function _repRange(){
-  const now=new Date(); const thisM=thisMonthKey();
-  if(_rPeriod==='all')    return {from:null,to:null};
-  if(_rPeriod==='ytd')    return {from:`${now.getFullYear()}-01`,to:thisM};
+  const now=new Date(),thisM=thisMonthKey();
+  if(_rPeriod==='all') return {from:null,to:null};
+  if(_rPeriod==='ytd') return {from:`${now.getFullYear()}-01`,to:thisM};
   if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:d.toISOString().slice(0,7),to:thisM};}
   if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:d.toISOString().slice(0,7),to:thisM};}
-  if(_rPeriod==='1m')     return {from:thisM,to:thisM};
+  if(_rPeriod==='1m') return {from:thisM,to:thisM};
   if(_rPeriod==='custom') return {from:_rFrom||null,to:_rTo||null};
   return {from:null,to:null};
 }
-
-function _catTotalRange(catId,from,to){
+function _catRange(catId,from,to){
   const ids=categoryAndDescendantIds(catId);
   return allExpenseEntries().filter(e=>{
-    if(!ids.includes(e.categoryId)) return false;
+    if(!ids.includes(e.categoryId))return false;
     const mk=monthKey(e.date);
-    if(from&&mk<from)return false;
-    if(to&&mk>to)return false;
-    return true;
+    return !(from&&mk<from)&&!(to&&mk>to);
   }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
 }
 function _catSelfRange(catId,from,to){
   return allExpenseEntries().filter(e=>{
     if(e.categoryId!==catId)return false;
     const mk=monthKey(e.date);
-    if(from&&mk<from)return false;
-    if(to&&mk>to)return false;
-    return true;
+    return !(from&&mk<from)&&!(to&&mk>to);
   }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
 }
 
 function renderReports(){
   const mKey=thisMonthKey();
   const {from,to}=_repRange();
+  const pHdr=document.getElementById('rep-period-hdr');
+  if(pHdr) pHdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة المختارة';
 
-  // Period header text
-  const hdrEl=document.getElementById('rep-period-header');
-  if(hdrEl) hdrEl.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':`${from||''}→${to||''}`;
-
-  // Summary strip
-  const allInc  = DB.transactions.filter(t=>t.type==='income'&&(!from||t.date.slice(0,7)>=from)&&(!to||t.date.slice(0,7)<=to)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const allExp  = _catTotalRange('',from,to)||allExpenseEntries().filter(e=>(!from||e.date.slice(0,7)>=from)&&(!to||e.date.slice(0,7)<=to)).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
-  const totExp  = allExpenseEntries().filter(e=>(!from||e.date.slice(0,7)>=from)&&(!to||e.date.slice(0,7)<=to)).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
-  const totInc  = allInc;
-  const strip   = document.getElementById('rep-summary-strip');
+  // Summary strip: income / expense / net for period
+  const totInc=DB.transactions.filter(t=>t.type==='income'&&(!from||t.date.slice(0,7)>=from)&&(!to||t.date.slice(0,7)<=to)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const totExp=allExpenseEntries().filter(e=>(!from||e.date.slice(0,7)>=from)&&(!to||e.date.slice(0,7)<=to)).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+  const net=totInc-totExp;
+  const strip=document.getElementById('rep-summary-strip');
   if(strip) strip.innerHTML=[
-    {label:'إجمالي الدخل',val:totInc,color:'var(--positive)'},
-    {label:'إجمالي المصاريف',val:totExp,color:'var(--negative)'},
-    {label:'الصافي',val:totInc-totExp,color:totInc-totExp>=0?'var(--positive)':'var(--negative)'},
-  ].map(s=>`<div class="card" style="padding:10px 16px;flex:1;min-width:140px;">
+    {label:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
+    {label:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
+    {label:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'},
+  ].map(s=>`<div class="card" style="flex:1;min-width:130px;padding:10px 14px;">
     <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.label}</div>
-    <div style="font-size:15px;font-weight:700;color:${s.color};">${s.val>=0?'+':''}EGP ${fmtMoney(Math.abs(s.val))}</div>
+    <div style="font-size:15px;font-weight:700;color:${s.c};">${s.v>=0?'+':''}EGP ${fmtMoney(Math.abs(s.v))}</div>
   </div>`).join('');
 
   // Category tree
   const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
   document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
-    const children=DB.categories.filter(ch=>ch.parentId===c.id);
-    const parentTotal=_catTotalRange(c.id,from,to);
-    const parentThisM=categoryTotal(c.id,mKey);
-    if(parentTotal===0&&parentThisM===0) return '';
-    return `<tr>
-      <td style="font-weight:600;">${c.name}</td>
-      <td class="amt">${fmtMoney(parentThisM)}</td>
-      <td class="amt">${fmtMoney(parentTotal)}</td>
-    </tr>`+children.map(ch=>{
-      const chTot=_catSelfRange(ch.id,from,to);
-      const chM=categorySelfTotal(ch.id,mKey);
-      if(chTot===0&&chM===0) return '';
-      return `<tr>
-        <td style="padding-left:26px;color:var(--text-muted);font-size:12.5px;">└ ${ch.name}</td>
-        <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(chM)}</td>
-        <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(chTot)}</td>
-      </tr>`;
-    }).join('');
-  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف في هذه الفترة</td></tr>`;
+    const ch=DB.categories.filter(x=>x.parentId===c.id);
+    const pt=_catRange(c.id,from,to),pm=categoryTotal(c.id,mKey);
+    if(pt===0&&pm===0) return '';
+    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pm)}</td><td class="amt">${fmtMoney(pt)}</td></tr>`
+      +ch.map(x=>{const ct=_catSelfRange(x.id,from,to),cm=categorySelfTotal(x.id,mKey);if(ct===0&&cm===0)return '';return `<tr><td style="padding-left:24px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;}).join('');
+  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف</td></tr>`;
 
-  // Build category multi-select
+  // Multi-select category list
   const sel=document.getElementById('reports-category-select');
   const prev=new Set([...sel.selectedOptions].map(o=>o.value));
   const fresh=prev.size===0;
   sel.innerHTML='';
   DB.categories.filter(c=>c.type==='expense').sort((a,b)=>{
     const pa=a.parentId||a.id,pb=b.parentId||b.id;
-    if(pa!==pb)return pa.localeCompare(pb);
-    return (a.parentId?1:0)-(b.parentId?1:0);
+    return pa!==pb?pa.localeCompare(pb):(a.parentId?1:0)-(b.parentId?1:0);
   }).forEach(c=>{
-    const opt=document.createElement('option');
-    opt.value=c.id;
+    const o=document.createElement('option');
+    o.value=c.id;
     const par=c.parentId?DB.categories.find(p=>p.id===c.parentId):null;
-    opt.textContent=par?`  └ ${c.name}`:c.name;
-    opt.style.fontWeight=c.parentId?'400':'600';
-    opt.selected=fresh||prev.has(c.id);
-    sel.appendChild(opt);
+    o.textContent=par?`  └ ${c.name}`:c.name;
+    o.style.fontWeight=c.parentId?'400':'600';
+    o.selected=fresh||prev.has(c.id);
+    sel.appendChild(o);
   });
   renderReportsMonthly();
 }
@@ -1851,29 +1802,21 @@ function renderReportsMonthly(){
   const {from,to}=_repRange();
   const sel=document.getElementById('reports-category-select');
   const selIds=[...sel.selectedOptions].map(o=>o.value);
-
-  // Header
-  const hdr=document.getElementById('rep-monthly-header');
-  if(hdr) hdr.textContent=selIds.length===0?'المبلغ':selIds.length<=2?selIds.map(id=>{const c=categoryById(id);return c?c.name:id;}).join(' + '):selIds.length+' كاتيجوري';
-
-  if(!selIds.length){
-    document.getElementById('reports-monthly-body').innerHTML=`<tr><td colspan="2" class="empty">اختر كاتيجوري واحدة على الأقل</td></tr>`;
-    return;
-  }
-
+  const hdr=document.getElementById('rep-monthly-hdr');
+  if(hdr) hdr.textContent=selIds.length<=2&&selIds.length>0?selIds.map(id=>{const c=categoryById(id);return c?c.name:id;}).join(' + '):`${selIds.length} كاتيجوري`;
+  if(!selIds.length){document.getElementById('reports-monthly-body').innerHTML=`<tr><td colspan="2" class="empty">اختر كاتيجوري واحدة على الأقل</td></tr>`;return;}
   let months=allMonthsWithActivity();
   if(from) months=months.filter(m=>m>=from);
   if(to)   months=months.filter(m=>m<=to);
   months.sort().reverse();
-
   document.getElementById('reports-monthly-body').innerHTML=months.map(mk=>{
     const amt=selIds.reduce((s,id)=>s+_catSelfRange(id,mk,mk),0);
     if(amt===0) return '';
     return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
-  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات في هذه الفترة</td></tr>`;
+  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
 }
 
-// Reports event wiring
+// Reports wiring
 document.getElementById('rep-period-pills').addEventListener('click',e=>{
   const pill=e.target.closest('[data-rp]');if(!pill)return;
   _rPeriod=pill.dataset.rp;
@@ -2093,23 +2036,22 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='commitment'){
-    // Average monthly income — last 3 months with data (archive + live)
-    const now = new Date();
-    let incSum = 0, incMos = 0;
-    for(let i=1; i<=3; i++){
-      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-      const mk = d.toISOString().slice(0,7);
-      const m = DB.transactions.filter(t=>t.type==='income' && t.date.startsWith(mk))
-                               .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-      if(m>0){ incSum+=m; incMos++; }
+    // compute avg monthly income (last 3 months, archive + live)
+    const _now = new Date();
+    let _incSum=0, _incMos=0;
+    for(let i=1;i<=3;i++){
+      const d=new Date(_now.getFullYear(),_now.getMonth()-i,1);
+      const mk=d.toISOString().slice(0,7);
+      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk))
+                             .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+      if(m>0){_incSum+=m;_incMos++;}
     }
-    const avgInc = incMos>0 ? Math.round(incSum/incMos) : 0;
-    // Current active monthly commitments
-    const existingMonthly = DB.commitments
-      .filter(c=>{ const paid=commitmentPayments(c.id).length; return paid < (c.totalInstallments||Infinity); })
+    const _avgInc = _incMos>0 ? Math.round(_incSum/_incMos) : 0;
+    const _existMonthly = DB.commitments
+      .filter(c=>commitmentPayments(c.id).length < (c.totalInstallments||Infinity))
       .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
 
-    html = `<div class="modal" style="max-width:520px;">
+    html = `<div class="modal" style="max-width:500px;">
       <h2>New Commitment</h2>
       <form id="form-commitment">
         <div class="field">
@@ -2130,46 +2072,36 @@ function openModal(kind, ctx={}){
           <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12" id="cm-total-inst"></div>
         </div>
         <div class="field" id="commit-payout-field" style="display:none;">
-          <label>Expected Payout Date</label>
+          <label>Expected Payout Date (جمعية)</label>
           <input type="date" name="payoutDate">
         </div>
 
-        <!-- ── Budget Impact Panel ─────────────────────────────── -->
-        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:8px 0 14px;">
-          <div style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">📊 Monthly Budget Impact</div>
-
+        <!-- Budget Impact Panel -->
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:6px 0 14px;">
+          <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;">📊 تأثير على الميزانية الشهرية</div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">Avg. monthly income (last 3 mo.)</span>
-            <span style="font-size:13px;font-weight:600;color:var(--positive);" id="bud-inc">
-              ${avgInc>0?'EGP '+avgInc.toLocaleString():'— no income data yet'}
-            </span>
+            <span style="font-size:12.5px;color:var(--text-muted);">متوسط دخلك الشهري (آخر 3 شهور)</span>
+            <span style="font-size:13px;font-weight:600;color:var(--positive);">${_avgInc>0?'EGP '+_avgInc.toLocaleString():'لا توجد بيانات'}</span>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">Existing monthly commitments</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-exist">
-              ${existingMonthly>0?'− EGP '+existingMonthly.toLocaleString():'— none'}
-            </span>
+            <span style="font-size:12.5px;color:var(--text-muted);">الالتزامات الشهرية الحالية</span>
+            <span style="font-size:13px;font-weight:600;color:var(--warning);">${_existMonthly>0?'− EGP '+_existMonthly.toLocaleString():'لا يوجد'}</span>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">This new installment</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new">— أدخل المبلغ أعلاه</span>
+            <span style="font-size:12.5px;color:var(--text-muted);">القسط الجديد</span>
+            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new-lbl">— أدخل المبلغ</span>
           </div>
-
           <div style="border-top:1px solid var(--border);margin-bottom:10px;"></div>
-
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;font-weight:600;">المتبقي بعد كل الالتزامات</span>
-            <span style="font-size:16px;font-weight:700;" id="bud-rem">—</span>
+            <span style="font-size:13px;font-weight:700;">المتبقي بعد كل الالتزامات</span>
+            <span style="font-size:15px;font-weight:700;" id="bud-rem-lbl">—</span>
           </div>
-
-          <div style="background:var(--surface-3);border-radius:6px;height:9px;overflow:hidden;margin-bottom:10px;">
+          <div style="background:var(--surface-3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:9px;">
             <div id="bud-bar" style="height:100%;border-radius:6px;width:0%;transition:width .2s,background .2s;background:var(--positive);"></div>
           </div>
-
           <div id="bud-msg" style="font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
-          <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.22);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
+          <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.2);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
         </div>
-        <!-- ─────────────────────────────────────────────────────── -->
 
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2629,7 +2561,8 @@ function wireModal(kind){
       }
       if(group.id==='commit-type-group'){
         document.getElementById('commit-payout-field').style.display = opt.dataset.val==='rotating_saving' ? 'block' : 'none';
-      }      if(group.id==='pay-method-group'){
+      }
+      if(group.id==='pay-method-group'){
         document.getElementById('pay-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
       }
       if(group.id==='vlog-type-group'){
@@ -2646,76 +2579,75 @@ function wireModal(kind){
     });
   });
 
-  // ── Commitment live budget calculator ──────────────────────────────────
+  const form = backdrop.querySelector('form');
+  if(!form) return;
+
+  // ── Commitment budget calculator ─────────────────────────────────────────
   if(kind==='commitment'){
     const instEl      = backdrop.querySelector('#cm-inst-amt');
     const totalAmtEl  = backdrop.querySelector('#cm-total-amt');
     const totalInstEl = backdrop.querySelector('#cm-total-inst');
-    if(!instEl) return;
-
-    const nowC = new Date();
-    let incS=0, incM=0;
-    for(let i=1;i<=3;i++){
-      const d=new Date(nowC.getFullYear(),nowC.getMonth()-i,1);
-      const mk=d.toISOString().slice(0,7);
-      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk))
-                             .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-      if(m>0){incS+=m;incM++;}
-    }
-    const avgIncC = incM>0?Math.round(incS/incM):0;
-    const existC  = DB.commitments
-      .filter(c=>{const p=commitmentPayments(c.id).length;return p<(c.totalInstallments||Infinity);})
-      .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-
-    function recalcBudget(){
-      const newInst = Number(instEl.value)||0;
-      const total   = existC + newInst;
-      const rem     = avgIncC - total;
-      const pct     = avgIncC>0?Math.min(100,Math.round(total/avgIncC*100)):0;
-
-      const newEl  = backdrop.querySelector('#bud-new');
-      const remEl  = backdrop.querySelector('#bud-rem');
-      const barEl  = backdrop.querySelector('#bud-bar');
-      const msgEl  = backdrop.querySelector('#bud-msg');
-      const extEl  = backdrop.querySelector('#bud-extra');
-
-      if(newEl) newEl.textContent = newInst>0?`− EGP ${newInst.toLocaleString()}`:'— أدخل المبلغ أعلاه';
-      if(remEl){
-        if(avgIncC===0){remEl.textContent='—';remEl.style.color='var(--text-faint)';}
-        else{remEl.textContent=(rem>=0?'':'− ')+'EGP '+Math.abs(rem).toLocaleString();remEl.style.color=rem>=0?'var(--positive)':'var(--negative)';}
+    if(instEl){
+      // Re-derive income & existing (captured in modal HTML vars but recalculate for safety)
+      const nowC=new Date();
+      let iS=0,iM=0;
+      for(let i=1;i<=3;i++){
+        const d=new Date(nowC.getFullYear(),nowC.getMonth()-i,1);
+        const mk=d.toISOString().slice(0,7);
+        const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk))
+                               .reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+        if(m>0){iS+=m;iM++;}
       }
-      if(barEl){barEl.style.width=pct+'%';barEl.style.background=pct>=100?'var(--negative)':pct>=80?'var(--warning)':'var(--positive)';}
-      if(msgEl){
-        if(avgIncC===0){msgEl.textContent='لا توجد بيانات دخل بعد.';if(extEl)extEl.style.display='none';}
-        else if(rem<0){
-          msgEl.innerHTML=`<span style="color:var(--negative);">⚠️ الالتزامات (${pct}٪) تتجاوز دخلك!</span>`;
-          if(extEl){extEl.style.display='block';extEl.innerHTML=`💡 تحتاج دخلاً إضافياً: <strong>EGP ${Math.abs(rem).toLocaleString()}</strong> شهرياً — خفّض القسط أو أضف مصدر دخل آخر.`;}
-        } else if(pct>=80){
-          msgEl.innerHTML=`<span style="color:var(--warning);">⚠️ ${pct}٪ من دخلك — هامش أمان ضيق جداً.</span>`;
-          if(extEl)extEl.style.display='none';
-        } else if(pct>=50){
-          msgEl.innerHTML=`<span style="color:var(--warning);">${pct}٪ من دخلك — مقبول، لكن ابقَ منتبهاً.</span>`;
-          if(extEl)extEl.style.display='none';
-        } else if(newInst>0){
-          msgEl.innerHTML=`<span style="color:var(--positive);">✅ ${pct}٪ من دخلك — نسبة صحية، يتبقى EGP ${rem.toLocaleString()} شهرياً.</span>`;
-          if(extEl)extEl.style.display='none';
-        } else {
-          msgEl.textContent=`الالتزامات الحالية ${pct}٪ من دخلك.`;
-          if(extEl)extEl.style.display='none';
+      const avgI=iM>0?Math.round(iS/iM):0;
+      const existM=DB.commitments
+        .filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity))
+        .reduce((s,c)=>s+Number(c.installmentAmount||0),0);
+
+      function recalcBudget(){
+        const newI=Number(instEl.value)||0;
+        const tot=existM+newI;
+        const rem=avgI-tot;
+        const pct=avgI>0?Math.min(100,Math.round(tot/avgI*100)):0;
+        const newLbl=backdrop.querySelector('#bud-new-lbl');
+        const remLbl=backdrop.querySelector('#bud-rem-lbl');
+        const bar=backdrop.querySelector('#bud-bar');
+        const msg=backdrop.querySelector('#bud-msg');
+        const extra=backdrop.querySelector('#bud-extra');
+        if(newLbl) newLbl.textContent=newI>0?`− EGP ${newI.toLocaleString()}`:'— أدخل المبلغ';
+        if(remLbl){
+          if(avgI===0){remLbl.textContent='—';remLbl.style.color='var(--text-faint)';}
+          else{remLbl.textContent=(rem>=0?'':'− ')+'EGP '+Math.abs(rem).toLocaleString();remLbl.style.color=rem>=0?'var(--positive)':'var(--negative)';}
+        }
+        if(bar){bar.style.width=pct+'%';bar.style.background=pct>=100?'var(--negative)':pct>=80?'var(--warning)':'var(--positive)';}
+        if(msg){
+          if(avgI===0){msg.textContent='لا توجد بيانات دخل بعد — سجّل معاملات دخل لرؤية التأثير.';if(extra)extra.style.display='none';}
+          else if(rem<0){
+            msg.innerHTML=`<span style="color:var(--negative);">⚠️ الالتزامات (${pct}٪ من دخلك) تتجاوز دخلك الشهري!</span>`;
+            if(extra){extra.style.display='block';extra.innerHTML=`💡 تحتاج دخلاً إضافياً: <strong>EGP ${Math.abs(rem).toLocaleString()}</strong>/شهر — خفّض القسط أو أضف مصدر دخل آخر.`;}
+          } else if(pct>=80){
+            msg.innerHTML=`<span style="color:var(--warning);">⚠️ الالتزامات ${pct}٪ من دخلك — هامش أمان ضيق جداً.</span>`;
+            if(extra)extra.style.display='none';
+          } else if(pct>=50){
+            msg.innerHTML=`<span style="color:var(--warning);">${pct}٪ من دخلك — مقبول، ابقَ منتبهاً.</span>`;
+            if(extra)extra.style.display='none';
+          } else if(newI>0){
+            msg.innerHTML=`<span style="color:var(--positive);">✅ ${pct}٪ من دخلك — نسبة صحية، يتبقى EGP ${rem.toLocaleString()} شهرياً.</span>`;
+            if(extra)extra.style.display='none';
+          } else {
+            msg.textContent=`الالتزامات الحالية ${pct}٪ من دخلك.`;
+            if(extra)extra.style.display='none';
+          }
         }
       }
+      function autoFill(){
+        const t=Number(totalAmtEl.value),i=Number(instEl.value);
+        if(t>0&&i>0&&!totalInstEl.value)totalInstEl.value=Math.ceil(t/i);
+      }
+      instEl.addEventListener('input',()=>{recalcBudget();autoFill();});
+      if(totalAmtEl)totalAmtEl.addEventListener('input',autoFill);
+      recalcBudget();
     }
-    function autoFill(){
-      const tot=Number(totalAmtEl.value);const inst=Number(instEl.value);
-      if(tot>0&&inst>0&&!totalInstEl.value)totalInstEl.value=Math.ceil(tot/inst);
-    }
-    instEl.addEventListener('input',()=>{recalcBudget();autoFill();});
-    totalAmtEl.addEventListener('input',autoFill);
-    recalcBudget();
   }
-
-  const form = backdrop.querySelector('form');
-  if(!form) return;
   form.addEventListener('submit', e=>{
     e.preventDefault();
     const fd = new FormData(form);

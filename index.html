@@ -1509,30 +1509,125 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
   }
 });
 
-/* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
-function renderHistory(){
-  const archiveAccounts = DB.accounts.filter(a=>a.excludeFromNetWorth);
-  document.getElementById('history-accounts-body').innerHTML = archiveAccounts.map(a=>{
-    const bal = accountBalance(a);
-    return `<tr>
-      <td>${a.name}</td>
-      <td>${a.currency}</td>
-      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="3" class="empty">No archived accounts</td></tr>`;
+/* ================================================================
+   RENDER: HISTORY
+   ================================================================ */
+let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hPage=0;
+let _histTreeCtrl=null;
+const H_PG=100;
 
-  const txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
-  document.getElementById('history-txn-body').innerHTML = txns.map(t=>{
-    const acc = accountById(t.accountId);
-    return `<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
-      <td>${categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt neg">-${t.currency} ${fmtMoney(t.amount)}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
+function _histRange(){
+  if(_hPeriod==='all')return{from:null,to:null};
+  if(/^\d{4}$/.test(_hPeriod))return{from:`${_hPeriod}-01`,to:`${_hPeriod}-12`};
+  if(_hPeriod==='custom')return{from:_hFrom||null,to:_hTo||null};
+  return{from:null,to:null};
 }
+
+function renderHistory(){
+  // Archive balances strip
+  const strip=document.getElementById('hist-acc-strip');
+  if(strip)strip.innerHTML=DB.accounts.filter(a=>a.excludeFromNetWorth).map(a=>{
+    const bal=accountBalance(a);
+    return `<div class="card" style="padding:10px 15px;flex:1;min-width:160px;">
+      <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
+      <div style="font-size:15px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
+    </div>`;
+  }).join('');
+
+  // Init tree once
+  if(!_histTreeCtrl){
+    _histTreeCtrl = _initTreeDropdown({
+      btnId:'hist-cat-btn', dropdownId:'hist-cat-dropdown', treeId:'hist-cat-tree',
+      labelId:'hist-cat-label', searchId:'hist-cat-search',
+      allBtnId:'hist-cat-all', noneBtnId:'hist-cat-none', doneBtnId:'hist-cat-done',
+      catTypeFilter:null,  // history shows all types (income + expense)
+      onApply: ()=>{ _hPage=0; _renderHistTxns(); }
+    });
+  }
+
+  _hPage=0;
+  _renderHistTxns();
+}
+
+function _renderHistTxns(){
+  const{from,to}=_histRange();
+  const selIds=_histTreeCtrl?_histTreeCtrl.getSelectedIds():new Set();
+  const useCatFilter=selIds.size>0;
+
+  let txns=archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
+  if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
+  if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
+  if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
+  if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
+  if(useCatFilter) txns=txns.filter(t=>selIds.has(t.categoryId));
+
+  const totInc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const totExp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  const net=totInc-totExp;
+  const sumEl=document.getElementById('hist-summary');
+  const netEl=document.getElementById('hist-net');
+  if(sumEl)sumEl.textContent=`${txns.length} معاملة · دخل EGP ${fmtMoney(totInc)} · مصاريف EGP ${fmtMoney(totExp)}`;
+  if(netEl){netEl.textContent=`صافي: ${net>=0?'+':''}EGP ${fmtMoney(net)}`;netEl.style.color=net>=0?'var(--positive)':'var(--negative)';}
+
+  const pages=Math.ceil(txns.length/H_PG)||1;
+  if(_hPage>=pages)_hPage=pages-1;
+  const slice=txns.slice(_hPage*H_PG,(_hPage+1)*H_PG);
+
+  document.getElementById('history-txn-body').innerHTML=slice.map(t=>{
+    const isInc=t.type==='income';
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;">${fmtDate(t.date)}</td>
+      <td style="font-size:12px;">${categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
+      <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تأكد من استيراد الداتا أو غيّر الفلاتر</td></tr>`;
+
+  // Pagination
+  const pgEl=document.getElementById('hist-pagination');
+  if(!pgEl)return;
+  if(pages<=1){pgEl.innerHTML='';return;}
+  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages} (${txns.length} إجمالي)</span>`;
+  if(_hPage>0)pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
+  for(let i=Math.max(0,_hPage-2);i<=Math.min(pages-1,_hPage+2);i++)
+    pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
+  if(_hPage<pages-1)pg+=`<button class="btn ghost sm" data-hpage="${_hPage+1}">التالي →</button>`;
+  pgEl.innerHTML=pg;
+}
+
+// History filter wiring
+(function(){
+  const typeSel  =document.getElementById('hist-type-sel');
+  const periodSel=document.getElementById('hist-period-sel');
+  const fromInp  =document.getElementById('hist-from');
+  const toInp    =document.getElementById('hist-to');
+  const resetBtn =document.getElementById('hist-reset');
+  const pgEl     =document.getElementById('hist-pagination');
+
+  typeSel.addEventListener('change',()=>{_hType=typeSel.value;_hPage=0;_renderHistTxns();});
+  periodSel.addEventListener('change',()=>{
+    _hPeriod=periodSel.value;
+    document.getElementById('hist-from-wrap').style.display=_hPeriod==='custom'?'block':'none';
+    document.getElementById('hist-to-wrap').style.display=_hPeriod==='custom'?'block':'none';
+    _hPage=0;_renderHistTxns();
+  });
+  fromInp.addEventListener('change',()=>{_hFrom=fromInp.value;_renderHistTxns();});
+  toInp.addEventListener('change',()=>{_hTo=toInp.value;_renderHistTxns();});
+  resetBtn.addEventListener('click',()=>{
+    _hType='all';_hPeriod='all';_hFrom='';_hTo='';_hPage=0;
+    typeSel.value='all';periodSel.value='all';
+    fromInp.value='';toInp.value='';
+    document.getElementById('hist-from-wrap').style.display='none';
+    document.getElementById('hist-to-wrap').style.display='none';
+    if(_histTreeCtrl)_histTreeCtrl.reset();
+    renderHistory();
+  });
+  pgEl.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-hpage]');if(!btn)return;
+    _hPage=parseInt(btn.dataset.hpage);_renderHistTxns();
+    document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});
+  });
+})();
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
@@ -2177,29 +2272,64 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='commitment'){
-    html = `<div class="modal">
+    const _now=new Date();
+    let _iS=0,_iM=0;
+    for(let i=1;i<=3;i++){
+      const d=new Date(_now.getFullYear(),_now.getMonth()-i,1);
+      const mk=d.toISOString().slice(0,7);
+      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+      if(m>0){_iS+=m;_iM++;}
+    }
+    const _avgInc=_iM>0?Math.round(_iS/_iM):0;
+    const _exist=DB.commitments.filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity)).reduce((s,c)=>s+Number(c.installmentAmount||0),0);
+    html=`<div class="modal" style="max-width:500px;">
       <h2>New Commitment</h2>
       <form id="form-commitment">
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="commit-type-group">
-            <div class="radio-opt selected" data-val="installment">Installment</div>
+            <div class="radio-opt selected" data-val="installment">قسط (Installment)</div>
             <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
           </div>
           <input type="hidden" name="type" value="installment">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت، جمعية 3"></div>
         <div class="field-row">
-          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" required></div>
-          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" required></div>
+          <div class="field"><label>Total Amount (EGP)</label><input type="number" step="0.01" name="totalAmount" required placeholder="0.00" id="cm-total-amt"></div>
+          <div class="field"><label>Monthly Installment (EGP)</label><input type="number" step="0.01" name="installmentAmount" required placeholder="0.00" id="cm-inst-amt"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12"></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12" id="cm-total-inst"></div>
         </div>
         <div class="field" id="commit-payout-field" style="display:none;">
           <label>Expected Payout Date (جمعية)</label>
           <input type="date" name="payoutDate">
+        </div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:6px 0 14px;">
+          <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;">📊 تأثير على الميزانية الشهرية</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12.5px;color:var(--text-muted);">متوسط دخلك (آخر 3 شهور)</span>
+            <span style="font-size:13px;font-weight:600;color:var(--positive);">${_avgInc>0?'EGP '+_avgInc.toLocaleString():'لا توجد بيانات'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12.5px;color:var(--text-muted);">الالتزامات الشهرية الحالية</span>
+            <span style="font-size:13px;font-weight:600;color:var(--warning);">${_exist>0?'− EGP '+_exist.toLocaleString():'لا يوجد'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12.5px;color:var(--text-muted);">القسط الجديد</span>
+            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new-lbl">— أدخل المبلغ</span>
+          </div>
+          <div style="border-top:1px solid var(--border);margin-bottom:10px;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:700;">المتبقي بعد كل الالتزامات</span>
+            <span style="font-size:16px;font-weight:700;" id="bud-rem-lbl">—</span>
+          </div>
+          <div style="background:var(--surface-3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:9px;">
+            <div id="bud-bar" style="height:100%;border-radius:6px;width:0%;transition:width .2s,background .2s;background:var(--positive);"></div>
+          </div>
+          <div id="bud-msg" style="font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
+          <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.2);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2706,6 +2836,66 @@ function wireModal(kind){
 
   const form = backdrop.querySelector('form');
   if(!form) return;
+
+  // ── Commitment budget calculator ────────────────────────────────────────
+  if(kind==='commitment'){
+    const instEl      = backdrop.querySelector('#cm-inst-amt');
+    const totalAmtEl  = backdrop.querySelector('#cm-total-amt');
+    const totalInstEl = backdrop.querySelector('#cm-total-inst');
+    if(instEl){
+      const nowC=new Date();
+      let iS=0,iM=0;
+      for(let i=1;i<=3;i++){
+        const d=new Date(nowC.getFullYear(),nowC.getMonth()-i,1);
+        const mk=d.toISOString().slice(0,7);
+        const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+        if(m>0){iS+=m;iM++;}
+      }
+      const avgI=iM>0?Math.round(iS/iM):0;
+      const existM=DB.commitments.filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity)).reduce((s,c)=>s+Number(c.installmentAmount||0),0);
+
+      function recalcBudget(){
+        const newI=Number(instEl.value)||0;
+        const tot=existM+newI;
+        const rem=avgI-tot;
+        const pct=avgI>0?Math.min(100,Math.round(tot/avgI*100)):0;
+        const newLbl=backdrop.querySelector('#bud-new-lbl');
+        const remLbl=backdrop.querySelector('#bud-rem-lbl');
+        const barEl=backdrop.querySelector('#bud-bar');
+        const msgEl=backdrop.querySelector('#bud-msg');
+        const extEl=backdrop.querySelector('#bud-extra');
+        if(newLbl)newLbl.textContent=newI>0?`− EGP ${newI.toLocaleString()}`:'— أدخل المبلغ';
+        if(remLbl){
+          if(avgI===0){remLbl.textContent='—';remLbl.style.color='var(--text-faint)';}
+          else{remLbl.textContent=(rem>=0?'':'− ')+'EGP '+Math.abs(rem).toLocaleString();remLbl.style.color=rem>=0?'var(--positive)':'var(--negative)';}
+        }
+        if(barEl){barEl.style.width=pct+'%';barEl.style.background=pct>=100?'var(--negative)':pct>=80?'var(--warning)':'var(--positive)';}
+        if(msgEl){
+          if(avgI===0){msgEl.textContent='لا توجد بيانات دخل بعد.';if(extEl)extEl.style.display='none';}
+          else if(rem<0){
+            msgEl.innerHTML=`<span style="color:var(--negative);">⚠️ الالتزامات (${pct}٪) تتجاوز دخلك!</span>`;
+            if(extEl){extEl.style.display='block';extEl.innerHTML=`💡 تحتاج دخلاً إضافياً: <strong>EGP ${Math.abs(rem).toLocaleString()}</strong>/شهر`;}
+          }else if(pct>=80){
+            msgEl.innerHTML=`<span style="color:var(--warning);">⚠️ ${pct}٪ من دخلك — هامش أمان ضيق.</span>`;
+            if(extEl)extEl.style.display='none';
+          }else if(newI>0){
+            msgEl.innerHTML=`<span style="color:var(--positive);">✅ ${pct}٪ من دخلك — نسبة صحية، يتبقى EGP ${rem.toLocaleString()}/شهر.</span>`;
+            if(extEl)extEl.style.display='none';
+          }else{
+            msgEl.textContent=`الالتزامات الحالية ${pct}٪ من دخلك.`;
+            if(extEl)extEl.style.display='none';
+          }
+        }
+      }
+      function autoFill(){
+        const t=Number(totalAmtEl.value),i=Number(instEl.value);
+        if(t>0&&i>0&&!totalInstEl.value)totalInstEl.value=Math.ceil(t/i);
+      }
+      instEl.addEventListener('input',()=>{recalcBudget();autoFill();});
+      if(totalAmtEl)totalAmtEl.addEventListener('input',autoFill);
+      recalcBudget();
+    }
+  }
   form.addEventListener('submit', e=>{
     e.preventDefault();
     const fd = new FormData(form);

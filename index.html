@@ -468,12 +468,12 @@
     <!-- REPORTS -->
     <section class="view" id="view-reports">
       <div class="topbar">
-        <div><h1>Reports</h1><div class="today">تحليل المصاريف — فلتر حسب الكاتيجوري والفترة</div></div>
+        <div><h1>Reports</h1><div class="today">تحليل المصاريف حسب الكاتيجوري والفترة</div></div>
       </div>
-
-      <!-- Excel-style filter bar -->
+      <!-- Filters bar -->
       <div class="card" style="margin-bottom:18px;padding:14px 16px;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <!-- Period dropdown -->
           <div>
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الفترة</div>
             <select id="rep-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:140px;">
@@ -485,34 +485,38 @@
               <option value="custom">تخصيص...</option>
             </select>
           </div>
-          <div id="rep-custom-from-wrap" style="display:none;">
+          <div id="rep-from-wrap" style="display:none;">
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">من</div>
             <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
-          <div id="rep-custom-to-wrap" style="display:none;">
+          <div id="rep-to-wrap" style="display:none;">
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">إلى</div>
             <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
-          <div>
+          <!-- Category tree button -->
+          <div style="position:relative;">
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الكاتيجوري</div>
-            <select id="rep-cat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:200px;">
-              <option value="">كل الكاتيجوريز</option>
-            </select>
+            <button type="button" id="rep-cat-btn" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 12px;font-size:13px;min-width:200px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <span id="rep-cat-label">كل الكاتيجوريز</span><span>▾</span>
+            </button>
+            <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:280px;max-height:340px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+              <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
+                <input type="text" id="rep-cat-search" placeholder="ابحث عن كاتيجوري..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
+              </div>
+              <div style="padding:6px 0;" id="rep-cat-tree"></div>
+              <div style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;">
+                <button class="btn ghost sm" id="rep-cat-all">الكل</button>
+                <button class="btn ghost sm" id="rep-cat-none">إلغاء الكل</button>
+                <button class="btn sm" id="rep-cat-done" style="margin-left:auto;">تطبيق ✓</button>
+              </div>
+            </div>
           </div>
-          <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الصب-كاتيجوري</div>
-            <select id="rep-subcat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:180px;">
-              <option value="">كل الفروع</option>
-            </select>
-          </div>
-          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح الفلاتر</button>
+          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح</button>
         </div>
       </div>
-
       <!-- Summary strip -->
       <div id="rep-summary-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
-
-      <!-- By Category tree -->
+      <!-- By Category tree table -->
       <div class="section-title">حسب الكاتيجوري <span class="hint">الفروع مضمّنة في الأصل</span></div>
       <div class="table-wrap" style="margin-bottom:24px;">
         <table>
@@ -520,7 +524,6 @@
           <tbody id="reports-tree-body"></tbody>
         </table>
       </div>
-
       <!-- Monthly breakdown -->
       <div class="section-title">التفصيل الشهري</div>
       <div class="table-wrap">
@@ -536,21 +539,21 @@
       <div class="topbar">
         <div><h1>History</h1><div class="today">السجلات التاريخية المستوردة — دخل ومصاريف</div></div>
       </div>
-
       <!-- Archive balances strip -->
       <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
-
-      <!-- Excel-style filter bar -->
+      <!-- Filters bar -->
       <div class="card" style="margin-bottom:14px;padding:14px 16px;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <!-- Type -->
           <div>
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">النوع</div>
             <select id="hist-type-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:120px;">
               <option value="all">الكل</option>
-              <option value="income">دخل فقط</option>
-              <option value="expense">مصاريف فقط</option>
+              <option value="income">دخل</option>
+              <option value="expense">مصاريف</option>
             </select>
           </div>
+          <!-- Period -->
           <div>
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الفترة</div>
             <select id="hist-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:140px;">
@@ -562,34 +565,39 @@
               <option value="custom">تخصيص...</option>
             </select>
           </div>
-          <div id="hist-custom-from-wrap" style="display:none;">
+          <div id="hist-from-wrap" style="display:none;">
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">من</div>
             <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
-          <div id="hist-custom-to-wrap" style="display:none;">
+          <div id="hist-to-wrap" style="display:none;">
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">إلى</div>
             <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
-          <div>
+          <!-- Category tree button (reuses same component logic) -->
+          <div style="position:relative;">
             <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الكاتيجوري</div>
-            <select id="hist-cat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:200px;">
-              <option value="">كل الكاتيجوريز</option>
-            </select>
+            <button type="button" id="hist-cat-btn" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 12px;font-size:13px;min-width:200px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <span id="hist-cat-label">كل الكاتيجوريز</span><span>▾</span>
+            </button>
+            <div id="hist-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:280px;max-height:340px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+              <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
+                <input type="text" id="hist-cat-search" placeholder="ابحث عن كاتيجوري..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
+              </div>
+              <div style="padding:6px 0;" id="hist-cat-tree"></div>
+              <div style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;">
+                <button class="btn ghost sm" id="hist-cat-all">الكل</button>
+                <button class="btn ghost sm" id="hist-cat-none">إلغاء الكل</button>
+                <button class="btn sm" id="hist-cat-done" style="margin-left:auto;">تطبيق ✓</button>
+              </div>
+            </div>
           </div>
-          <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الصب-كاتيجوري</div>
-            <select id="hist-subcat-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:180px;">
-              <option value="">كل الفروع</option>
-            </select>
-          </div>
-          <button class="btn ghost sm" id="hist-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح الفلاتر</button>
+          <button class="btn ghost sm" id="hist-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح</button>
         </div>
         <div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
           <div id="hist-net" style="font-size:13px;font-weight:700;"></div>
         </div>
       </div>
-
       <div class="section-title">Historical Transactions</div>
       <div class="table-wrap">
         <table>
@@ -787,8 +795,7 @@ function monthTotals(mKey){
     if(t.type==='income') income += toEGP(Number(t.amount),t.currency);
     else if(t.type==='expense') expense += toEGP(Number(t.amount),t.currency);
   });
-  expense += DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey)
-    .reduce((s,p)=>s+Number(p.amount),0);
+  expense += DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
   return {income, expense, net: income-expense};
 }
 
@@ -1411,18 +1418,18 @@ function renderCategories(){
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div style="font-weight:600;font-size:13.5px;flex:1;">${p.name}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="btn ghost sm" data-add-sub="${p.id}" data-sub-type="${type}" title="Add sub-category">+ Sub</button>
-            <button class="btn ghost sm" data-edit-cat="${p.id}" title="Edit">✎</button>
-            <button class="btn ghost sm" data-del-cat="${p.id}" title="Delete">✕</button>
+            <button class="btn ghost sm" data-add-sub="${p.id}" data-sub-type="${type}">+ Sub</button>
+            <button class="btn ghost sm" data-edit-cat="${p.id}">✎</button>
+            <button class="btn ghost sm" data-del-cat="${p.id}">✕</button>
           </div>
         </div>
         ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
           ${children.map(c=>`<span class="tag" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;">
             ${c.name}
-            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.65;font-size:10px;" title="Edit">✎</span>
-            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.55;font-size:10px;" title="Delete">✕</span>
+            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.65;font-size:10px;">✎</span>
+            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.55;font-size:10px;">✕</span>
           </span>`).join('')}
-        </div>` : `<div style="margin-top:7px;font-size:11px;color:var(--text-faint);">No sub-categories — click + Sub to add</div>`}
+        </div>` : `<div style="margin-top:6px;font-size:11px;color:var(--text-faint);">No sub-categories — click + Sub to add</div>`}
       </div>`;
     }).join('');
   }
@@ -1430,13 +1437,10 @@ function renderCategories(){
   document.getElementById('cat-income-list').innerHTML = listFor('income');
 }
 document.getElementById('view-categories').addEventListener('click', e=>{
-  // Add sub-category
   const addSubId = e.target.dataset.addSub;
   if(addSubId){ openModal('category', {parentId: addSubId, parentType: e.target.dataset.subType}); return; }
-  // Edit category
   const editId = e.target.dataset.editCat;
   if(editId){ openModal('category', {editId}); return; }
-  // Delete category
   const id = e.target.dataset.delCat; if(!id) return;
   const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
   if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
@@ -1505,151 +1509,30 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
   }
 });
 
-/* ---------------------------- RENDER: HISTORY ---------------------------- */
-let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hCat='',_hSubcat='',_hPage=0;
-const H_PG=100;
-
-function _histRange(){
-  if(_hPeriod==='all')return{from:null,to:null};
-  if(/^\d{4}$/.test(_hPeriod))return{from:`${_hPeriod}-01`,to:`${_hPeriod}-12`};
-  if(_hPeriod==='custom')return{from:_hFrom||null,to:_hTo||null};
-  return{from:null,to:null};
-}
-
-function _buildHistCatDropdown(){
-  const sel=document.getElementById('hist-cat-sel');
-  if(!sel)return;
-  const prev=sel.value;
-  sel.innerHTML='<option value="">كل الكاتيجوريز</option>';
-  const usedIds=new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
-  DB.categories.filter(c=>!c.parentId&&usedIds.has(c.id)).forEach(c=>{
-    const o=document.createElement('option');
-    o.value=c.id; o.textContent=c.name;
-    if(c.id===prev)o.selected=true;
-    sel.appendChild(o);
-  });
-}
-function _buildHistSubcatDropdown(parentId){
-  const sel=document.getElementById('hist-subcat-sel');
-  if(!sel)return;
-  sel.innerHTML='<option value="">كل الفروع</option>';
-  if(!parentId)return;
-  const usedIds=new Set(archiveTransactions().map(t=>t.categoryId).filter(Boolean));
-  DB.categories.filter(c=>c.parentId===parentId&&usedIds.has(c.id)).forEach(c=>{
-    const o=document.createElement('option');
-    o.value=c.id; o.textContent=c.name;
-    if(c.id===_hSubcat)o.selected=true;
-    sel.appendChild(o);
-  });
-}
-
+/* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
 function renderHistory(){
-  // Archive balances strip
-  const strip=document.getElementById('hist-acc-strip');
-  if(strip) strip.innerHTML=DB.accounts.filter(a=>a.excludeFromNetWorth).map(a=>{
-    const bal=accountBalance(a);
-    return `<div class="card" style="padding:10px 15px;flex:1;min-width:160px;">
-      <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
-      <div style="font-size:15px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
-    </div>`;
-  }).join('');
-  _buildHistCatDropdown();
-  _buildHistSubcatDropdown(_hCat);
-  _hPage=0;
-  _renderHistTxns();
-}
-
-function _renderHistTxns(){
-  const{from,to}=_histRange();
-  const effectiveCat=_hSubcat||_hCat;
-
-  let txns=archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
-  if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
-  if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
-  if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
-  if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
-  if(effectiveCat){
-    if(_hSubcat){
-      txns=txns.filter(t=>t.categoryId===_hSubcat);
-    } else {
-      const ids=categoryAndDescendantIds(_hCat);
-      txns=txns.filter(t=>ids.includes(t.categoryId));
-    }
-  }
-
-  const totInc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const totExp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const net=totInc-totExp;
-  const sumEl=document.getElementById('hist-summary');
-  const netEl=document.getElementById('hist-net');
-  if(sumEl) sumEl.textContent=`${txns.length} معاملة · دخل EGP ${fmtMoney(totInc)} · مصاريف EGP ${fmtMoney(totExp)}`;
-  if(netEl){netEl.textContent=`صافي: ${net>=0?'+':''}EGP ${fmtMoney(net)}`;netEl.style.color=net>=0?'var(--positive)':'var(--negative)';}
-
-  const pages=Math.ceil(txns.length/H_PG)||1;
-  if(_hPage>=pages)_hPage=pages-1;
-  const slice=txns.slice(_hPage*H_PG,(_hPage+1)*H_PG);
-
-  document.getElementById('history-txn-body').innerHTML=slice.map(t=>{
-    const isInc=t.type==='income';
+  const archiveAccounts = DB.accounts.filter(a=>a.excludeFromNetWorth);
+  document.getElementById('history-accounts-body').innerHTML = archiveAccounts.map(a=>{
+    const bal = accountBalance(a);
     return `<tr>
-      <td style="white-space:nowrap;font-size:12px;">${fmtDate(t.date)}</td>
-      <td style="font-size:12px;">${categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
-      <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+      <td>${a.name}</td>
+      <td>${a.currency}</td>
+      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تحقق من استيراد الداتا</td></tr>`;
+  }).join('') || `<tr><td colspan="3" class="empty">No archived accounts</td></tr>`;
 
-  // Pagination
-  const pgEl=document.getElementById('hist-pagination');
-  if(!pgEl)return;
-  if(pages<=1){pgEl.innerHTML='';return;}
-  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages}</span>`;
-  if(_hPage>0) pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
-  for(let i=Math.max(0,_hPage-2);i<=Math.min(pages-1,_hPage+2);i++)
-    pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
-  if(_hPage<pages-1) pg+=`<button class="btn ghost sm" data-hpage="${_hPage+1}">التالي →</button>`;
-  pgEl.innerHTML=pg;
+  const txns = archiveTransactions().sort((a,b)=> b.date.localeCompare(a.date));
+  document.getElementById('history-txn-body').innerHTML = txns.map(t=>{
+    const acc = accountById(t.accountId);
+    return `<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${acc?acc.name:'—'}</td>
+      <td>${categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td class="amt neg">-${t.currency} ${fmtMoney(t.amount)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No historical records imported yet</td></tr>`;
 }
-
-// History filter wiring
-(function(){
-  const typeSel   =document.getElementById('hist-type-sel');
-  const periodSel =document.getElementById('hist-period-sel');
-  const catSel    =document.getElementById('hist-cat-sel');
-  const subcatSel =document.getElementById('hist-subcat-sel');
-  const fromInp   =document.getElementById('hist-from');
-  const toInp     =document.getElementById('hist-to');
-  const resetBtn  =document.getElementById('hist-reset');
-  const pgEl      =document.getElementById('hist-pagination');
-
-  typeSel.addEventListener('change',()=>{_hType=typeSel.value;_hPage=0;_renderHistTxns();});
-  periodSel.addEventListener('change',()=>{
-    _hPeriod=periodSel.value;
-    document.getElementById('hist-custom-from-wrap').style.display=_hPeriod==='custom'?'block':'none';
-    document.getElementById('hist-custom-to-wrap').style.display=_hPeriod==='custom'?'block':'none';
-    _hPage=0;_renderHistTxns();
-  });
-  fromInp.addEventListener('change',()=>{_hFrom=fromInp.value;_renderHistTxns();});
-  toInp.addEventListener('change',()=>{_hTo=toInp.value;_renderHistTxns();});
-  catSel.addEventListener('change',()=>{
-    _hCat=catSel.value;_hSubcat='';
-    _buildHistSubcatDropdown(_hCat);
-    _hPage=0;_renderHistTxns();
-  });
-  subcatSel.addEventListener('change',()=>{_hSubcat=subcatSel.value;_hPage=0;_renderHistTxns();});
-  resetBtn.addEventListener('click',()=>{
-    _hType='all';_hPeriod='all';_hFrom='';_hTo='';_hCat='';_hSubcat='';_hPage=0;
-    typeSel.value='all';periodSel.value='all';fromInp.value='';toInp.value='';
-    document.getElementById('hist-custom-from-wrap').style.display='none';
-    document.getElementById('hist-custom-to-wrap').style.display='none';
-    renderHistory();
-  });
-  pgEl.addEventListener('click',e=>{
-    const btn=e.target.closest('[data-hpage]');if(!btn)return;
-    _hPage=parseInt(btn.dataset.hpage);_renderHistTxns();
-    document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});
-  });
-})();
 
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
@@ -1770,8 +1653,194 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
   saveDB(); renderBudgets(); toast('Budget set from 3-month average');
 });
 
-/* ---------------------------- RENDER: REPORTS ---------------------------- */
-let _rPeriod='all',_rFrom='',_rTo='',_rCat='',_rSubcat='';
+/* ================================================================
+   SHARED: Hierarchical Category Tree Component
+   Used by both Reports and History filters
+   ================================================================ */
+
+// Build selected IDs set from tree state object {catId: true/false/'partial'}
+function _treeSelectedLeafIds(state, allCats){
+  const ids = new Set();
+  Object.entries(state).forEach(([id, val])=>{
+    if(val===true){
+      // If it's a parent, include all children
+      const children = allCats.filter(c=>c.parentId===id);
+      if(children.length) children.forEach(c=>ids.add(c.id));
+      else ids.add(id);  // leaf
+    }
+  });
+  return ids;
+}
+
+// Render tree HTML into containerEl with given state, filtered by searchQ
+function _renderCatTree(containerEl, state, searchQ, allCats, onStateChange){
+  const parents = allCats.filter(c=>!c.parentId);
+  const q = (searchQ||'').toLowerCase().trim();
+
+  function rowHtml(cat, children){
+    const childState = children.map(c=>state[c.id]||false);
+    const allSel = children.length && childState.every(s=>s===true);
+    const someSel = children.length && childState.some(s=>s===true||s==='partial') && !allSel;
+    const parentSel = state[cat.id];
+    const checked = parentSel===true||allSel ? 'checked' : '';
+    const indeterminate = parentSel==='partial'||someSel;
+
+    const chHtml = children.map(ch=>{
+      const chSel = state[ch.id]===true;
+      return `<div style="display:flex;align-items:center;gap:7px;padding:5px 10px 5px 30px;cursor:pointer;" data-tree-child="${ch.id}">
+        <input type="checkbox" ${chSel?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" data-check-child="${ch.id}">
+        <span style="font-size:12.5px;color:${chSel?'var(--text)':'var(--text-muted)'};">${ch.name}</span>
+      </div>`;
+    }).join('');
+
+    const expanded = (state['_exp_'+cat.id]!==false);
+    return `<div>
+      <div style="display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;" data-tree-parent="${cat.id}">
+        ${children.length?`<span data-toggle-tree="${cat.id}" style="font-size:10px;color:var(--text-faint);min-width:12px;">${expanded?'▼':'▶'}</span>`:'<span style="min-width:12px;"></span>'}
+        <input type="checkbox" ${checked} data-check-parent="${cat.id}" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" ${indeterminate?'data-indeterminate="1"':''}>
+        <span style="font-size:13px;font-weight:600;color:${(parentSel||allSel)?'var(--text)':'var(--text-muted)'};">${cat.name}</span>
+        ${children.length?`<span style="font-size:10px;color:var(--text-faint);margin-left:auto;">(${children.length})</span>`:''}
+      </div>
+      <div id="tree-children-${cat.id}" style="display:${expanded&&children.length?'block':'none'};">${chHtml}</div>
+    </div>`;
+  }
+
+  let html = '';
+  parents.forEach(p=>{
+    const children = allCats.filter(c=>c.parentId===p.id);
+    if(q){
+      const pMatch = p.name.toLowerCase().includes(q);
+      const matchCh = children.filter(c=>c.name.toLowerCase().includes(q));
+      if(!pMatch && !matchCh.length) return;
+      const visChildren = pMatch ? children : matchCh;
+      html += rowHtml(p, visChildren);
+    } else {
+      html += rowHtml(p, children);
+    }
+  });
+
+  containerEl.innerHTML = html || `<div style="padding:14px 12px;font-size:12px;color:var(--text-faint);">لا توجد نتائج</div>`;
+
+  // Fix indeterminate state (can't set via HTML attr)
+  containerEl.querySelectorAll('[data-indeterminate="1"]').forEach(cb=>{ cb.indeterminate=true; });
+
+  // Events
+  containerEl.querySelectorAll('[data-toggle-tree]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const id = btn.dataset.toggleTree;
+      state['_exp_'+id] = state['_exp_'+id]===false;
+      onStateChange(state);
+    });
+  });
+  containerEl.querySelectorAll('[data-check-parent]').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      const id = cb.dataset.checkParent;
+      const children = allCats.filter(c=>c.parentId===id);
+      state[id] = cb.checked;
+      children.forEach(c=>{ state[c.id] = cb.checked; });
+      onStateChange(state);
+    });
+  });
+  containerEl.querySelectorAll('[data-check-child]').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      const id = cb.dataset.checkChild;
+      state[id] = cb.checked;
+      // Update parent state
+      const cat = allCats.find(c=>c.id===id);
+      if(cat&&cat.parentId){
+        const siblings = allCats.filter(c=>c.parentId===cat.parentId);
+        const allSel = siblings.every(s=>state[s.id]===true);
+        const noneSel = siblings.every(s=>!state[s.id]);
+        state[cat.parentId] = allSel ? true : noneSel ? false : 'partial';
+      }
+      onStateChange(state);
+    });
+  });
+}
+
+function _catTreeLabel(state, allCats){
+  const leafIds = _treeSelectedLeafIds(state, allCats);
+  if(!leafIds.size) return 'كل الكاتيجوريز';
+  // Count selected parents
+  const selParents = allCats.filter(c=>!c.parentId && state[c.id]===true);
+  const selChildren = allCats.filter(c=>c.parentId && state[c.id]===true);
+  const parts = [];
+  selParents.forEach(p=>parts.push(p.name));
+  selChildren.filter(c=>!selParents.find(p=>p.id===c.parentId)).forEach(c=>parts.push(c.name));
+  if(!parts.length) return 'كل الكاتيجوريز';
+  return parts.length<=2 ? parts.join(', ') : `${parts[0]} +${parts.length-1} أخرى`;
+}
+
+function _initTreeDropdown({btnId, dropdownId, treeId, labelId, searchId, allBtnId, noneBtnId, doneBtnId, catTypeFilter, onApply}){
+  const btn = document.getElementById(btnId);
+  const dropdown = document.getElementById(dropdownId);
+  const treeEl = document.getElementById(treeId);
+  const labelEl = document.getElementById(labelId);
+  const searchEl = document.getElementById(searchId);
+  if(!btn||!dropdown) return;
+
+  let state = {};  // catId → true/false/'partial'
+  let searchQ = '';
+
+  function getCats(){ return DB.categories.filter(c=>!catTypeFilter||c.type===catTypeFilter); }
+
+  function rebuildTree(){
+    _renderCatTree(treeEl, state, searchQ, getCats(), updated=>{
+      state = updated;
+      labelEl.textContent = _catTreeLabel(state, getCats());
+    });
+  }
+
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = dropdown.style.display==='none';
+    // Close all other dropdowns first
+    document.querySelectorAll('.cat-tree-dropdown-open').forEach(d=>{d.style.display='none';d.classList.remove('cat-tree-dropdown-open');});
+    dropdown.style.display = open?'block':'none';
+    dropdown.classList.toggle('cat-tree-dropdown-open', open);
+    if(open) rebuildTree();
+  });
+
+  document.addEventListener('click', e=>{
+    if(!dropdown.contains(e.target)&&e.target!==btn){
+      dropdown.style.display='none'; dropdown.classList.remove('cat-tree-dropdown-open');
+    }
+  });
+
+  if(searchEl){
+    searchEl.addEventListener('input', ()=>{ searchQ=searchEl.value; rebuildTree(); });
+    searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ dropdown.style.display='none'; onApply(_treeSelectedLeafIds(state,getCats())); }});
+  }
+
+  document.getElementById(allBtnId).addEventListener('click', ()=>{
+    const cats=getCats();
+    cats.forEach(c=>{ state[c.id]=true; });
+    rebuildTree();
+  });
+  document.getElementById(noneBtnId).addEventListener('click', ()=>{
+    state={};
+    rebuildTree();
+    labelEl.textContent='كل الكاتيجوريز';
+  });
+  document.getElementById(doneBtnId).addEventListener('click', ()=>{
+    dropdown.style.display='none';
+    labelEl.textContent=_catTreeLabel(state,getCats());
+    onApply(_treeSelectedLeafIds(state,getCats()));
+  });
+
+  return {
+    getSelectedIds(){ return _treeSelectedLeafIds(state,getCats()); },
+    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; },
+    getState(){ return state; }
+  };
+}
+
+/* ================================================================
+   RENDER: REPORTS
+   ================================================================ */
+let _rPeriod='all',_rFrom='',_rTo='';
+let _repTreeCtrl=null;
 
 function _repRange(){
   const now=new Date(),thisM=thisMonthKey();
@@ -1783,104 +1852,93 @@ function _repRange(){
   if(_rPeriod==='custom')return{from:_rFrom||null,to:_rTo||null};
   return{from:null,to:null};
 }
-function _filteredExpenses(from,to,catId,subcatId){
-  const effectiveCat=subcatId||catId;
+
+function _expInRange(from,to,catIds){
   return allExpenseEntries().filter(e=>{
     const mk=monthKey(e.date);
     if(from&&mk<from)return false;
     if(to&&mk>to)return false;
-    if(effectiveCat){
-      if(subcatId) return e.categoryId===subcatId;
-      const ids=categoryAndDescendantIds(catId);
-      return ids.includes(e.categoryId);
-    }
+    if(catIds&&catIds.size&&!catIds.has(e.categoryId))return false;
     return true;
-  });
-}
-
-function _buildRepCatDropdown(){
-  const sel=document.getElementById('rep-cat-sel');
-  if(!sel)return;
-  const prev=sel.value;
-  sel.innerHTML='<option value="">كل الكاتيجوريز</option>';
-  DB.categories.filter(c=>c.type==='expense'&&!c.parentId).forEach(c=>{
-    const o=document.createElement('option');
-    o.value=c.id; o.textContent=c.name;
-    if(c.id===prev)o.selected=true;
-    sel.appendChild(o);
-  });
-}
-function _buildRepSubcatDropdown(parentId){
-  const sel=document.getElementById('rep-subcat-sel');
-  if(!sel)return;
-  sel.innerHTML='<option value="">كل الفروع</option>';
-  if(!parentId)return;
-  DB.categories.filter(c=>c.parentId===parentId).forEach(c=>{
-    const o=document.createElement('option');
-    o.value=c.id; o.textContent=c.name;
-    if(c.id===_rSubcat)o.selected=true;
-    sel.appendChild(o);
-  });
+  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
 }
 
 function renderReports(){
-  _buildRepCatDropdown();
-  _buildRepSubcatDropdown(_rCat);
   const mKey=thisMonthKey();
   const{from,to}=_repRange();
   const hdr=document.getElementById('rep-period-hdr');
-  if(hdr) hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
+  if(hdr)hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
+
+  // Init tree once
+  if(!_repTreeCtrl){
+    _repTreeCtrl = _initTreeDropdown({
+      btnId:'rep-cat-btn', dropdownId:'rep-cat-dropdown', treeId:'rep-cat-tree',
+      labelId:'rep-cat-label', searchId:'rep-cat-search',
+      allBtnId:'rep-cat-all', noneBtnId:'rep-cat-none', doneBtnId:'rep-cat-done',
+      catTypeFilter:'expense',
+      onApply: ()=>renderReports()
+    });
+  }
+
+  const selIds = _repTreeCtrl ? _repTreeCtrl.getSelectedIds() : new Set();
+  const useCatFilter = selIds.size>0;
 
   // Summary strip
   const totInc=DB.transactions.filter(t=>t.type==='income'&&(!from||t.date.slice(0,7)>=from)&&(!to||t.date.slice(0,7)<=to)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const totExp=_filteredExpenses(from,to,_rCat,_rSubcat).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+  const totExp=_expInRange(from,to,useCatFilter?selIds:null);
   const net=totInc-totExp;
   const strip=document.getElementById('rep-summary-strip');
-  if(strip) strip.innerHTML=[
+  if(strip)strip.innerHTML=[
     {l:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
     {l:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
-    {l:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'},
+    {l:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'}
   ].map(s=>`<div class="card" style="flex:1;min-width:130px;padding:10px 14px;">
     <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
     <div style="font-size:15px;font-weight:700;color:${s.c};">${s.v>=0?'+':''}EGP ${fmtMoney(Math.abs(s.v))}</div>
   </div>`).join('');
 
-  // Category tree — filtered
-  const topCats = _rCat
-    ? DB.categories.filter(c=>c.id===_rCat)
-    : DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
-
+  // Category tree table
+  const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
   document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
-    const ch=_rSubcat
-      ? DB.categories.filter(x=>x.id===_rSubcat)
-      : DB.categories.filter(x=>x.parentId===c.id);
-    const pt=_filteredExpenses(from,to,c.id,'').reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
-    const pm=_filteredExpenses(mKey,mKey,c.id,'').reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
-    if(pt===0&&pm===0)return '';
-    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pm)}</td><td class="amt">${fmtMoney(pt)}</td></tr>`
-      +ch.map(x=>{
-        const ct=_filteredExpenses(from,to,'',x.id).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
-        const cm=_filteredExpenses(mKey,mKey,'',x.id).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+    const ch=DB.categories.filter(x=>x.parentId===c.id);
+    // If filter active, show only relevant parents/children
+    if(useCatFilter){
+      const relChildren=ch.filter(x=>selIds.has(x.id));
+      const parentIncluded=relChildren.length>0||ch.length===0;
+      if(!parentIncluded)return '';
+    }
+    const pt=_expInRange(from,to,useCatFilter?selIds:null);
+    // For category-specific rows, compute without catIds filter but with descendant filter
+    const pDescIds=new Set([c.id,...ch.map(x=>x.id)]);
+    const pDescFilter=new Set([...pDescIds].filter(id=>!useCatFilter||selIds.has(id)));
+    const pTot=_expInRange(from,to,pDescFilter);
+    const pMon=_expInRange(mKey,mKey,pDescFilter);
+    if(pTot===0&&pMon===0)return '';
+    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pMon)}</td><td class="amt">${fmtMoney(pTot)}</td></tr>`
+      +ch.filter(x=>!useCatFilter||selIds.has(x.id)).map(x=>{
+        const xSet=new Set([x.id]);
+        const ct=_expInRange(from,to,xSet);
+        const cm=_expInRange(mKey,mKey,xSet);
         if(ct===0&&cm===0)return '';
         return `<tr><td style="padding-left:24px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;
       }).join('');
-  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف في هذه الفترة</td></tr>`;
+  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف</td></tr>`;
 
   renderReportsMonthly();
 }
 
 function renderReportsMonthly(){
   const{from,to}=_repRange();
+  const selIds=_repTreeCtrl?_repTreeCtrl.getSelectedIds():new Set();
+  const useCatFilter=selIds.size>0;
   const hdr=document.getElementById('rep-monthly-hdr');
-  const selCat=_rSubcat||_rCat;
-  const catName=selCat?DB.categories.find(c=>c.id===selCat)?.name:'كل الكاتيجوريز';
-  if(hdr) hdr.textContent=catName;
+  if(hdr)hdr.textContent=useCatFilter?document.getElementById('rep-cat-label').textContent:'كل الكاتيجوريز';
   let months=allMonthsWithActivity();
   if(from)months=months.filter(m=>m>=from);
   if(to)months=months.filter(m=>m<=to);
   months.sort().reverse();
   document.getElementById('reports-monthly-body').innerHTML=months.map(mk=>{
-    const amt=_filteredExpenses(mk,mk,_rCat,_rSubcat).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+    const amt=_expInRange(mk,mk,useCatFilter?selIds:null);
     if(amt===0)return '';
     return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
   }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
@@ -1889,31 +1947,20 @@ function renderReportsMonthly(){
 // Reports event wiring
 (function(){
   const periodSel=document.getElementById('rep-period-sel');
-  const catSel=document.getElementById('rep-cat-sel');
-  const subcatSel=document.getElementById('rep-subcat-sel');
-  const fromInp=document.getElementById('rep-from');
-  const toInp=document.getElementById('rep-to');
-  const resetBtn=document.getElementById('rep-reset');
-
   periodSel.addEventListener('change',()=>{
     _rPeriod=periodSel.value;
-    document.getElementById('rep-custom-from-wrap').style.display=_rPeriod==='custom'?'block':'none';
-    document.getElementById('rep-custom-to-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    document.getElementById('rep-from-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    document.getElementById('rep-to-wrap').style.display=_rPeriod==='custom'?'block':'none';
     renderReports();
   });
-  fromInp.addEventListener('change',()=>{_rFrom=fromInp.value;renderReports();});
-  toInp.addEventListener('change',()=>{_rTo=toInp.value;renderReports();});
-  catSel.addEventListener('change',()=>{
-    _rCat=catSel.value; _rSubcat='';
-    _buildRepSubcatDropdown(_rCat);
-    renderReports();
-  });
-  subcatSel.addEventListener('change',()=>{_rSubcat=subcatSel.value;renderReports();});
-  resetBtn.addEventListener('click',()=>{
-    _rPeriod='all';_rFrom='';_rTo='';_rCat='';_rSubcat='';
-    periodSel.value='all';fromInp.value='';toInp.value='';
-    document.getElementById('rep-custom-from-wrap').style.display='none';
-    document.getElementById('rep-custom-to-wrap').style.display='none';
+  document.getElementById('rep-from').addEventListener('change',e=>{_rFrom=e.target.value;renderReports();});
+  document.getElementById('rep-to').addEventListener('change',e=>{_rTo=e.target.value;renderReports();});
+  document.getElementById('rep-reset').addEventListener('click',()=>{
+    _rPeriod='all';_rFrom='';_rTo='';
+    periodSel.value='all';
+    document.getElementById('rep-from-wrap').style.display='none';
+    document.getElementById('rep-to-wrap').style.display='none';
+    if(_repTreeCtrl) _repTreeCtrl.reset();
     renderReports();
   });
 })();
@@ -1972,18 +2019,7 @@ function openModal(kind, ctx={}){
           </div>
         </div>
         <div class="field-row">
-          <div class="field">
-            <label>Opening Balance</label>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button type="button" id="ob-sign-btn" onclick="(function(){
-                const inp=document.getElementById('ob-inp');
-                const v=parseFloat(inp.value)||0;
-                inp.value=(-v).toFixed(2);
-                document.getElementById('ob-sign-btn').textContent=(-v)<0?'− neg':'+ pos';
-              })()" style="flex:none;background:var(--surface-3);border:1px solid var(--border);color:var(--text-muted);border-radius:7px;padding:8px 10px;font-size:12px;cursor:pointer;">${editing&&editing.openingBalance<0?'− neg':'+ pos'}</button>
-              <input id="ob-inp" type="text" inputmode="decimal" name="openingBalance" value="${editing?editing.openingBalance:0}" style="flex:1;">
-            </div>
-          </div>
+          <div class="field"><label>Opening Balance</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
           <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
         </div>
         <div class="field">
@@ -2126,7 +2162,7 @@ function openModal(kind, ctx={}){
         </div>
         <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء" value="${preName}"></div>
         <div class="field">
-          <label>Parent category <span style="color:var(--text-faint);font-weight:400;">(optional — leave blank for top-level)</span></label>
+          <label>Parent category <span style="color:var(--text-faint);font-weight:400;">(optional)</span></label>
           <select name="parentId" id="cat-parent-select">
             <option value="">— None (top-level) —</option>
             ${categoryParentOptions(preType, preParent)}
@@ -2141,64 +2177,29 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='commitment'){
-    const _now=new Date();
-    let _iS=0,_iM=0;
-    for(let i=1;i<=3;i++){
-      const d=new Date(_now.getFullYear(),_now.getMonth()-i,1);
-      const mk=d.toISOString().slice(0,7);
-      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-      if(m>0){_iS+=m;_iM++;}
-    }
-    const _avgInc=_iM>0?Math.round(_iS/_iM):0;
-    const _exist=DB.commitments.filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity)).reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-    html=`<div class="modal" style="max-width:500px;">
+    html = `<div class="modal">
       <h2>New Commitment</h2>
       <form id="form-commitment">
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="commit-type-group">
-            <div class="radio-opt selected" data-val="installment">قسط (Installment)</div>
+            <div class="radio-opt selected" data-val="installment">Installment</div>
             <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
           </div>
           <input type="hidden" name="type" value="installment">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت، جمعية 3"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
         <div class="field-row">
-          <div class="field"><label>Total Amount (EGP)</label><input type="number" step="0.01" name="totalAmount" required placeholder="0.00" id="cm-total-amt"></div>
-          <div class="field"><label>Monthly Installment (EGP)</label><input type="number" step="0.01" name="installmentAmount" required placeholder="0.00" id="cm-inst-amt"></div>
+          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" required></div>
+          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" required></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12" id="cm-total-inst"></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12"></div>
         </div>
         <div class="field" id="commit-payout-field" style="display:none;">
           <label>Expected Payout Date (جمعية)</label>
           <input type="date" name="payoutDate">
-        </div>
-        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:6px 0 14px;">
-          <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;">📊 تأثير على الميزانية الشهرية</div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">متوسط دخلك (آخر 3 شهور)</span>
-            <span style="font-size:13px;font-weight:600;color:var(--positive);">${_avgInc>0?'EGP '+_avgInc.toLocaleString():'لا توجد بيانات'}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">الالتزامات الحالية</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);">${_exist>0?'− EGP '+_exist.toLocaleString():'لا يوجد'}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">هذا القسط الجديد</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new-lbl">— أدخل المبلغ</span>
-          </div>
-          <div style="border-top:1px solid var(--border);margin-bottom:10px;"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;font-weight:700;">المتبقي بعد كل الالتزامات</span>
-            <span style="font-size:16px;font-weight:700;" id="bud-rem-lbl">—</span>
-          </div>
-          <div style="background:var(--surface-3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:9px;">
-            <div id="bud-bar" style="height:100%;border-radius:6px;width:0%;transition:width .2s,background .2s;background:var(--positive);"></div>
-          </div>
-          <div id="bud-msg" style="font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
-          <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.2);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2392,11 +2393,19 @@ function openModal(kind, ctx={}){
         </table>
       </div>
       <div class="section-title" style="margin:0 0 10px 0;">Documents &amp; Renewals</div>
-      <div class="table-wrap">
+      <div class="table-wrap" style="margin-bottom:4px;">
         <table>
-          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th></tr></thead>
+          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th><th></th></tr></thead>
           <tbody>
-            ${docs.map(d=>`<tr><td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">No documents tracked</td></tr>`}
+            ${docs.map(d=>`<tr>
+              <td style="font-weight:500;">${d.docType}</td>
+              <td>${fmtDate(d.renewalDate)}</td>
+              <td style="color:var(--text-muted);font-size:12px;">${d.note||''}</td>
+              <td style="white-space:nowrap;">
+                <button class="btn ghost sm" data-edit-doc="${d.id}" style="margin-right:4px;">Edit</button>
+                <button class="btn ghost sm" data-del-doc="${d.id}">✕</button>
+              </td>
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">No documents tracked</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2490,16 +2499,25 @@ function openModal(kind, ctx={}){
 
   if(kind==='vehicle-doc'){
     const v = vehicleById(ctx.vehicleId);
+    const editing = ctx.docId ? DB.vehicleDocs.find(d=>d.id===ctx.docId) : null;
+    const allVehicles = DB.vehicles;
     html = `<div class="modal">
-      <h2>Document / Renewal — ${v.name}</h2>
+      <h2>${editing?'Edit Document':'Document / Renewal'} — ${v.name}</h2>
       <form id="form-vehicle-doc">
+        ${editing?`<input type="hidden" name="docId" value="${editing.id}">`:''}
         <input type="hidden" name="vehicleId" value="${v.id}">
-        <div class="field"><label>Type</label><input name="docType" required placeholder="e.g. رخصة، تأمين، بطاقة"></div>
-        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" required></div>
-        <div class="field"><label>Note (optional)</label><input name="note"></div>
+        <div class="field"><label>Type</label><input name="docType" required placeholder="e.g. رخصة، تأمين، بطاقة" value="${editing?editing.docType:''}"></div>
+        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" required value="${editing?editing.renewalDate:''}"></div>
+        <div class="field"><label>Note (optional)</label><input name="note" value="${editing?editing.note||'':''}"></div>
+        ${allVehicles.length>1?`<div class="field">
+          <label>Vehicle ${editing?'(reassign)':''}:</label>
+          <select name="reassignVehicleId">
+            ${allVehicles.map(vv=>`<option value="${vv.id}" ${(editing?editing.vehicleId:v.id)===vv.id?'selected':''}>${vv.name}</option>`).join('')}
+          </select>
+        </div>`:`<input type="hidden" name="reassignVehicleId" value="${v.id}">`}
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Save Document</button>
+          <button type="submit" class="btn">${editing?'Save Changes':'Save Document'}</button>
         </div>
       </form>
     </div>`;
@@ -2574,6 +2592,16 @@ function openModal(kind, ctx={}){
       saveDB(); renderAll();
       openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
       toast('Tank range updated');
+    });
+    // Doc edit/delete (delegated)
+    backdrop.addEventListener('click', e=>{
+      const editDocId = e.target.dataset.editDoc;
+      if(editDocId){ openModal('vehicle-doc', {vehicleId: ctx.vehicleId, docId: editDocId}); return; }
+      const delDocId = e.target.dataset.delDoc;
+      if(delDocId){
+        DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.id!==delDocId);
+        saveDB(); openModal('vehicle-detail', {vehicleId: ctx.vehicleId}); toast('Document deleted');
+      }
     });
   }
 
@@ -2770,12 +2798,10 @@ const submitHandlers = {
     if(data.editId){
       const cat = DB.categories.find(c=>c.id===data.editId);
       if(!cat) throw new Error('Category not found');
-      cat.name = data.name.trim();
-      cat.type = data.type;
-      cat.parentId = data.parentId || null;
+      cat.name = data.name.trim(); cat.type = data.type; cat.parentId = data.parentId||null;
       saveDB(); toast('Category updated');
     } else {
-      DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+      DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId||null});
       saveDB(); toast('Category created');
     }
   },
@@ -2865,13 +2891,26 @@ const submitHandlers = {
     saveDB(); toast('Part tracked');
   },
   'vehicle-doc'(data){
-    const v = vehicleById(data.vehicleId);
-    if(!v) throw new Error('Vehicle not found');
-    DB.vehicleDocs.push({
-      id: uid('vdoc'), vehicleId: v.id, docType: data.docType.trim(),
-      renewalDate: data.renewalDate, note: data.note || ''
-    });
-    saveDB(); toast('Document saved');
+    const targetVehicleId = data.reassignVehicleId || data.vehicleId;
+    const targetV = vehicleById(targetVehicleId);
+    if(!targetV) throw new Error('Vehicle not found');
+    if(data.docId){
+      // Edit existing doc
+      const doc = DB.vehicleDocs.find(d=>d.id===data.docId);
+      if(!doc) throw new Error('Document not found');
+      doc.docType = data.docType.trim();
+      doc.renewalDate = data.renewalDate;
+      doc.note = data.note||'';
+      doc.vehicleId = targetVehicleId;  // reassign if changed
+      saveDB(); toast('Document updated');
+    } else {
+      // New doc
+      DB.vehicleDocs.push({
+        id: uid('vdoc'), vehicleId: targetVehicleId, docType: data.docType.trim(),
+        renewalDate: data.renewalDate, note: data.note||''
+      });
+      saveDB(); toast('Document saved');
+    }
   },
   'drive-setup'(data){
     setClientId(data.clientId.trim());

@@ -227,8 +227,15 @@
 
   .more-toggle{display:none;}
 
-  /* ---------- Mobile layout (phones/small tablets) ---------- */
   @media(max-width:760px){
+    .dash-kpi-grid{grid-template-columns:repeat(2,1fr)!important;}
+    .dash-month-grid{grid-template-columns:1fr 1fr!important;}
+    .dash-bottom-grid{grid-template-columns:1fr!important;}
+  }
+  @media(min-width:761px) and (max-width:1100px){
+    .dash-kpi-grid{grid-template-columns:repeat(2,1fr)!important;}
+    .dash-bottom-grid{grid-template-columns:1fr 1fr!important;}
+  }
     body{font-size:12.5px;}
 
     .app{display:block;}
@@ -328,14 +335,14 @@
     </div>
     <nav class="nav" id="nav">
       <button data-view="dashboard" class="active"><span class="ic">◆</span><span class="lbl">Dashboard</span></button>
-      <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
       <button data-view="transactions"><span class="ic">≡</span><span class="lbl">Transactions</span></button>
-      <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
-      <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
-      <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
       <button data-view="history"><span class="ic">🕘</span><span class="lbl">History</span></button>
+      <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
+      <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
+      <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
+      <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
     </nav>
     <div class="nav-footer" id="nav-footer">
       <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
@@ -355,28 +362,33 @@
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
 
-      <div class="grid cols-3" id="dash-cards"></div>
-      <div class="grid cols-2" id="dash-month-cards" style="margin-top:16px;"></div>
+      <!-- 4-col KPI strip -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;" id="dash-cards" class="dash-kpi-grid"></div>
 
-      <div class="grid cols-2" style="margin-top:16px;">
+      <!-- Month totals (2 cards) -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;" id="dash-month-cards" class="dash-month-grid"></div>
+
+      <!-- Bottom: accounts + due + recent in one row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;" class="dash-bottom-grid">
         <div>
-          <div class="section-title">Account Balances<span class="hint">converted to EGP</span></div>
+          <div class="section-title" style="margin-top:0;">Balances</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Account</th><th>Type</th><th class="amt">Balance</th></tr></thead>
+            <thead><tr><th>Account</th><th class="amt">Balance</th></tr></thead>
             <tbody id="dash-accounts-body"></tbody>
           </table></div>
         </div>
         <div>
-          <div class="section-title">Due Soon</div>
+          <div class="section-title" style="margin-top:0;">Due Soon</div>
           <div id="dash-due-list"></div>
         </div>
+        <div>
+          <div class="section-title" style="margin-top:0;">Recent Transactions</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+            <tbody id="dash-recent-body"></tbody>
+          </table></div>
+        </div>
       </div>
-
-      <div class="section-title">Recent Transactions</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
-        <tbody id="dash-recent-body"></tbody>
-      </table></div>
     </section>
 
     <!-- ACCOUNTS -->
@@ -468,15 +480,15 @@
     <!-- REPORTS -->
     <section class="view" id="view-reports">
       <div class="topbar">
-        <div><h1>Reports</h1><div class="today">تحليل المصاريف حسب الكاتيجوري والفترة</div></div>
+        <div><h1>Reports</h1><div class="today">تحليل مصاريفك ودخلك بالتفصيل</div></div>
       </div>
-      <!-- Filters bar -->
-      <div class="card" style="margin-bottom:18px;padding:14px 16px;">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-          <!-- Period dropdown -->
+
+      <!-- Compact filter bar -->
+      <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
           <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الفترة</div>
-            <select id="rep-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:140px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفترة</div>
+            <select id="rep-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;min-width:130px;">
               <option value="all">كل الوقت</option>
               <option value="ytd">هذه السنة</option>
               <option value="6m">آخر 6 أشهر</option>
@@ -486,46 +498,61 @@
             </select>
           </div>
           <div id="rep-from-wrap" style="display:none;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">من</div>
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">من</div>
             <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
           <div id="rep-to-wrap" style="display:none;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">إلى</div>
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">إلى</div>
             <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
           </div>
-          <!-- Category tree button -->
-          <div style="position:relative;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الكاتيجوري</div>
-            <button type="button" id="rep-cat-btn" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 12px;font-size:13px;min-width:200px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-              <span id="rep-cat-label">كل الكاتيجوريز</span><span>▾</span>
+          <div style="position:relative;flex:1;min-width:200px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الكاتيجوري والدخل</div>
+            <button type="button" id="rep-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <span id="rep-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">كل الكاتيجوريز</span><span style="flex:none;">▾</span>
             </button>
-            <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:280px;max-height:340px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-              <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
-                <input type="text" id="rep-cat-search" placeholder="ابحث عن كاتيجوري..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
+            <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:300px;max-height:360px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+              <div style="padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
+                <input type="text" id="rep-cat-search" placeholder="بحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
               </div>
-              <div style="padding:6px 0;" id="rep-cat-tree"></div>
-              <div style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;">
+              <div style="padding:5px 0;" id="rep-cat-tree"></div>
+              <div style="padding:7px 10px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
                 <button class="btn ghost sm" id="rep-cat-all">الكل</button>
-                <button class="btn ghost sm" id="rep-cat-none">إلغاء الكل</button>
-                <button class="btn sm" id="rep-cat-done" style="margin-left:auto;">تطبيق ✓</button>
+                <button class="btn ghost sm" id="rep-cat-none">إلغاء</button>
               </div>
             </div>
           </div>
-          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح</button>
+          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:7px 11px;">↺</button>
         </div>
       </div>
-      <!-- Summary strip -->
-      <div id="rep-summary-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
-      <!-- By Category tree table -->
-      <div class="section-title">حسب الكاتيجوري <span class="hint">الفروع مضمّنة في الأصل</span></div>
-      <div class="table-wrap" style="margin-bottom:24px;">
-        <table>
-          <thead><tr><th>الكاتيجوري</th><th class="amt">هذا الشهر</th><th class="amt" id="rep-period-hdr">كل الوقت</th></tr></thead>
-          <tbody id="reports-tree-body"></tbody>
-        </table>
+
+      <!-- Summary strip (3 cards) -->
+      <div id="rep-summary-strip" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
+
+      <!-- Chart + Table side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;" class="rep-main-grid">
+        <!-- Chart -->
+        <div class="card" style="padding:14px 16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">الرسم البياني الشهري</div>
+            <select id="rep-chart-type" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:11px;">
+              <option value="bar">Bar</option>
+              <option value="line">Line</option>
+            </select>
+          </div>
+          <canvas id="rep-chart" style="width:100%;max-height:240px;"></canvas>
+          <div id="rep-chart-empty" style="display:none;padding:30px;text-align:center;color:var(--text-faint);font-size:12px;">اختر كاتيجوري وفترة لعرض الرسم</div>
+        </div>
+        <!-- Category tree table -->
+        <div class="table-wrap" style="overflow:auto;max-height:320px;">
+          <table style="min-width:unset;">
+            <thead><tr><th>الكاتيجوري</th><th class="amt">هذا الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
+            <tbody id="reports-tree-body"></tbody>
+          </table>
+        </div>
       </div>
-      <!-- Monthly breakdown -->
-      <div class="section-title">التفصيل الشهري</div>
+
+      <!-- Monthly breakdown table -->
+      <div class="section-title" style="margin-top:0;">التفصيل الشهري</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
@@ -584,10 +611,9 @@
                 <input type="text" id="hist-cat-search" placeholder="ابحث عن كاتيجوري..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
               </div>
               <div style="padding:6px 0;" id="hist-cat-tree"></div>
-              <div style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;">
+              <div style="padding:7px 10px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
                 <button class="btn ghost sm" id="hist-cat-all">الكل</button>
-                <button class="btn ghost sm" id="hist-cat-none">إلغاء الكل</button>
-                <button class="btn sm" id="hist-cat-done" style="margin-left:auto;">تطبيق ✓</button>
+                <button class="btn ghost sm" id="hist-cat-none">إلغاء</button>
               </div>
             </div>
           </div>
@@ -1754,180 +1780,199 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
    ================================================================ */
 
 // Build selected IDs set from tree state object {catId: true/false/'partial'}
-function _treeSelectedLeafIds(state, allCats){
+/* ================================================================
+   SHARED: Hierarchical Category Tree Component
+   ================================================================ */
+function _treeGetLeafIds(state, allCats){
   const ids = new Set();
-  Object.entries(state).forEach(([id, val])=>{
-    if(val===true){
-      // If it's a parent, include all children
-      const children = allCats.filter(c=>c.parentId===id);
-      if(children.length) children.forEach(c=>ids.add(c.id));
-      else ids.add(id);  // leaf
+  allCats.forEach(cat=>{
+    const children = allCats.filter(c=>c.parentId===cat.id);
+    if(children.length){
+      // parent checked = all its children included
+      if(state[cat.id]===true) children.forEach(c=>ids.add(c.id));
+      else children.filter(c=>state[c.id]===true).forEach(c=>ids.add(c.id));
+    } else {
+      const par = cat.parentId ? allCats.find(p=>p.id===cat.parentId) : null;
+      if(state[cat.id]===true || (par && state[par.id]===true)) ids.add(cat.id);
     }
   });
   return ids;
 }
 
-// Render tree HTML into containerEl with given state, filtered by searchQ
-function _renderCatTree(containerEl, state, searchQ, allCats, onStateChange){
+function _treeRender(containerEl, state, searchQ, allCats, onChangeImmediate){
   const parents = allCats.filter(c=>!c.parentId);
   const q = (searchQ||'').toLowerCase().trim();
-
-  function rowHtml(cat, children){
-    const childState = children.map(c=>state[c.id]||false);
-    const allSel = children.length && childState.every(s=>s===true);
-    const someSel = children.length && childState.some(s=>s===true||s==='partial') && !allSel;
-    const parentSel = state[cat.id];
-    const checked = parentSel===true||allSel ? 'checked' : '';
-    const indeterminate = parentSel==='partial'||someSel;
-
-    const chHtml = children.map(ch=>{
-      const chSel = state[ch.id]===true;
-      return `<div style="display:flex;align-items:center;gap:7px;padding:5px 10px 5px 30px;cursor:pointer;" data-tree-child="${ch.id}">
-        <input type="checkbox" ${chSel?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" data-check-child="${ch.id}">
-        <span style="font-size:12.5px;color:${chSel?'var(--text)':'var(--text-muted)'};">${ch.name}</span>
-      </div>`;
-    }).join('');
-
-    const expanded = (state['_exp_'+cat.id]!==false);
-    return `<div>
-      <div style="display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;" data-tree-parent="${cat.id}">
-        ${children.length?`<span data-toggle-tree="${cat.id}" style="font-size:10px;color:var(--text-faint);min-width:12px;">${expanded?'▼':'▶'}</span>`:'<span style="min-width:12px;"></span>'}
-        <input type="checkbox" ${checked} data-check-parent="${cat.id}" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" ${indeterminate?'data-indeterminate="1"':''}>
-        <span style="font-size:13px;font-weight:600;color:${(parentSel||allSel)?'var(--text)':'var(--text-muted)'};">${cat.name}</span>
-        ${children.length?`<span style="font-size:10px;color:var(--text-faint);margin-left:auto;">(${children.length})</span>`:''}
-      </div>
-      <div id="tree-children-${cat.id}" style="display:${expanded&&children.length?'block':'none'};">${chHtml}</div>
-    </div>`;
-  }
-
   let html = '';
+
   parents.forEach(p=>{
     const children = allCats.filter(c=>c.parentId===p.id);
+    // Filter by search
+    let visChildren = children;
     if(q){
-      const pMatch = p.name.toLowerCase().includes(q);
-      const matchCh = children.filter(c=>c.name.toLowerCase().includes(q));
-      if(!pMatch && !matchCh.length) return;
-      const visChildren = pMatch ? children : matchCh;
-      html += rowHtml(p, visChildren);
-    } else {
-      html += rowHtml(p, children);
+      const pm = p.name.toLowerCase().includes(q);
+      const cm = children.filter(c=>c.name.toLowerCase().includes(q));
+      if(!pm && !cm.length) return;
+      visChildren = pm ? children : cm;
     }
+    // Compute parent visual state
+    const numChSel = visChildren.filter(c=>state[c.id]===true).length;
+    const pChecked = state[p.id]===true || (visChildren.length>0 && numChSel===visChildren.length);
+    const pIndet   = !pChecked && numChSel>0;
+    // Expand state: default expanded (undefined = expanded)
+    const isExpanded = state['_exp_'+p.id] !== false;
+
+    const chHtml = visChildren.map(ch=>{
+      const checked = state[ch.id]===true || state[p.id]===true;
+      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 30px;cursor:pointer;border-radius:5px;margin:1px 4px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
+        <input type="checkbox" data-cc="${ch.id}" data-cp="${p.id}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+        <span style="font-size:12.5px;">${ch.name}</span>
+      </label>`;
+    }).join('');
+
+    html += `<div>
+      <div style="display:flex;align-items:center;padding:2px 6px;">
+        ${visChildren.length
+          ? `<button type="button" data-tog="${p.id}" style="background:none;border:none;color:var(--text-faint);cursor:pointer;padding:5px 3px;font-size:11px;flex:none;line-height:1;min-width:22px;">${isExpanded?'▼':'▶'}</button>`
+          : `<span style="min-width:22px;"></span>`}
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:5px 6px;border-radius:6px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
+          <input type="checkbox" data-cp2="${p.id}" ${pChecked?'checked':''} ${pIndet?'data-ind="1"':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+          <span style="font-size:13px;font-weight:600;">${p.name}</span>
+          ${visChildren.length?`<span style="font-size:10px;color:var(--text-faint);margin-left:auto;">${visChildren.length}</span>`:''}
+        </label>
+      </div>
+      <div id="tch-${p.id}" style="display:${isExpanded&&visChildren.length?'block':'none'};">${chHtml}</div>
+    </div>`;
   });
 
   containerEl.innerHTML = html || `<div style="padding:14px 12px;font-size:12px;color:var(--text-faint);">لا توجد نتائج</div>`;
+  containerEl.querySelectorAll('[data-ind="1"]').forEach(cb=>{ cb.indeterminate=true; });
 
-  // Fix indeterminate state (can't set via HTML attr)
-  containerEl.querySelectorAll('[data-indeterminate="1"]').forEach(cb=>{ cb.indeterminate=true; });
-
-  // Events
-  containerEl.querySelectorAll('[data-toggle-tree]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      e.stopPropagation();
-      const id = btn.dataset.toggleTree;
-      state['_exp_'+id] = state['_exp_'+id]===false;
-      onStateChange(state);
+  // Toggle expand/collapse — manipulates DOM directly, no re-render needed
+  containerEl.querySelectorAll('[data-tog]').forEach(btn=>{
+    btn.addEventListener('click', ev=>{
+      ev.preventDefault(); ev.stopPropagation();
+      const pid = btn.dataset.tog;
+      const div = document.getElementById('tch-'+pid);
+      if(!div) return;
+      const nowOpen = div.style.display!=='none';
+      div.style.display = nowOpen?'none':'block';
+      btn.textContent = nowOpen?'▶':'▼';
+      state['_exp_'+pid] = !nowOpen;
     });
   });
-  containerEl.querySelectorAll('[data-check-parent]').forEach(cb=>{
-    cb.addEventListener('change', e=>{
-      const id = cb.dataset.checkParent;
-      const children = allCats.filter(c=>c.parentId===id);
-      state[id] = cb.checked;
-      children.forEach(c=>{ state[c.id] = cb.checked; });
-      onStateChange(state);
+
+  // Parent checkbox → check/uncheck all visible children
+  containerEl.querySelectorAll('[data-cp2]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const pid = cb.dataset.cp2;
+      const checked = cb.checked;
+      state[pid] = checked;
+      // Update all children in state AND in DOM
+      allCats.filter(c=>c.parentId===pid).forEach(c=>{ state[c.id]=checked; });
+      const chDiv = document.getElementById('tch-'+pid);
+      if(chDiv) chDiv.querySelectorAll('[data-cc]').forEach(chCb=>{ chCb.checked=checked; });
+      cb.indeterminate = false;
+      onChangeImmediate();
     });
   });
-  containerEl.querySelectorAll('[data-check-child]').forEach(cb=>{
-    cb.addEventListener('change', e=>{
-      const id = cb.dataset.checkChild;
-      state[id] = cb.checked;
-      // Update parent state
-      const cat = allCats.find(c=>c.id===id);
-      if(cat&&cat.parentId){
-        const siblings = allCats.filter(c=>c.parentId===cat.parentId);
-        const allSel = siblings.every(s=>state[s.id]===true);
-        const noneSel = siblings.every(s=>!state[s.id]);
-        state[cat.parentId] = allSel ? true : noneSel ? false : 'partial';
+
+  // Child checkbox → update parent indeterminate
+  containerEl.querySelectorAll('[data-cc]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const cid = cb.dataset.cc;
+      const pid = cb.dataset.cp;
+      state[cid] = cb.checked;
+      // Clear parent "all-selected" override when manually toggling child
+      if(state[pid]===true) state[pid]=false;
+      // Update parent checkbox
+      const parCb = containerEl.querySelector(`[data-cp2="${pid}"]`);
+      if(parCb){
+        const sibs = allCats.filter(c=>c.parentId===pid);
+        const n = sibs.filter(c=>state[c.id]===true).length;
+        if(n===0){parCb.checked=false;parCb.indeterminate=false;}
+        else if(n===sibs.length){parCb.checked=true;parCb.indeterminate=false;state[pid]=true;}
+        else{parCb.checked=false;parCb.indeterminate=true;}
       }
-      onStateChange(state);
+      onChangeImmediate();
     });
   });
 }
 
-function _catTreeLabel(state, allCats){
-  const leafIds = _treeSelectedLeafIds(state, allCats);
+function _treeLabelText(state, allCats){
+  const leafIds = _treeGetLeafIds(state, allCats);
   if(!leafIds.size) return 'كل الكاتيجوريز';
-  // Count selected parents
-  const selParents = allCats.filter(c=>!c.parentId && state[c.id]===true);
-  const selChildren = allCats.filter(c=>c.parentId && state[c.id]===true);
-  const parts = [];
-  selParents.forEach(p=>parts.push(p.name));
-  selChildren.filter(c=>!selParents.find(p=>p.id===c.parentId)).forEach(c=>parts.push(c.name));
+  const selPar = allCats.filter(c=>!c.parentId && state[c.id]===true);
+  const selCh  = allCats.filter(c=>c.parentId  && state[c.id]===true && !selPar.find(p=>p.id===c.parentId));
+  const parts  = [...selPar.map(p=>p.name), ...selCh.map(c=>c.name)];
   if(!parts.length) return 'كل الكاتيجوريز';
   return parts.length<=2 ? parts.join(', ') : `${parts[0]} +${parts.length-1} أخرى`;
 }
 
-function _initTreeDropdown({btnId, dropdownId, treeId, labelId, searchId, allBtnId, noneBtnId, doneBtnId, catTypeFilter, onApply}){
-  const btn = document.getElementById(btnId);
+function _initTreeDropdown({btnId,dropdownId,treeId,labelId,searchId,allBtnId,noneBtnId,doneBtnId,catTypeFilter,onApply}){
+  const btn      = document.getElementById(btnId);
   const dropdown = document.getElementById(dropdownId);
-  const treeEl = document.getElementById(treeId);
-  const labelEl = document.getElementById(labelId);
+  const treeEl   = document.getElementById(treeId);
+  const labelEl  = document.getElementById(labelId);
   const searchEl = document.getElementById(searchId);
-  if(!btn||!dropdown) return;
+  if(!btn||!dropdown) return null;
 
-  let state = {};  // catId → true/false/'partial'
-  let searchQ = '';
+  let state = {}, searchQ = '';
+  // NO catTypeFilter restriction — show both income AND expense categories
+  function getCats(){ return catTypeFilter ? DB.categories.filter(c=>c.type===catTypeFilter) : DB.categories; }
 
-  function getCats(){ return DB.categories.filter(c=>!catTypeFilter||c.type===catTypeFilter); }
-
-  function rebuildTree(){
-    _renderCatTree(treeEl, state, searchQ, getCats(), updated=>{
-      state = updated;
-      labelEl.textContent = _catTreeLabel(state, getCats());
+  function rebuild(){
+    _treeRender(treeEl, state, searchQ, getCats(), ()=>{
+      // Immediate apply: update label & trigger filter instantly (no "Apply" button needed)
+      labelEl.textContent = _treeLabelText(state, getCats());
+      onApply(_treeGetLeafIds(state, getCats()));
     });
   }
 
-  btn.addEventListener('click', e=>{
-    e.stopPropagation();
-    const open = dropdown.style.display==='none';
-    // Close all other dropdowns first
-    document.querySelectorAll('.cat-tree-dropdown-open').forEach(d=>{d.style.display='none';d.classList.remove('cat-tree-dropdown-open');});
-    dropdown.style.display = open?'block':'none';
-    dropdown.classList.toggle('cat-tree-dropdown-open', open);
-    if(open) rebuildTree();
+  // Toggle dropdown open/close
+  btn.addEventListener('click', ev=>{
+    ev.stopPropagation();
+    const opening = !dropdown.style.display || dropdown.style.display==='none';
+    document.querySelectorAll('.tree-dd-open').forEach(d=>{d.style.display='none';d.classList.remove('tree-dd-open');});
+    if(opening){
+      dropdown.style.display='block';
+      dropdown.classList.add('tree-dd-open');
+      rebuild();
+    } else {
+      dropdown.style.display='none';
+      dropdown.classList.remove('tree-dd-open');
+    }
   });
-
-  document.addEventListener('click', e=>{
-    if(!dropdown.contains(e.target)&&e.target!==btn){
-      dropdown.style.display='none'; dropdown.classList.remove('cat-tree-dropdown-open');
+  document.addEventListener('click', ev=>{
+    if(!dropdown.contains(ev.target)&&ev.target!==btn){
+      dropdown.style.display='none';
+      dropdown.classList.remove('tree-dd-open');
     }
   });
 
   if(searchEl){
-    searchEl.addEventListener('input', ()=>{ searchQ=searchEl.value; rebuildTree(); });
-    searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ dropdown.style.display='none'; onApply(_treeSelectedLeafIds(state,getCats())); }});
+    searchEl.addEventListener('input', ()=>{ searchQ=searchEl.value; rebuild(); });
+    searchEl.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); dropdown.style.display='none'; }});
   }
 
-  document.getElementById(allBtnId).addEventListener('click', ()=>{
-    const cats=getCats();
-    cats.forEach(c=>{ state[c.id]=true; });
-    rebuildTree();
+  // Select All
+  if(allBtnId) document.getElementById(allBtnId).addEventListener('click', ()=>{
+    getCats().forEach(c=>{ state[c.id]=true; });
+    rebuild(); labelEl.textContent=_treeLabelText(state,getCats());
   });
-  document.getElementById(noneBtnId).addEventListener('click', ()=>{
-    state={};
-    rebuildTree();
-    labelEl.textContent='كل الكاتيجوريز';
+  // Clear All
+  if(noneBtnId) document.getElementById(noneBtnId).addEventListener('click', ()=>{
+    const expKeys={}; Object.entries(state).filter(([k])=>k.startsWith('_exp_')).forEach(([k,v])=>expKeys[k]=v);
+    state=expKeys; rebuild(); labelEl.textContent='كل الكاتيجوريز';
+    onApply(new Set());
   });
-  document.getElementById(doneBtnId).addEventListener('click', ()=>{
-    dropdown.style.display='none';
-    labelEl.textContent=_catTreeLabel(state,getCats());
-    onApply(_treeSelectedLeafIds(state,getCats()));
+  // Done button — just closes (filter already applied instantly)
+  if(doneBtnId) document.getElementById(doneBtnId).addEventListener('click', ()=>{
+    dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open');
   });
 
   return {
-    getSelectedIds(){ return _treeSelectedLeafIds(state,getCats()); },
-    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; },
-    getState(){ return state; }
+    getSelectedIds(){ return _treeGetLeafIds(state, getCats()); },
+    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; }
   };
 }
 

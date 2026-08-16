@@ -416,6 +416,15 @@
         <div><h1>Transactions</h1><div class="today" id="txn-count-label"></div></div>
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+        <input type="search" id="txn-search" placeholder="بحث بالنوت أو الكاتيجوري..." style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
+        <select id="txn-month-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
+          <option value="">كل الشهور</option>
+        </select>
+        <select id="txn-account-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
+          <option value="">كل الحسابات</option>
+        </select>
+      </div>
       <div class="pill-row" id="txn-filters"></div>
       <div class="table-wrap">
         <table>
@@ -423,6 +432,7 @@
           <tbody id="txn-body"></tbody>
         </table>
       </div>
+      <div id="txn-pagination" style="display:flex;gap:7px;justify-content:center;align-items:center;margin-top:12px;flex-wrap:wrap;"></div>
     </section>
 
     <!-- CATEGORIES -->

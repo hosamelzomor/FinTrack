@@ -236,6 +236,16 @@
   th{position:relative;user-select:none;}
 
   /* Dashboard responsive */
+  @media(max-width:1100px){
+    #dash-cards{grid-template-columns:repeat(2,1fr)!important;}
+    #dash-month-cards{grid-template-columns:1fr 1fr!important;}
+    .dash-bottom{grid-template-columns:1fr 1fr!important;}
+  }
+  @media(max-width:680px){
+    #dash-cards{grid-template-columns:1fr 1fr!important;}
+    #dash-month-cards{grid-template-columns:1fr!important;}
+    .dash-bottom{grid-template-columns:1fr!important;}
+  }
   @media(max-width:760px){
     body{font-size:12.5px;}
 
@@ -363,28 +373,33 @@
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
 
-      <div class="grid cols-3" id="dash-cards"></div>
-      <div class="grid cols-2" id="dash-month-cards" style="margin-top:16px;"></div>
+      <!-- KPI strip: 4 cards -->
+      <div id="dash-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;"></div>
 
-      <div class="grid cols-2" style="margin-top:16px;">
+      <!-- Month totals: 2+1 -->
+      <div id="dash-month-cards" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;"></div>
+
+      <!-- Bottom row: accounts | due soon | recent -->
+      <div style="display:grid;grid-template-columns:220px 220px 1fr;gap:12px;align-items:start;" class="dash-bottom">
         <div>
-          <div class="section-title">Account Balances<span class="hint">converted to EGP</span></div>
+          <div class="section-title" style="margin-top:0;">الأرصدة</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Account</th><th>Type</th><th class="amt">Balance</th></tr></thead>
+            <thead><tr><th>Account</th><th class="amt">Balance</th></tr></thead>
             <tbody id="dash-accounts-body"></tbody>
           </table></div>
         </div>
         <div>
-          <div class="section-title">Due Soon</div>
+          <div class="section-title" style="margin-top:0;">Due Soon</div>
           <div id="dash-due-list"></div>
         </div>
+        <div>
+          <div class="section-title" style="margin-top:0;">Recent Transactions</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+            <tbody id="dash-recent-body"></tbody>
+          </table></div>
+        </div>
       </div>
-
-      <div class="section-title">Recent Transactions</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
-        <tbody id="dash-recent-body"></tbody>
-      </table></div>
     </section>
 
     <!-- ACCOUNTS -->
@@ -1200,134 +1215,92 @@ document.getElementById('nav').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: DASHBOARD ---------------------------- */
 function renderDashboard(){
-  document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  document.getElementById('today-label').textContent = new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
   const nw = netWorthEGP();
   const liabilities = totalLiabilitiesEGP();
-  const netPosition = nw - liabilities;
+  const netPos = nw - liabilities;
   const mt = monthTotals(thisMonthKey());
+  const savings = mt.income > 0 ? Math.round((mt.net / mt.income) * 100) : 0;
 
-  document.getElementById('dash-cards').innerHTML = `
-    <div class="card">
-      <h3>Current Balance</h3>
-      <div class="big">EGP ${fmtMoney(nw)}</div>
-      <div class="delta">cash + bank across ${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} account${DB.accounts.filter(a=>!a.excludeFromNetWorth).length===1?'':'s'} · income − expenses since each account's opening balance</div>
-      <button class="btn ghost sm" style="margin-top:10px;" data-open-modal="reconcile-all">Reconcile with real balances</button>
-    </div>
-    <div class="card">
-      <h3>Outstanding Commitments</h3>
-      <div class="big" style="color:var(--warning)">EGP ${fmtMoney(liabilities)}</div>
-      <div class="delta">what you still owe — installments &amp; جمعية</div>
-    </div>
-    <div class="card">
-      <h3>Net Position</h3>
-      <div class="big" style="color:${netPosition>=0?'var(--positive)':'var(--negative)'}">EGP ${fmtMoney(netPosition)}</div>
-      <div class="delta">balance minus outstanding commitments</div>
-    </div>
-  `;
+  // 4 KPI cards (compact)
+  document.getElementById('dash-cards').innerHTML = [
+    {label:'Current Balance', val:`EGP ${fmtMoney(nw)}`, color: nw>=0?'var(--positive)':'var(--negative)', sub: `${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} accounts`, btn:`<button class="btn ghost sm" style="margin-top:8px;font-size:11px;" data-open-modal="reconcile-all">Reconcile</button>`},
+    {label:'Commitments', val:`EGP ${fmtMoney(liabilities)}`, color:'var(--warning)', sub:'outstanding'},
+    {label:'Net Position', val:`EGP ${fmtMoney(netPos)}`, color: netPos>=0?'var(--positive)':'var(--negative)', sub:'balance − commitments'},
+    {label:'Savings Rate', val: mt.income>0 ? `${savings}%` : '—', color: savings>=20?'var(--positive)':savings>=10?'var(--warning)':'var(--negative)', sub:'this month'},
+  ].map(c=>`<div class="card" style="padding:12px 14px;">
+    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">${c.label}</div>
+    <div class="num" style="font-size:17px;font-weight:700;color:${c.color};margin-bottom:3px;">${c.val}</div>
+    <div style="font-size:11px;color:var(--text-faint);">${c.sub}</div>
+    ${c.btn||''}
+  </div>`).join('');
 
-  document.getElementById('dash-month-cards').innerHTML = `
-    <div class="card" data-open-modal="month-detail" data-month-detail-type="income" style="cursor:pointer;">
-      <h3>This Month — Income</h3>
-      <div class="big" style="color:var(--positive)">EGP ${fmtMoney(mt.income)}</div>
-      <div class="delta">${thisMonthKey()} · tap for details</div>
-    </div>
-    <div class="card" data-open-modal="month-detail" data-month-detail-type="expense" style="cursor:pointer;">
-      <h3>This Month — Expenses</h3>
-      <div class="big" style="color:var(--negative)">EGP ${fmtMoney(mt.expense)}</div>
-      <div class="delta ${mt.net>=0?'up':'down'}">Net: ${mt.net>=0?'+':''}${fmtMoney(mt.net)} EGP · tap for details</div>
-    </div>
-  `;
+  // 3 month cards
+  document.getElementById('dash-month-cards').innerHTML = [
+    {label:'دخل الشهر ده', val:`EGP ${fmtMoney(mt.income)}`, color:'var(--positive)', type:'income'},
+    {label:'مصاريف الشهر ده', val:`EGP ${fmtMoney(mt.expense)}`, color:'var(--negative)', type:'expense'},
+    {label:`صافي ${thisMonthKey()}`, val:`${mt.net>=0?'+':''}EGP ${fmtMoney(mt.net)}`, color:mt.net>=0?'var(--positive)':'var(--negative)', type:null},
+  ].map(c=>`<div class="card" style="padding:12px 14px;${c.type?'cursor:pointer;':''}" ${c.type?`data-open-modal="month-detail" data-month-detail-type="${c.type}"`:''}>
+    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">${c.label}</div>
+    <div class="num" style="font-size:17px;font-weight:700;color:${c.color};">${c.val}</div>
+  </div>`).join('');
 
+  // Accounts (no Type column)
   document.getElementById('dash-accounts-body').innerHTML = DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}</td>
-      <td><span class="tag">${a.type}</span></td>
-      <td class="amt ${bal<0?'neg':''}">${a.currency} ${fmtMoney(bal)}</td>
+      <td style="font-size:12.5px;">${a.name}</td>
+      <td class="amt ${bal<0?'neg':'pos'}" style="font-size:12.5px;">${bal>=0?'+':''}${a.currency} ${fmtMoney(Math.abs(bal))}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="3" class="empty">No accounts yet</td></tr>`;
+  }).join('') || `<tr><td colspan="2" class="empty">No accounts</td></tr>`;
 
-  // Due soon: commitments with next payment due within 10 days, or جمعية payout due within 30 days
+  // Due soon (compact cards)
   const dueItems = [];
   DB.commitments.forEach(c=>{
     if(c.status==='completed') return;
     const paid = commitmentPayments(c.id).length;
     if(c.type==='installment'){
-      if(paid >= c.totalInstallments) return;
-      const nextDue = addMonths(c.startDate, paid);
-      const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
-      if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
+      if(paid>=c.totalInstallments) return;
+      const nextDue=addMonths(c.startDate,paid);
+      const days=Math.ceil((new Date(nextDue)-new Date())/86400000);
+      if(days<=10) dueItems.push({label:`${c.name}`,sub:`قسط ${paid+1}/${c.totalInstallments}`,date:nextDue,days,kind:'installment'});
     } else if(c.type==='rotating_saving'){
-      if(!c.payoutReceived && c.payoutDate){
-        const days = Math.ceil((new Date(c.payoutDate) - new Date()) / 86400000);
-        if(days <= 30) dueItems.push({label:`${c.name} — payout expected`, date:c.payoutDate, days, kind:'payout'});
-      }
-      if(paid < c.totalInstallments){
-        const nextDue = addMonths(c.startDate, paid);
-        const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
-        if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
-      }
+      if(!c.payoutReceived&&c.payoutDate){const days=Math.ceil((new Date(c.payoutDate)-new Date())/86400000);if(days<=30)dueItems.push({label:c.name,sub:'استلام الجمعية',date:c.payoutDate,days,kind:'payout'});}
+      if(paid<c.totalInstallments){const nextDue=addMonths(c.startDate,paid);const days=Math.ceil((new Date(nextDue)-new Date())/86400000);if(days<=10)dueItems.push({label:c.name,sub:`قسط ${paid+1}/${c.totalInstallments}`,date:nextDue,days,kind:'installment'});}
     }
   });
   DB.vehicleDocs.forEach(d=>{
-    if(!d.renewalDate) return;
-    const veh = vehicleById(d.vehicleId);
-    const days = Math.ceil((new Date(d.renewalDate) - new Date()) / 86400000);
-    if(days <= 30) dueItems.push({label:`${veh?veh.name:'Vehicle'} — ${d.docType} renewal`, date:d.renewalDate, days, kind:'document'});
-  });
-  DB.vehicles.forEach(v=>{
-    const oilStatus = vehicleOilDueStatus(v.id);
-    if(oilStatus && oilStatus.remaining <= 500){
-      dueItems.push({
-        label: `${v.name} — oil change ${oilStatus.overdue?'overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km':'in '+fmtMoney(oilStatus.remaining)+' km'}`,
-        date: null, days: oilStatus.overdue ? -1 : 5, kind:'oil'
-      });
-    }
-    const fuelStatus = vehicleFuelDueStatus(v.id);
-    if(fuelStatus && fuelStatus.remaining <= 100){
-      dueItems.push({
-        label: `${v.name} — ⛽ ${fuelStatus.overdue?'likely out of fuel':'fuel low, ~'+fmtMoney(fuelStatus.remaining)+' km range left'}`,
-        date: null, days: fuelStatus.overdue ? -1 : 3, kind:'fuel'
-      });
-    }
-  });
-  DB.vehicleParts.forEach(p=>{
-    const st = vehiclePartDueStatus(p);
-    if(!st) return;
-    const threshold = st.unit==='km' ? 500 : 30;
-    if(st.remaining <= threshold){
-      const veh = vehicleById(p.vehicleId);
-      const unitLabel = st.unit==='km' ? 'km' : 'day'+(Math.abs(st.remaining)===1?'':'s');
-      dueItems.push({
-        label: `${veh?veh.name:'Vehicle'} — ${p.name} ${st.overdue?'overdue by '+fmtMoney(Math.abs(st.remaining))+' '+unitLabel:'in '+fmtMoney(st.remaining)+' '+unitLabel}`,
-        date: null, days: st.overdue ? -1 : 5, kind:'part'
-      });
-    }
+    if(!d.renewalDate)return;
+    const veh=vehicleById(d.vehicleId);
+    const days=Math.ceil((new Date(d.renewalDate)-new Date())/86400000);
+    if(days<=30)dueItems.push({label:`${veh?veh.name:'Vehicle'}`,sub:d.docType+' renewal',date:d.renewalDate,days,kind:'document'});
   });
   dueItems.sort((a,b)=>a.days-b.days);
-  document.getElementById('dash-due-list').innerHTML = dueItems.length ? dueItems.map(d=>`
-    <div class="card" style="margin-bottom:10px;padding:12px 14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:13px;font-weight:500;">${d.label}</div>
-        <span class="tag ${d.days<0?'expense':'warning'}">${d.days<0? Math.abs(d.days)+'d overdue' : d.days+'d'}</span>
-      </div>
-      <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
-    </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">Nothing due soon</div>`;
+  document.getElementById('dash-due-list').innerHTML = dueItems.length
+    ? dueItems.map(d=>`<div class="card" style="padding:9px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <div>
+            <div style="font-size:12.5px;font-weight:500;">${d.label}</div>
+            <div style="font-size:11px;color:var(--text-faint);">${d.sub} · ${fmtDate(d.date)}</div>
+          </div>
+          <span class="tag ${d.days<0?'expense':''}" style="white-space:nowrap;">${d.days<0?Math.abs(d.days)+'d overdue':d.days+'d'}</span>
+        </div>
+      </div>`).join('')
+    : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;">Nothing due soon</div>`;
 
-  const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
+  // Recent: all transactions (live + archive), most recent 10
+  const recent = DB.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
   document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
-    const acc = accountById(t.accountId);
-    const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
-    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
-    return `<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
-      <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+    const isInc = t.type==='income'||t.type==='transfer_in';
+    const isArc = isArchiveTxn(t);
+    return `<tr style="${isArc?'opacity:.72;':''}">
+      <td style="font-size:11.5px;white-space:nowrap;">${fmtDate(t.date)}</td>
+      <td style="font-size:11.5px;">${t.type.startsWith('transfer')?'<span class="tag">Transfer</span>':categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
+      <td class="amt ${isInc?'pos':'neg'}" style="font-size:12px;">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
+  }).join('') || `<tr><td colspan="4" class="empty">No transactions yet</td></tr>`;
 }
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */

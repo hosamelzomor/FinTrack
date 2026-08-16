@@ -236,16 +236,6 @@
   th{position:relative;user-select:none;}
 
   /* Dashboard responsive */
-  @media(max-width:1100px){
-    #dash-cards{grid-template-columns:repeat(2,1fr)!important;}
-    #dash-month-cards{grid-template-columns:1fr 1fr!important;}
-    .dash-bottom{grid-template-columns:1fr 1fr!important;}
-  }
-  @media(max-width:680px){
-    #dash-cards{grid-template-columns:1fr 1fr!important;}
-    #dash-month-cards{grid-template-columns:1fr!important;}
-    .dash-bottom{grid-template-columns:1fr!important;}
-  }
   @media(max-width:760px){
     body{font-size:12.5px;}
 
@@ -373,33 +363,28 @@
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
 
-      <!-- KPI strip: 4 cards -->
-      <div id="dash-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;"></div>
+      <div class="grid cols-3" id="dash-cards"></div>
+      <div class="grid cols-2" id="dash-month-cards" style="margin-top:16px;"></div>
 
-      <!-- Month totals: 2+1 -->
-      <div id="dash-month-cards" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;"></div>
-
-      <!-- Bottom row: accounts | due soon | recent -->
-      <div style="display:grid;grid-template-columns:220px 220px 1fr;gap:12px;align-items:start;" class="dash-bottom">
+      <div class="grid cols-2" style="margin-top:16px;">
         <div>
-          <div class="section-title" style="margin-top:0;">الأرصدة</div>
+          <div class="section-title">Account Balances<span class="hint">converted to EGP</span></div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Account</th><th class="amt">Balance</th></tr></thead>
+            <thead><tr><th>Account</th><th>Type</th><th class="amt">Balance</th></tr></thead>
             <tbody id="dash-accounts-body"></tbody>
           </table></div>
         </div>
         <div>
-          <div class="section-title" style="margin-top:0;">Due Soon</div>
+          <div class="section-title">Due Soon</div>
           <div id="dash-due-list"></div>
         </div>
-        <div>
-          <div class="section-title" style="margin-top:0;">Recent Transactions</div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
-            <tbody id="dash-recent-body"></tbody>
-          </table></div>
-        </div>
       </div>
+
+      <div class="section-title">Recent Transactions</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+        <tbody id="dash-recent-body"></tbody>
+      </table></div>
     </section>
 
     <!-- ACCOUNTS -->
@@ -1215,92 +1200,134 @@ document.getElementById('nav').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: DASHBOARD ---------------------------- */
 function renderDashboard(){
-  document.getElementById('today-label').textContent = new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
 
   const nw = netWorthEGP();
   const liabilities = totalLiabilitiesEGP();
-  const netPos = nw - liabilities;
+  const netPosition = nw - liabilities;
   const mt = monthTotals(thisMonthKey());
-  const savings = mt.income > 0 ? Math.round((mt.net / mt.income) * 100) : 0;
 
-  // 4 KPI cards (compact)
-  document.getElementById('dash-cards').innerHTML = [
-    {label:'Current Balance', val:`EGP ${fmtMoney(nw)}`, color: nw>=0?'var(--positive)':'var(--negative)', sub: `${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} accounts`, btn:`<button class="btn ghost sm" style="margin-top:8px;font-size:11px;" data-open-modal="reconcile-all">Reconcile</button>`},
-    {label:'Commitments', val:`EGP ${fmtMoney(liabilities)}`, color:'var(--warning)', sub:'outstanding'},
-    {label:'Net Position', val:`EGP ${fmtMoney(netPos)}`, color: netPos>=0?'var(--positive)':'var(--negative)', sub:'balance − commitments'},
-    {label:'Savings Rate', val: mt.income>0 ? `${savings}%` : '—', color: savings>=20?'var(--positive)':savings>=10?'var(--warning)':'var(--negative)', sub:'this month'},
-  ].map(c=>`<div class="card" style="padding:12px 14px;">
-    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">${c.label}</div>
-    <div class="num" style="font-size:17px;font-weight:700;color:${c.color};margin-bottom:3px;">${c.val}</div>
-    <div style="font-size:11px;color:var(--text-faint);">${c.sub}</div>
-    ${c.btn||''}
-  </div>`).join('');
+  document.getElementById('dash-cards').innerHTML = `
+    <div class="card">
+      <h3>Current Balance</h3>
+      <div class="big">EGP ${fmtMoney(nw)}</div>
+      <div class="delta">cash + bank across ${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} account${DB.accounts.filter(a=>!a.excludeFromNetWorth).length===1?'':'s'} · income − expenses since each account's opening balance</div>
+      <button class="btn ghost sm" style="margin-top:10px;" data-open-modal="reconcile-all">Reconcile with real balances</button>
+    </div>
+    <div class="card">
+      <h3>Outstanding Commitments</h3>
+      <div class="big" style="color:var(--warning)">EGP ${fmtMoney(liabilities)}</div>
+      <div class="delta">what you still owe — installments &amp; جمعية</div>
+    </div>
+    <div class="card">
+      <h3>Net Position</h3>
+      <div class="big" style="color:${netPosition>=0?'var(--positive)':'var(--negative)'}">EGP ${fmtMoney(netPosition)}</div>
+      <div class="delta">balance minus outstanding commitments</div>
+    </div>
+  `;
 
-  // 3 month cards
-  document.getElementById('dash-month-cards').innerHTML = [
-    {label:'دخل الشهر ده', val:`EGP ${fmtMoney(mt.income)}`, color:'var(--positive)', type:'income'},
-    {label:'مصاريف الشهر ده', val:`EGP ${fmtMoney(mt.expense)}`, color:'var(--negative)', type:'expense'},
-    {label:`صافي ${thisMonthKey()}`, val:`${mt.net>=0?'+':''}EGP ${fmtMoney(mt.net)}`, color:mt.net>=0?'var(--positive)':'var(--negative)', type:null},
-  ].map(c=>`<div class="card" style="padding:12px 14px;${c.type?'cursor:pointer;':''}" ${c.type?`data-open-modal="month-detail" data-month-detail-type="${c.type}"`:''}>
-    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">${c.label}</div>
-    <div class="num" style="font-size:17px;font-weight:700;color:${c.color};">${c.val}</div>
-  </div>`).join('');
+  document.getElementById('dash-month-cards').innerHTML = `
+    <div class="card" data-open-modal="month-detail" data-month-detail-type="income" style="cursor:pointer;">
+      <h3>This Month — Income</h3>
+      <div class="big" style="color:var(--positive)">EGP ${fmtMoney(mt.income)}</div>
+      <div class="delta">${thisMonthKey()} · tap for details</div>
+    </div>
+    <div class="card" data-open-modal="month-detail" data-month-detail-type="expense" style="cursor:pointer;">
+      <h3>This Month — Expenses</h3>
+      <div class="big" style="color:var(--negative)">EGP ${fmtMoney(mt.expense)}</div>
+      <div class="delta ${mt.net>=0?'up':'down'}">Net: ${mt.net>=0?'+':''}${fmtMoney(mt.net)} EGP · tap for details</div>
+    </div>
+  `;
 
-  // Accounts (no Type column)
   document.getElementById('dash-accounts-body').innerHTML = DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td style="font-size:12.5px;">${a.name}</td>
-      <td class="amt ${bal<0?'neg':'pos'}" style="font-size:12.5px;">${bal>=0?'+':''}${a.currency} ${fmtMoney(Math.abs(bal))}</td>
+      <td>${a.name}</td>
+      <td><span class="tag">${a.type}</span></td>
+      <td class="amt ${bal<0?'neg':''}">${a.currency} ${fmtMoney(bal)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="2" class="empty">No accounts</td></tr>`;
+  }).join('') || `<tr><td colspan="3" class="empty">No accounts yet</td></tr>`;
 
-  // Due soon (compact cards)
+  // Due soon: commitments with next payment due within 10 days, or جمعية payout due within 30 days
   const dueItems = [];
   DB.commitments.forEach(c=>{
     if(c.status==='completed') return;
     const paid = commitmentPayments(c.id).length;
     if(c.type==='installment'){
-      if(paid>=c.totalInstallments) return;
-      const nextDue=addMonths(c.startDate,paid);
-      const days=Math.ceil((new Date(nextDue)-new Date())/86400000);
-      if(days<=10) dueItems.push({label:`${c.name}`,sub:`قسط ${paid+1}/${c.totalInstallments}`,date:nextDue,days,kind:'installment'});
+      if(paid >= c.totalInstallments) return;
+      const nextDue = addMonths(c.startDate, paid);
+      const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
+      if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
     } else if(c.type==='rotating_saving'){
-      if(!c.payoutReceived&&c.payoutDate){const days=Math.ceil((new Date(c.payoutDate)-new Date())/86400000);if(days<=30)dueItems.push({label:c.name,sub:'استلام الجمعية',date:c.payoutDate,days,kind:'payout'});}
-      if(paid<c.totalInstallments){const nextDue=addMonths(c.startDate,paid);const days=Math.ceil((new Date(nextDue)-new Date())/86400000);if(days<=10)dueItems.push({label:c.name,sub:`قسط ${paid+1}/${c.totalInstallments}`,date:nextDue,days,kind:'installment'});}
+      if(!c.payoutReceived && c.payoutDate){
+        const days = Math.ceil((new Date(c.payoutDate) - new Date()) / 86400000);
+        if(days <= 30) dueItems.push({label:`${c.name} — payout expected`, date:c.payoutDate, days, kind:'payout'});
+      }
+      if(paid < c.totalInstallments){
+        const nextDue = addMonths(c.startDate, paid);
+        const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
+        if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
+      }
     }
   });
   DB.vehicleDocs.forEach(d=>{
-    if(!d.renewalDate)return;
-    const veh=vehicleById(d.vehicleId);
-    const days=Math.ceil((new Date(d.renewalDate)-new Date())/86400000);
-    if(days<=30)dueItems.push({label:`${veh?veh.name:'Vehicle'}`,sub:d.docType+' renewal',date:d.renewalDate,days,kind:'document'});
+    if(!d.renewalDate) return;
+    const veh = vehicleById(d.vehicleId);
+    const days = Math.ceil((new Date(d.renewalDate) - new Date()) / 86400000);
+    if(days <= 30) dueItems.push({label:`${veh?veh.name:'Vehicle'} — ${d.docType} renewal`, date:d.renewalDate, days, kind:'document'});
+  });
+  DB.vehicles.forEach(v=>{
+    const oilStatus = vehicleOilDueStatus(v.id);
+    if(oilStatus && oilStatus.remaining <= 500){
+      dueItems.push({
+        label: `${v.name} — oil change ${oilStatus.overdue?'overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km':'in '+fmtMoney(oilStatus.remaining)+' km'}`,
+        date: null, days: oilStatus.overdue ? -1 : 5, kind:'oil'
+      });
+    }
+    const fuelStatus = vehicleFuelDueStatus(v.id);
+    if(fuelStatus && fuelStatus.remaining <= 100){
+      dueItems.push({
+        label: `${v.name} — ⛽ ${fuelStatus.overdue?'likely out of fuel':'fuel low, ~'+fmtMoney(fuelStatus.remaining)+' km range left'}`,
+        date: null, days: fuelStatus.overdue ? -1 : 3, kind:'fuel'
+      });
+    }
+  });
+  DB.vehicleParts.forEach(p=>{
+    const st = vehiclePartDueStatus(p);
+    if(!st) return;
+    const threshold = st.unit==='km' ? 500 : 30;
+    if(st.remaining <= threshold){
+      const veh = vehicleById(p.vehicleId);
+      const unitLabel = st.unit==='km' ? 'km' : 'day'+(Math.abs(st.remaining)===1?'':'s');
+      dueItems.push({
+        label: `${veh?veh.name:'Vehicle'} — ${p.name} ${st.overdue?'overdue by '+fmtMoney(Math.abs(st.remaining))+' '+unitLabel:'in '+fmtMoney(st.remaining)+' '+unitLabel}`,
+        date: null, days: st.overdue ? -1 : 5, kind:'part'
+      });
+    }
   });
   dueItems.sort((a,b)=>a.days-b.days);
-  document.getElementById('dash-due-list').innerHTML = dueItems.length
-    ? dueItems.map(d=>`<div class="card" style="padding:9px 12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-          <div>
-            <div style="font-size:12.5px;font-weight:500;">${d.label}</div>
-            <div style="font-size:11px;color:var(--text-faint);">${d.sub} · ${fmtDate(d.date)}</div>
-          </div>
-          <span class="tag ${d.days<0?'expense':''}" style="white-space:nowrap;">${d.days<0?Math.abs(d.days)+'d overdue':d.days+'d'}</span>
-        </div>
-      </div>`).join('')
-    : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;">Nothing due soon</div>`;
+  document.getElementById('dash-due-list').innerHTML = dueItems.length ? dueItems.map(d=>`
+    <div class="card" style="margin-bottom:10px;padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:13px;font-weight:500;">${d.label}</div>
+        <span class="tag ${d.days<0?'expense':'warning'}">${d.days<0? Math.abs(d.days)+'d overdue' : d.days+'d'}</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
+    </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">Nothing due soon</div>`;
 
-  // Recent: all transactions (live + archive), most recent 10
-  const recent = DB.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
-    const isInc = t.type==='income'||t.type==='transfer_in';
-    const isArc = isArchiveTxn(t);
-    return `<tr style="${isArc?'opacity:.72;':''}">
-      <td style="font-size:11.5px;white-space:nowrap;">${fmtDate(t.date)}</td>
-      <td style="font-size:11.5px;">${t.type.startsWith('transfer')?'<span class="tag">Transfer</span>':categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
-      <td class="amt ${isInc?'pos':'neg'}" style="font-size:12px;">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
+    const acc = accountById(t.accountId);
+    const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
+    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
+    return `<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${acc?acc.name:'—'}</td>
+      <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="4" class="empty">No transactions yet</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
 }
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
@@ -1672,12 +1699,20 @@ function _expInRange(from,to,catIds){
 }
 
 function _incInRange(from,to,catIds){
+  // Income transactions — catIds filter only applied if they contain income categories
+  // When filtering by expense categories only, show total income unfiltered
+  const incCatIds = catIds ? new Set([...catIds].filter(id=>{
+    const cat=DB.categories.find(c=>c.id===id);
+    return !cat || cat.type==='income';  // include if income or unknown
+  })) : null;
+  const useFilter = incCatIds && incCatIds.size > 0;
   return DB.transactions.filter(t=>{
     if(t.type!=='income')return false;
     const mk=monthKey(t.date);
     if(from&&mk<from)return false;
     if(to&&mk>to)return false;
-    if(catIds&&catIds.size&&!catIds.has(t.categoryId))return false;
+    // Only filter by category if we have income-type categories selected
+    if(useFilter && !incCatIds.has(t.categoryId)) return false;
     return true;
   }).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
 }
@@ -1796,12 +1831,12 @@ function _renderReportsInner(){
   const net=totInc-totExp;
   const strip=document.getElementById('rep-summary-strip');
   if(strip) strip.innerHTML=[
-    {l:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
-    {l:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
-    {l:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'}
+    {l:'إجمالي الدخل',   v:totInc, c:'var(--positive)', sign:'+'},
+    {l:'إجمالي المصاريف',v:totExp, c:'var(--negative)', sign:'-'},
+    {l:'الصافي',         v:net,    c:net>=0?'var(--positive)':'var(--negative)', sign:net>=0?'+':'-'}
   ].map(s=>`<div class="card" style="padding:10px 14px;">
     <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
-    <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">${s.v>=0?'+':''}EGP ${fmtMoney(Math.abs(s.v))}</div>
+    <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">${s.sign}EGP ${fmtMoney(Math.abs(s.v))}</div>
   </div>`).join('');
 
   // Category tree table
@@ -3028,118 +3063,195 @@ document.getElementById('file-import').addEventListener('change', e=>{
    Cards with class "card" inside .view are draggable when user
    holds the header area (first 40px). Position is saved per card id.
    ================================================================ */
-(function initDragDrop(){
-  const POS_KEY = 'fintrack_card_positions';
-  function loadPositions(){ try{ return JSON.parse(localStorage.getItem(POS_KEY)||'{}'); }catch(e){return{};} }
-  function savePositions(p){ localStorage.setItem(POS_KEY, JSON.stringify(p)); }
+// Clear old broken drag-drop positions from previous version
+try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 
-  function applyStoredPos(card){
-    const positions = loadPositions();
-    const id = card.dataset.cardId;
-    if(!id || !positions[id]) return;
-    const p = positions[id];
-    card.style.position = 'absolute';
-    card.style.left = p.x+'px';
-    card.style.top  = p.y+'px';
-    card.style.width = (p.w||card.offsetWidth)+'px';
-    card.style.zIndex = '1';
+ — Grid-aware, never breaks layout
+   Cards stay inside their grid. Only reorders siblings within same
+   grid container. Stores order & width per container key.
+   Reset Layout button clears all stored positions.
+   ================================================================ */
+(function initCardManagement(){
+  const STORE_KEY = 'ft_layout_v2';
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'{}'); }catch(e){return{};} }
+  function save(d){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }catch(e){} }
+
+  // Add Reset Layout button to sidebar below nav
+  const resetBtn = document.createElement('button');
+  resetBtn.textContent = '↺ Reset Layout';
+  resetBtn.title = 'Restore all cards to default positions and sizes';
+  resetBtn.style.cssText = 'display:block;width:calc(100% - 20px);margin:8px 10px 0;padding:7px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-faint);border-radius:7px;font-size:11px;cursor:pointer;text-align:center;';
+  resetBtn.addEventListener('click', ()=>{
+    localStorage.removeItem(STORE_KEY);
+    // Remove all inline width/order styles from cards
+    document.querySelectorAll('.card[data-card-id]').forEach(c=>{
+      c.style.removeProperty('width');
+      c.style.removeProperty('order');
+      c.style.removeProperty('min-height');
+    });
+    toast('Layout reset to default ✅');
+  });
+  document.querySelector('.nav')?.after(resetBtn);
+
+  function getContainerKey(el){
+    // Unique key per container — use its id or its parent's id
+    const c = el.parentElement;
+    return c?.id || c?.className?.split(' ')[0] || 'container';
   }
 
-  function makeCardDraggable(card){
-    if(card.dataset.draggable) return;
-    card.dataset.draggable = '1';
+  function makeCardManageable(card){
+    if(card.dataset.cardId) return;
+    card.dataset.cardId = 'c'+(Date.now()+Math.random()).toString(36).slice(-6);
 
-    // Drag handle — grab icon in top-right of card
-    const handle = document.createElement('span');
-    handle.textContent = '⠿';
-    handle.title = 'Drag to move';
-    handle.style.cssText = 'position:absolute;top:8px;right:10px;cursor:grab;font-size:13px;color:var(--text-faint);opacity:.5;line-height:1;z-index:5;user-select:none;';
-    handle.className = 'drag-handle';
+    // Ensure card stays in flow (never absolute)
     card.style.position = 'relative';
+    card.style.boxSizing = 'border-box';
+
+    // --- Drag handle (top-right, ⠿ icon) ---
+    const handle = document.createElement('span');
+    handle.innerHTML = '⠿';
+    handle.title = 'Drag to reorder';
+    handle.setAttribute('aria-label','drag handle');
+    handle.style.cssText = [
+      'position:absolute','top:7px','right:28px',
+      'cursor:grab','font-size:14px','color:var(--text-faint)',
+      'opacity:0','transition:opacity .15s','line-height:1',
+      'z-index:4','user-select:none','padding:2px 4px','border-radius:4px'
+    ].join(';');
     card.appendChild(handle);
+    card.addEventListener('mouseenter',()=>handle.style.opacity='.55');
+    card.addEventListener('mouseleave',()=>handle.style.opacity='0');
 
-    // Resize handle (bottom-right corner)
+    // --- Resize handle (bottom-right corner) ---
     const resizer = document.createElement('span');
-    resizer.style.cssText = 'position:absolute;bottom:0;right:0;width:14px;height:14px;cursor:se-resize;z-index:5;';
-    resizer.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;bottom:3px;right:3px;opacity:.3"><path d="M9,0 L0,9 M9,4 L4,9 M9,8 L8,9" stroke="currentColor" stroke-width="1.5"/></svg>';
+    resizer.style.cssText = 'position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;z-index:4;opacity:0;transition:opacity .15s;';
+    resizer.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;bottom:3px;right:3px;">
+      <path d="M9 1L1 9M9 5L5 9M9 8L8 9" stroke="var(--text-faint)" stroke-width="1.5" opacity=".5"/>
+    </svg>`;
     card.appendChild(resizer);
+    card.addEventListener('mouseenter',()=>resizer.style.opacity='1');
+    card.addEventListener('mouseleave',()=>resizer.style.opacity='0');
 
-    let startX, startY, startLeft, startTop, isDragging=false;
-
-    handle.addEventListener('mousedown', ev=>{
-      ev.preventDefault();
-      const parent = card.parentElement;
-      const pRect = parent.getBoundingClientRect();
-      const cRect = card.getBoundingClientRect();
-      card.style.position='absolute';
-      card.style.left=(cRect.left-pRect.left)+'px';
-      card.style.top=(cRect.top-pRect.top)+'px';
-      card.style.width=card.offsetWidth+'px';
-      card.style.zIndex='100';
-      parent.style.position='relative';
-      startX=ev.clientX; startY=ev.clientY;
-      startLeft=parseInt(card.style.left)||0; startTop=parseInt(card.style.top)||0;
-      isDragging=true; handle.style.cursor='grabbing';
-      const mm=ev2=>{
-        if(!isDragging) return;
-        card.style.left=Math.max(0,startLeft+(ev2.clientX-startX))+'px';
-        card.style.top=Math.max(0,startTop+(ev2.clientY-startY))+'px';
-      };
-      const mu=()=>{
-        isDragging=false; handle.style.cursor='grab'; card.style.zIndex='1';
-        document.removeEventListener('mousemove',mm);
-        document.removeEventListener('mouseup',mu);
-        // Save position
-        if(card.dataset.cardId){
-          const pos=loadPositions();
-          pos[card.dataset.cardId]={x:parseInt(card.style.left),y:parseInt(card.style.top),w:card.offsetWidth};
-          savePositions(pos);
-        }
-      };
-      document.addEventListener('mousemove',mm);
-      document.addEventListener('mouseup',mu);
-    });
-
-    // Card resizer
-    let rStartX, rStartY, rStartW, rStartH;
+    // --- Resize logic (width only, card stays in grid flow) ---
+    let rStartX, rStartW;
     resizer.addEventListener('mousedown', ev=>{
       ev.preventDefault(); ev.stopPropagation();
-      rStartX=ev.clientX; rStartY=ev.clientY;
-      rStartW=card.offsetWidth; rStartH=card.offsetHeight;
+      rStartX=ev.clientX; rStartW=card.offsetWidth;
       const mm=ev2=>{
-        card.style.width=Math.max(160,rStartW+(ev2.clientX-rStartX))+'px';
-        card.style.minHeight=Math.max(60,rStartH+(ev2.clientY-rStartY))+'px';
+        const newW = Math.max(120, rStartW+(ev2.clientX-rStartX));
+        card.style.width = newW+'px';
       };
       const mu=()=>{
         document.removeEventListener('mousemove',mm);
         document.removeEventListener('mouseup',mu);
-        if(card.dataset.cardId){
-          const pos=loadPositions();
-          if(!pos[card.dataset.cardId]) pos[card.dataset.cardId]={x:parseInt(card.style.left)||0,y:parseInt(card.style.top)||0};
-          pos[card.dataset.cardId].w=card.offsetWidth;
-          savePositions(pos);
-        }
+        // Persist width
+        const d=load();
+        if(!d.widths) d.widths={};
+        d.widths[card.dataset.cardId]=card.style.width;
+        save(d);
       };
       document.addEventListener('mousemove',mm);
       document.addEventListener('mouseup',mu);
     });
+
+    // --- Drag to reorder logic ---
+    let clone=null, ghost=null, srcIdx, cards, parent;
+    handle.addEventListener('mousedown', ev=>{
+      ev.preventDefault();
+      parent = card.parentElement;
+      // Only reorder direct siblings that are .card
+      cards = [...parent.children].filter(c=>c.classList.contains('card'));
+      srcIdx = cards.indexOf(card);
+      if(srcIdx===-1) return;
+
+      // Ghost placeholder
+      ghost = card.cloneNode(true);
+      ghost.style.cssText += ';opacity:.25;pointer-events:none;';
+
+      // Floating clone
+      const rect = card.getBoundingClientRect();
+      clone = card.cloneNode(true);
+      clone.style.cssText = `
+        position:fixed;left:${rect.left}px;top:${rect.top}px;
+        width:${rect.width}px;opacity:.85;pointer-events:none;
+        z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.6);
+        transform:rotate(1.5deg);transition:none;
+      `;
+      document.body.appendChild(clone);
+
+      // Insert ghost in place of card
+      parent.insertBefore(ghost, card);
+      card.style.display='none';
+      handle.style.cursor='grabbing';
+
+      const mm = ev2=>{
+        clone.style.left=(ev2.clientX - rect.width/2)+'px';
+        clone.style.top=(ev2.clientY - 30)+'px';
+        // Find drop position
+        const siblings = [...parent.children].filter(c=>c!==card&&c.classList.contains('card'));
+        let target=null, before=true;
+        for(const sib of siblings){
+          const sr = sib.getBoundingClientRect();
+          const midX = sr.left+sr.width/2;
+          const midY = sr.top+sr.height/2;
+          if(Math.abs(ev2.clientY-midY)<sr.height*0.6 && Math.abs(ev2.clientX-midX)<sr.width*0.6){
+            target=sib; before=ev2.clientX<midX; break;
+          }
+        }
+        if(target){
+          parent.removeChild(ghost);
+          if(before) parent.insertBefore(ghost,target);
+          else target.after(ghost);
+        }
+      };
+      const mu=()=>{
+        handle.style.cursor='grab';
+        clone.remove(); clone=null;
+        card.style.display='';
+        // Insert card where ghost is
+        parent.insertBefore(card,ghost);
+        ghost.remove(); ghost=null;
+        // Persist order
+        const d=load();
+        if(!d.orders) d.orders={};
+        const key=parent.id||parent.className;
+        d.orders[key]=[...parent.children].filter(c=>c.dataset.cardId).map(c=>c.dataset.cardId);
+        save(d);
+        document.removeEventListener('mousemove',mm);
+        document.removeEventListener('mouseup',mu);
+      };
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    });
+
+    // Restore saved width
+    const stored=load();
+    if(stored.widths?.[card.dataset.cardId]) card.style.width=stored.widths[card.dataset.cardId];
   }
 
-  // Apply to all cards after render, auto-assign IDs
-  let cardCounter=0;
-  function scanCards(){
-    document.querySelectorAll('.view.active .card').forEach(card=>{
-      if(!card.dataset.cardId) card.dataset.cardId='card-'+(++cardCounter);
-      makeCardDraggable(card);
-      applyStoredPos(card);
+  // Restore saved order for a container
+  function restoreOrder(container){
+    const stored=load();
+    const key=container.id||container.className;
+    const order=stored.orders?.[key];
+    if(!order) return;
+    order.forEach(cid=>{
+      const el=container.querySelector(`[data-card-id="${cid}"]`);
+      if(el) container.appendChild(el);
     });
   }
 
-  // Hook into nav clicks to re-scan after view switch
-  const origRenderAll = window.renderAll;
-  document.getElementById('nav').addEventListener('click', ()=>{ setTimeout(scanCards, 120); });
-  // Scan once after init render
-  setTimeout(scanCards, 400);
+  // Scan all cards in active view
+  function scan(){
+    const view=document.querySelector('.view.active');
+    if(!view) return;
+    view.querySelectorAll('.card').forEach(makeCardManageable);
+    // Restore order of each grid/container
+    view.querySelectorAll('[id]').forEach(restoreOrder);
+  }
+
+  document.getElementById('nav').addEventListener('click',()=>setTimeout(scan,150));
+  setTimeout(scan,450);
 })();
 
 /* ================================================================

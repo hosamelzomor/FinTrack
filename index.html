@@ -227,15 +227,16 @@
 
   .more-toggle{display:none;}
 
+  /* Reports grid responsive */
+  #rep-main-grid{grid-template-columns:3fr 2fr;}
+  @media(max-width:900px){#rep-main-grid{grid-template-columns:1fr!important;}}
+  /* Column resize handle */
+  .col-resize{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize;z-index:2;}
+  .col-resize:hover,.col-resize.dragging{background:var(--accent);opacity:.5;}
+  th{position:relative;user-select:none;}
+
+  /* Dashboard responsive */
   @media(max-width:760px){
-    .dash-kpi-grid{grid-template-columns:repeat(2,1fr)!important;}
-    .dash-month-grid{grid-template-columns:1fr 1fr!important;}
-    .dash-bottom-grid{grid-template-columns:1fr!important;}
-  }
-  @media(min-width:761px) and (max-width:1100px){
-    .dash-kpi-grid{grid-template-columns:repeat(2,1fr)!important;}
-    .dash-bottom-grid{grid-template-columns:1fr 1fr!important;}
-  }
     body{font-size:12.5px;}
 
     .app{display:block;}
@@ -362,33 +363,28 @@
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
 
-      <!-- 4-col KPI strip -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;" id="dash-cards" class="dash-kpi-grid"></div>
+      <div class="grid cols-3" id="dash-cards"></div>
+      <div class="grid cols-2" id="dash-month-cards" style="margin-top:16px;"></div>
 
-      <!-- Month totals (2 cards) -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;" id="dash-month-cards" class="dash-month-grid"></div>
-
-      <!-- Bottom: accounts + due + recent in one row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;" class="dash-bottom-grid">
+      <div class="grid cols-2" style="margin-top:16px;">
         <div>
-          <div class="section-title" style="margin-top:0;">Balances</div>
+          <div class="section-title">Account Balances<span class="hint">converted to EGP</span></div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Account</th><th class="amt">Balance</th></tr></thead>
+            <thead><tr><th>Account</th><th>Type</th><th class="amt">Balance</th></tr></thead>
             <tbody id="dash-accounts-body"></tbody>
           </table></div>
         </div>
         <div>
-          <div class="section-title" style="margin-top:0;">Due Soon</div>
+          <div class="section-title">Due Soon</div>
           <div id="dash-due-list"></div>
         </div>
-        <div>
-          <div class="section-title" style="margin-top:0;">Recent Transactions</div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
-            <tbody id="dash-recent-body"></tbody>
-          </table></div>
-        </div>
       </div>
+
+      <div class="section-title">Recent Transactions</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+        <tbody id="dash-recent-body"></tbody>
+      </table></div>
     </section>
 
     <!-- ACCOUNTS -->
@@ -482,8 +478,7 @@
       <div class="topbar">
         <div><h1>Reports</h1><div class="today">تحليل مصاريفك ودخلك بالتفصيل</div></div>
       </div>
-
-      <!-- Compact filter bar -->
+      <!-- Filter bar -->
       <div class="card" style="margin-bottom:14px;padding:12px 14px;">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
           <div>
@@ -499,60 +494,58 @@
           </div>
           <div id="rep-from-wrap" style="display:none;">
             <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">من</div>
-            <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
+            <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
           </div>
           <div id="rep-to-wrap" style="display:none;">
             <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">إلى</div>
-            <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
+            <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
           </div>
-          <div style="position:relative;flex:1;min-width:200px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الكاتيجوري والدخل</div>
+          <div style="position:relative;flex:1;min-width:180px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الكاتيجوري (دخل + مصاريف)</div>
             <button type="button" id="rep-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
-              <span id="rep-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">كل الكاتيجوريز</span><span style="flex:none;">▾</span>
+              <span id="rep-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الكاتيجوريز</span><span style="flex:none;font-size:10px;">▾</span>
             </button>
-            <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:300px;max-height:360px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
-              <div style="padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
-                <input type="text" id="rep-cat-search" placeholder="بحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
+            <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+              <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
+                <input type="text" id="rep-cat-search" placeholder="ابحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none;">
               </div>
-              <div style="padding:5px 0;" id="rep-cat-tree"></div>
-              <div style="padding:7px 10px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
+              <div style="padding:4px 0;" id="rep-cat-tree"></div>
+              <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
                 <button class="btn ghost sm" id="rep-cat-all">الكل</button>
                 <button class="btn ghost sm" id="rep-cat-none">إلغاء</button>
               </div>
             </div>
           </div>
-          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:7px 11px;">↺</button>
+          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:7px 11px;" title="مسح الفلاتر">↺</button>
         </div>
       </div>
 
-      <!-- Summary strip (3 cards) -->
+      <!-- Summary strip -->
       <div id="rep-summary-strip" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
 
-      <!-- Chart + Table side by side -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;" class="rep-main-grid">
-        <!-- Chart -->
+      <!-- Chart + Category table side by side -->
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:18px;" id="rep-main-grid">
         <div class="card" style="padding:14px 16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">الرسم البياني الشهري</div>
-            <select id="rep-chart-type" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:11px;">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">الرسم البياني الشهري</div>
+            <select id="rep-chart-type" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 7px;font-size:11px;">
               <option value="bar">Bar</option>
               <option value="line">Line</option>
             </select>
           </div>
-          <canvas id="rep-chart" style="width:100%;max-height:240px;"></canvas>
-          <div id="rep-chart-empty" style="display:none;padding:30px;text-align:center;color:var(--text-faint);font-size:12px;">اختر كاتيجوري وفترة لعرض الرسم</div>
+          <canvas id="rep-chart" style="max-height:240px;"></canvas>
+          <div id="rep-chart-empty" style="padding:40px;text-align:center;color:var(--text-faint);font-size:12px;display:none;">اختر كاتيجوري وفترة لعرض الرسم البياني</div>
         </div>
-        <!-- Category tree table -->
-        <div class="table-wrap" style="overflow:auto;max-height:320px;">
+        <div class="table-wrap" style="overflow:auto;max-height:310px;">
           <table style="min-width:unset;">
-            <thead><tr><th>الكاتيجوري</th><th class="amt">هذا الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
+            <thead><tr><th>الكاتيجوري</th><th class="amt">الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
             <tbody id="reports-tree-body"></tbody>
           </table>
         </div>
       </div>
 
       <!-- Monthly breakdown table -->
-      <div class="section-title" style="margin-top:0;">التفصيل الشهري</div>
+      <div class="section-title" style="margin-top:4px;">التفصيل الشهري</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
@@ -566,24 +559,22 @@
       <div class="topbar">
         <div><h1>History</h1><div class="today">السجلات التاريخية المستوردة — دخل ومصاريف</div></div>
       </div>
-      <!-- Archive balances strip -->
-      <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
-      <!-- Filters bar -->
-      <div class="card" style="margin-bottom:14px;padding:14px 16px;">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-          <!-- Type -->
+      <!-- Archive balance strip -->
+      <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <!-- Filter bar -->
+      <div class="card" style="margin-bottom:12px;padding:12px 14px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
           <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">النوع</div>
-            <select id="hist-type-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:120px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">النوع</div>
+            <select id="hist-type-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
               <option value="all">الكل</option>
               <option value="income">دخل</option>
               <option value="expense">مصاريف</option>
             </select>
           </div>
-          <!-- Period -->
           <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الفترة</div>
-            <select id="hist-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;min-width:140px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفترة</div>
+            <select id="hist-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;min-width:130px;">
               <option value="all">كل الوقت</option>
               <option value="2026">2026</option>
               <option value="2025">2025</option>
@@ -593,33 +584,32 @@
             </select>
           </div>
           <div id="hist-from-wrap" style="display:none;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">من</div>
-            <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">من</div>
+            <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
           </div>
           <div id="hist-to-wrap" style="display:none;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">إلى</div>
-            <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">إلى</div>
+            <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
           </div>
-          <!-- Category tree button (reuses same component logic) -->
-          <div style="position:relative;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">الكاتيجوري</div>
-            <button type="button" id="hist-cat-btn" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 12px;font-size:13px;min-width:200px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-              <span id="hist-cat-label">كل الكاتيجوريز</span><span>▾</span>
+          <div style="position:relative;flex:1;min-width:180px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الكاتيجوري (دخل + مصاريف)</div>
+            <button type="button" id="hist-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <span id="hist-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الكاتيجوريز</span><span style="flex:none;font-size:10px;">▾</span>
             </button>
-            <div id="hist-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:280px;max-height:340px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-              <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
-                <input type="text" id="hist-cat-search" placeholder="ابحث عن كاتيجوري..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12.5px;outline:none;">
+            <div id="hist-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+              <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
+                <input type="text" id="hist-cat-search" placeholder="ابحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none;">
               </div>
-              <div style="padding:6px 0;" id="hist-cat-tree"></div>
-              <div style="padding:7px 10px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
+              <div style="padding:4px 0;" id="hist-cat-tree"></div>
+              <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
                 <button class="btn ghost sm" id="hist-cat-all">الكل</button>
                 <button class="btn ghost sm" id="hist-cat-none">إلغاء</button>
               </div>
             </div>
           </div>
-          <button class="btn ghost sm" id="hist-reset" style="align-self:flex-end;padding:8px 12px;">↺ مسح</button>
+          <button class="btn ghost sm" id="hist-reset" style="align-self:flex-end;padding:7px 11px;" title="مسح">↺</button>
         </div>
-        <div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
           <div id="hist-net" style="font-size:13px;font-weight:700;"></div>
         </div>
@@ -815,14 +805,14 @@ function totalLiabilitiesEGP(){
 
 function monthTotals(mKey){
   const liveTxns = liveTransactions().filter(t=>monthKey(t.date)===mKey);
-  const src = liveTxns.length > 0 ? liveTxns : DB.transactions.filter(t=>monthKey(t.date)===mKey);
-  let income=0, expense=0;
+  const src = liveTxns.length>0 ? liveTxns : DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  let income=0,expense=0;
   src.forEach(t=>{
-    if(t.type==='income') income += toEGP(Number(t.amount),t.currency);
-    else if(t.type==='expense') expense += toEGP(Number(t.amount),t.currency);
+    if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
+    else if(t.type==='expense') expense+=toEGP(Number(t.amount),t.currency);
   });
-  expense += DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
-  return {income, expense, net: income-expense};
+  expense+=DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
+  return {income,expense,net:income-expense};
 }
 
 function categoryLabel(id){
@@ -1178,7 +1168,7 @@ function updateSyncStatus(state){
   text.textContent = labels[state] || labels.disconnected;
 }
 
-document.getElementById('btn-connect-drive').addEventListener('click', ()=>{
+document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
   if(driveAccessToken) openModal('drive-manage');
   else connectDrive();
 });
@@ -1441,21 +1431,14 @@ function renderCategories(){
     return parents.map(p=>{
       const children = DB.categories.filter(c=>c.parentId===p.id);
       return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <div style="font-weight:600;font-size:13.5px;flex:1;">${p.name}</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="btn ghost sm" data-add-sub="${p.id}" data-sub-type="${type}">+ Sub</button>
-            <button class="btn ghost sm" data-edit-cat="${p.id}">✎</button>
-            <button class="btn ghost sm" data-del-cat="${p.id}">✕</button>
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:600;font-size:13.5px;">${p.name}</div>
+          <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
         </div>
         ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
-          ${children.map(c=>`<span class="tag" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;">
-            ${c.name}
-            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.65;font-size:10px;">✎</span>
-            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.55;font-size:10px;">✕</span>
-          </span>`).join('')}
-        </div>` : `<div style="margin-top:6px;font-size:11px;color:var(--text-faint);">No sub-categories — click + Sub to add</div>`}
+          ${children.map(c=>`<span class="tag" style="display:flex;align-items:center;gap:6px;">${c.name}
+            <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.6;">✕</span></span>`).join('')}
+        </div>` : ''}
       </div>`;
     }).join('');
   }
@@ -1463,10 +1446,6 @@ function renderCategories(){
   document.getElementById('cat-income-list').innerHTML = listFor('income');
 }
 document.getElementById('view-categories').addEventListener('click', e=>{
-  const addSubId = e.target.dataset.addSub;
-  if(addSubId){ openModal('category', {parentId: addSubId, parentType: e.target.dataset.subType}); return; }
-  const editId = e.target.dataset.editCat;
-  if(editId){ openModal('category', {editId}); return; }
   const id = e.target.dataset.delCat; if(!id) return;
   const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
   if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
@@ -1535,11 +1514,387 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
   }
 });
 
+/* ---------------------------- RENDER: HISTORY (archive) ---------------------------- */
 /* ================================================================
-   RENDER: HISTORY
+   SHARED: Hierarchical Category Tree Component
    ================================================================ */
-let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hPage=0;
-let _histTreeCtrl=null;
+function _treeGetLeafIds(state, allCats){
+  const ids = new Set();
+  allCats.forEach(cat=>{
+    const children = allCats.filter(c=>c.parentId===cat.id);
+    if(children.length){
+      if(state[cat.id]===true) children.forEach(c=>ids.add(c.id));
+      else children.filter(c=>state[c.id]===true).forEach(c=>ids.add(c.id));
+    } else {
+      const par = cat.parentId ? allCats.find(p=>p.id===cat.parentId) : null;
+      if(state[cat.id]===true || (par && state[par.id]===true)) ids.add(cat.id);
+    }
+  });
+  return ids;
+}
+
+function _treeRender(containerEl, state, searchQ, allCats, onChangeImmediate){
+  const parents = allCats.filter(c=>!c.parentId);
+  const q = (searchQ||'').toLowerCase().trim();
+  let html = '';
+  parents.forEach(p=>{
+    const children = allCats.filter(c=>c.parentId===p.id);
+    let visChildren = children;
+    if(q){
+      const pm = p.name.toLowerCase().includes(q);
+      const cm = children.filter(c=>c.name.toLowerCase().includes(q));
+      if(!pm && !cm.length) return;
+      visChildren = pm ? children : cm;
+    }
+    const numChSel = visChildren.filter(c=>state[c.id]===true).length;
+    const pChecked = state[p.id]===true || (visChildren.length>0 && numChSel===visChildren.length);
+    const pIndet = !pChecked && numChSel>0;
+    const isExpanded = state['_exp_'+p.id] !== false;
+    const chHtml = visChildren.map(ch=>{
+      const checked = state[ch.id]===true || state[p.id]===true;
+      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 30px;cursor:pointer;border-radius:5px;margin:1px 4px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
+        <input type="checkbox" data-cc="${ch.id}" data-cp="${p.id}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+        <span style="font-size:12.5px;">${ch.name}</span>
+      </label>`;
+    }).join('');
+    html += `<div>
+      <div style="display:flex;align-items:center;padding:2px 6px;">
+        ${visChildren.length
+          ? `<button type="button" data-tog="${p.id}" style="background:none;border:none;color:var(--text-faint);cursor:pointer;padding:5px 3px;font-size:11px;flex:none;line-height:1;min-width:22px;">${isExpanded?'▼':'▶'}</button>`
+          : `<span style="min-width:22px;"></span>`}
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:5px 6px;border-radius:6px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
+          <input type="checkbox" data-cp2="${p.id}" ${pChecked?'checked':''} ${pIndet?'data-ind="1"':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+          <span style="font-size:13px;font-weight:600;">${p.name}</span>
+          ${visChildren.length?`<span style="font-size:10px;color:var(--text-faint);margin-left:auto;">${visChildren.length}</span>`:''}
+        </label>
+      </div>
+      <div id="tch-${p.id}" style="display:${isExpanded&&visChildren.length?'block':'none'};">${chHtml}</div>
+    </div>`;
+  });
+  containerEl.innerHTML = html || `<div style="padding:14px 12px;font-size:12px;color:var(--text-faint);">لا توجد نتائج</div>`;
+  containerEl.querySelectorAll('[data-ind="1"]').forEach(cb=>{ cb.indeterminate=true; });
+
+  // Toggle expand/collapse (no full re-render)
+  containerEl.querySelectorAll('[data-tog]').forEach(btn=>{
+    btn.addEventListener('click', ev=>{
+      ev.preventDefault(); ev.stopPropagation();
+      const pid = btn.dataset.tog;
+      const div = document.getElementById('tch-'+pid);
+      if(!div) return;
+      const nowOpen = div.style.display!=='none';
+      div.style.display = nowOpen?'none':'block';
+      btn.textContent = nowOpen?'▶':'▼';
+      state['_exp_'+pid] = !nowOpen;
+    });
+  });
+
+  // Parent checkbox → all children
+  containerEl.querySelectorAll('[data-cp2]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const pid = cb.dataset.cp2;
+      state[pid] = cb.checked;
+      allCats.filter(c=>c.parentId===pid).forEach(c=>{ state[c.id]=cb.checked; });
+      const chDiv = document.getElementById('tch-'+pid);
+      if(chDiv) chDiv.querySelectorAll('[data-cc]').forEach(chCb=>{ chCb.checked=cb.checked; });
+      cb.indeterminate = false;
+      onChangeImmediate();
+    });
+  });
+
+  // Child checkbox → update parent
+  containerEl.querySelectorAll('[data-cc]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const cid = cb.dataset.cc, pid = cb.dataset.cp;
+      state[cid] = cb.checked;
+      if(state[pid]===true) state[pid]=false;
+      const parCb = containerEl.querySelector(`[data-cp2="${pid}"]`);
+      if(parCb){
+        const sibs = allCats.filter(c=>c.parentId===pid);
+        const n = sibs.filter(c=>state[c.id]===true).length;
+        if(n===0){parCb.checked=false;parCb.indeterminate=false;}
+        else if(n===sibs.length){parCb.checked=true;parCb.indeterminate=false;state[pid]=true;}
+        else{parCb.checked=false;parCb.indeterminate=true;}
+      }
+      onChangeImmediate();
+    });
+  });
+}
+
+function _treeLabelText(state, allCats){
+  const selPar = allCats.filter(c=>!c.parentId && state[c.id]===true);
+  const selCh  = allCats.filter(c=>c.parentId && state[c.id]===true && !selPar.find(p=>p.id===c.parentId));
+  const parts = [...selPar.map(p=>p.name), ...selCh.map(c=>c.name)];
+  if(!parts.length) return 'كل الكاتيجوريز';
+  return parts.length<=2 ? parts.join(', ') : `${parts[0]} +${parts.length-1} أخرى`;
+}
+
+function _initTreeDropdown({btnId,dropdownId,treeId,labelId,searchId,allBtnId,noneBtnId,onApply}){
+  const btn=document.getElementById(btnId), dropdown=document.getElementById(dropdownId),
+        treeEl=document.getElementById(treeId), labelEl=document.getElementById(labelId),
+        searchEl=document.getElementById(searchId);
+  if(!btn||!dropdown) return null;
+  let state={}, searchQ='';
+  // Show ALL categories (income + expense)
+  function getCats(){ return DB.categories; }
+  function rebuild(){
+    _treeRender(treeEl, state, searchQ, getCats(), ()=>{
+      labelEl.textContent = _treeLabelText(state, getCats());
+      onApply(_treeGetLeafIds(state, getCats()));
+    });
+  }
+  btn.addEventListener('click', ev=>{
+    ev.stopPropagation();
+    const opening = dropdown.style.display==='none'||!dropdown.style.display;
+    document.querySelectorAll('.tree-dd-open').forEach(d=>{d.style.display='none';d.classList.remove('tree-dd-open');});
+    if(opening){ dropdown.style.display='block'; dropdown.classList.add('tree-dd-open'); rebuild(); }
+    else { dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open'); }
+  });
+  document.addEventListener('click', ev=>{
+    if(!dropdown.contains(ev.target)&&ev.target!==btn){
+      dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open');
+    }
+  });
+  if(searchEl){
+    searchEl.addEventListener('input', ()=>{ searchQ=searchEl.value; rebuild(); });
+    searchEl.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ev.preventDefault();dropdown.style.display='none';}});
+  }
+  document.getElementById(allBtnId)?.addEventListener('click', ()=>{
+    getCats().forEach(c=>{ state[c.id]=true; }); rebuild();
+    labelEl.textContent=_treeLabelText(state,getCats());
+  });
+  document.getElementById(noneBtnId)?.addEventListener('click', ()=>{
+    const expKeys={}; Object.entries(state).filter(([k])=>k.startsWith('_exp_')).forEach(([k,v])=>expKeys[k]=v);
+    state=expKeys; rebuild(); labelEl.textContent='كل الكاتيجوريز'; onApply(new Set());
+  });
+  return {
+    getSelectedIds(){ return _treeGetLeafIds(state,getCats()); },
+    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; }
+  };
+}
+
+/* ================================================================
+   RENDER: REPORTS (with chart + hierarchical tree filter)
+   ================================================================ */
+let _rPeriod='all',_rFrom='',_rTo='',_repTreeCtrl=null;
+
+function _repRange(){
+  const now=new Date(),thisM=thisMonthKey();
+  if(_rPeriod==='all') return{from:null,to:null};
+  if(_rPeriod==='ytd') return{from:`${now.getFullYear()}-01`,to:thisM};
+  if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:d.toISOString().slice(0,7),to:thisM};}
+  if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:d.toISOString().slice(0,7),to:thisM};}
+  if(_rPeriod==='1m') return{from:thisM,to:thisM};
+  if(_rPeriod==='custom') return{from:_rFrom||null,to:_rTo||null};
+  return{from:null,to:null};
+}
+
+function _expInRange(from,to,catIds){
+  return allExpenseEntries().filter(e=>{
+    const mk=monthKey(e.date);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    if(catIds&&catIds.size&&!catIds.has(e.categoryId))return false;
+    return true;
+  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+}
+
+function _incInRange(from,to,catIds){
+  return DB.transactions.filter(t=>{
+    if(t.type!=='income')return false;
+    const mk=monthKey(t.date);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    if(catIds&&catIds.size&&!catIds.has(t.categoryId))return false;
+    return true;
+  }).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+}
+
+function _drawChart(months, amounts, chartType){
+  const canvas=document.getElementById('rep-chart');
+  const emptyEl=document.getElementById('rep-chart-empty');
+  if(!canvas) return;
+  if(!months.length||amounts.every(v=>v===0)){
+    canvas.style.display='none'; if(emptyEl)emptyEl.style.display='block'; return;
+  }
+  canvas.style.display='block'; if(emptyEl)emptyEl.style.display='none';
+  const ctx=canvas.getContext('2d');
+  const W=canvas.parentElement.clientWidth-32, H=220;
+  canvas.width=W*window.devicePixelRatio; canvas.height=H*window.devicePixelRatio;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+  const pad={top:20,right:14,bottom:42,left:60};
+  const cW=W-pad.left-pad.right, cH=H-pad.top-pad.bottom;
+  const maxVal=Math.max(...amounts,1);
+
+  // Grid lines + Y labels
+  ctx.strokeStyle='rgba(100,110,140,0.15)'; ctx.lineWidth=1;
+  ctx.fillStyle='rgba(130,140,165,0.85)'; ctx.font=`10px Inter,sans-serif`;
+  for(let i=0;i<=4;i++){
+    const y=pad.top+cH-(i/4)*cH;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+    const v=maxVal*i/4;
+    ctx.textAlign='right';
+    ctx.fillText(v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0), pad.left-5, y+3.5);
+  }
+
+  const step=cW/months.length;
+  const barW=Math.max(5,Math.min(36,step-8));
+
+  if(chartType==='line'){
+    // Area + line
+    ctx.beginPath(); ctx.strokeStyle='#4C9A8E'; ctx.lineWidth=2.5; ctx.lineJoin='round';
+    amounts.forEach((v,i)=>{
+      const x=pad.left+i*step+step/2, y=pad.top+cH-(v/maxVal)*cH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    ctx.beginPath();
+    amounts.forEach((v,i)=>{
+      const x=pad.left+i*step+step/2, y=pad.top+cH-(v/maxVal)*cH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.lineTo(pad.left+(amounts.length-1)*step+step/2,pad.top+cH);
+    ctx.lineTo(pad.left+step/2,pad.top+cH); ctx.closePath();
+    const g=ctx.createLinearGradient(0,pad.top,0,pad.top+cH);
+    g.addColorStop(0,'rgba(76,154,142,0.25)'); g.addColorStop(1,'rgba(76,154,142,0)');
+    ctx.fillStyle=g; ctx.fill();
+    // Dots
+    amounts.forEach((v,i)=>{
+      const x=pad.left+i*step+step/2, y=pad.top+cH-(v/maxVal)*cH;
+      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+      ctx.fillStyle='#4C9A8E'; ctx.fill();
+    });
+  } else {
+    // Bar chart
+    amounts.forEach((v,i)=>{
+      if(!v) return;
+      const x=pad.left+i*step+(step-barW)/2;
+      const bH=(v/maxVal)*cH, y=pad.top+cH-bH;
+      const r=Math.min(4,barW/2);
+      const g=ctx.createLinearGradient(0,y,0,y+bH);
+      g.addColorStop(0,'rgba(76,154,142,0.92)'); g.addColorStop(1,'rgba(76,154,142,0.38)');
+      ctx.fillStyle=g;
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.lineTo(x+barW-r,y);
+      ctx.quadraticCurveTo(x+barW,y,x+barW,y+r);
+      ctx.lineTo(x+barW,y+bH); ctx.lineTo(x,y+bH);
+      ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath(); ctx.fill();
+    });
+  }
+
+  // X labels
+  ctx.fillStyle='rgba(130,140,165,0.85)'; ctx.font='10px Inter,sans-serif'; ctx.textAlign='center';
+  const maxLabels=Math.floor(cW/36);
+  const labelStep=Math.max(1,Math.ceil(months.length/maxLabels));
+  months.forEach((m,i)=>{
+    if(i%labelStep!==0&&i!==months.length-1) return;
+    ctx.fillText(m.slice(2), pad.left+i*step+step/2, pad.top+cH+14);
+  });
+}
+
+function renderReports(){
+  // Init tree once
+  if(!_repTreeCtrl){
+    _repTreeCtrl = _initTreeDropdown({
+      btnId:'rep-cat-btn', dropdownId:'rep-cat-dropdown', treeId:'rep-cat-tree',
+      labelId:'rep-cat-label', searchId:'rep-cat-search',
+      allBtnId:'rep-cat-all', noneBtnId:'rep-cat-none',
+      onApply: ()=>{ _renderReportsInner(); }
+    });
+  }
+  _renderReportsInner();
+}
+
+function _renderReportsInner(){
+  const mKey=thisMonthKey();
+  const{from,to}=_repRange();
+  const selIds=_repTreeCtrl?_repTreeCtrl.getSelectedIds():new Set();
+  const useCat=selIds.size>0;
+  const catIds=useCat?selIds:null;
+
+  // Period header
+  const hdr=document.getElementById('rep-period-hdr');
+  if(hdr)hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
+
+  // Summary strip
+  const totInc=_incInRange(from,to,catIds);
+  const totExp=_expInRange(from,to,catIds);
+  const net=totInc-totExp;
+  const strip=document.getElementById('rep-summary-strip');
+  if(strip) strip.innerHTML=[
+    {l:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
+    {l:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
+    {l:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'}
+  ].map(s=>`<div class="card" style="padding:10px 14px;">
+    <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
+    <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">${s.v>=0?'+':''}EGP ${fmtMoney(Math.abs(s.v))}</div>
+  </div>`).join('');
+
+  // Category tree table
+  const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
+  document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
+    const ch=DB.categories.filter(x=>x.parentId===c.id);
+    const pSet=new Set([c.id,...ch.map(x=>x.id)]);
+    const filtSet=new Set([...pSet].filter(id=>!useCat||selIds.has(id)));
+    if(!filtSet.size) return '';
+    const pTot=_expInRange(from,to,filtSet);
+    const pMon=_expInRange(mKey,mKey,filtSet);
+    if(pTot===0&&pMon===0) return '';
+    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pMon)}</td><td class="amt">${fmtMoney(pTot)}</td></tr>`
+      +ch.filter(x=>!useCat||selIds.has(x.id)).map(x=>{
+        const ct=_expInRange(from,to,new Set([x.id]));
+        const cm=_expInRange(mKey,mKey,new Set([x.id]));
+        if(ct===0&&cm===0) return '';
+        return `<tr><td style="padding-left:22px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;
+      }).join('');
+  }).join('')||`<tr><td colspan="3" class="empty">لا توجد بيانات</td></tr>`;
+
+  // Monthly breakdown + chart
+  let months=allMonthsWithActivity();
+  if(from)months=months.filter(m=>m>=from);
+  if(to)months=months.filter(m=>m<=to);
+  months.sort(); // ascending for chart
+  const amounts=months.map(mk=>_expInRange(mk,mk,catIds));
+  const chartType=(document.getElementById('rep-chart-type')||{}).value||'bar';
+  _drawChart(months, amounts, chartType);
+
+  const hdrMon=document.getElementById('rep-monthly-hdr');
+  if(hdrMon)hdrMon.textContent=useCat?document.getElementById('rep-cat-label').textContent:'كل الكاتيجوريز';
+  const monthsDesc=[...months].reverse();
+  document.getElementById('reports-monthly-body').innerHTML=monthsDesc.map(mk=>{
+    const amt=amounts[months.indexOf(mk)];
+    if(!amt)return '';
+    return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
+  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
+}
+
+// Reports event wiring
+(function(){
+  const pSel=document.getElementById('rep-period-sel');
+  pSel?.addEventListener('change',()=>{
+    _rPeriod=pSel.value;
+    document.getElementById('rep-from-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    document.getElementById('rep-to-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    _renderReportsInner();
+  });
+  document.getElementById('rep-from')?.addEventListener('change',e=>{_rFrom=e.target.value;_renderReportsInner();});
+  document.getElementById('rep-to')?.addEventListener('change',e=>{_rTo=e.target.value;_renderReportsInner();});
+  document.getElementById('rep-chart-type')?.addEventListener('change',()=>_renderReportsInner());
+  document.getElementById('rep-reset')?.addEventListener('click',()=>{
+    _rPeriod='all';_rFrom='';_rTo='';
+    if(pSel)pSel.value='all';
+    document.getElementById('rep-from-wrap').style.display='none';
+    document.getElementById('rep-to-wrap').style.display='none';
+    if(_repTreeCtrl)_repTreeCtrl.reset();
+    _renderReportsInner();
+  });
+})();
+
+/* ================================================================
+   RENDER: HISTORY (with hierarchical tree filter + pagination)
+   ================================================================ */
+let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hPage=0,_histTreeCtrl=null;
 const H_PG=100;
 
 function _histRange(){
@@ -1550,13 +1905,13 @@ function _histRange(){
 }
 
 function renderHistory(){
-  // Archive balances strip
+  // Archive balance strip
   const strip=document.getElementById('hist-acc-strip');
   if(strip)strip.innerHTML=DB.accounts.filter(a=>a.excludeFromNetWorth).map(a=>{
     const bal=accountBalance(a);
-    return `<div class="card" style="padding:10px 15px;flex:1;min-width:160px;">
-      <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${a.name}</div>
-      <div style="font-size:15px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
+    return `<div class="card" style="padding:10px 14px;flex:1;min-width:150px;">
+      <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:2px;">${a.name}</div>
+      <div class="num" style="font-size:14px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
     </div>`;
   }).join('');
 
@@ -1565,12 +1920,10 @@ function renderHistory(){
     _histTreeCtrl = _initTreeDropdown({
       btnId:'hist-cat-btn', dropdownId:'hist-cat-dropdown', treeId:'hist-cat-tree',
       labelId:'hist-cat-label', searchId:'hist-cat-search',
-      allBtnId:'hist-cat-all', noneBtnId:'hist-cat-none', doneBtnId:'hist-cat-done',
-      catTypeFilter:null,  // history shows all types (income + expense)
+      allBtnId:'hist-cat-all', noneBtnId:'hist-cat-none',
       onApply: ()=>{ _hPage=0; _renderHistTxns(); }
     });
   }
-
   _hPage=0;
   _renderHistTxns();
 }
@@ -1578,14 +1931,13 @@ function renderHistory(){
 function _renderHistTxns(){
   const{from,to}=_histRange();
   const selIds=_histTreeCtrl?_histTreeCtrl.getSelectedIds():new Set();
-  const useCatFilter=selIds.size>0;
-
+  const useCat=selIds.size>0;
   let txns=archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
   if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
   if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
   if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
   if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
-  if(useCatFilter) txns=txns.filter(t=>selIds.has(t.categoryId));
+  if(useCat) txns=txns.filter(t=>selIds.has(t.categoryId));
 
   const totInc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
   const totExp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
@@ -1607,13 +1959,12 @@ function _renderHistTxns(){
       <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
       <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تأكد من استيراد الداتا أو غيّر الفلاتر</td></tr>`;
+  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تأكد من استيراد الداتا</td></tr>`;
 
-  // Pagination
   const pgEl=document.getElementById('hist-pagination');
   if(!pgEl)return;
   if(pages<=1){pgEl.innerHTML='';return;}
-  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages} (${txns.length} إجمالي)</span>`;
+  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages} (${txns.length})</span>`;
   if(_hPage>0)pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
   for(let i=Math.max(0,_hPage-2);i<=Math.min(pages-1,_hPage+2);i++)
     pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
@@ -1623,35 +1974,30 @@ function _renderHistTxns(){
 
 // History filter wiring
 (function(){
-  const typeSel  =document.getElementById('hist-type-sel');
-  const periodSel=document.getElementById('hist-period-sel');
-  const fromInp  =document.getElementById('hist-from');
-  const toInp    =document.getElementById('hist-to');
-  const resetBtn =document.getElementById('hist-reset');
-  const pgEl     =document.getElementById('hist-pagination');
-
-  typeSel.addEventListener('change',()=>{_hType=typeSel.value;_hPage=0;_renderHistTxns();});
-  periodSel.addEventListener('change',()=>{
-    _hPeriod=periodSel.value;
+  const tSel=document.getElementById('hist-type-sel');
+  const pSel=document.getElementById('hist-period-sel');
+  const pgEl=document.getElementById('hist-pagination');
+  tSel?.addEventListener('change',()=>{_hType=tSel.value;_hPage=0;_renderHistTxns();});
+  pSel?.addEventListener('change',()=>{
+    _hPeriod=pSel.value;
     document.getElementById('hist-from-wrap').style.display=_hPeriod==='custom'?'block':'none';
     document.getElementById('hist-to-wrap').style.display=_hPeriod==='custom'?'block':'none';
     _hPage=0;_renderHistTxns();
   });
-  fromInp.addEventListener('change',()=>{_hFrom=fromInp.value;_renderHistTxns();});
-  toInp.addEventListener('change',()=>{_hTo=toInp.value;_renderHistTxns();});
-  resetBtn.addEventListener('click',()=>{
+  document.getElementById('hist-from')?.addEventListener('change',e=>{_hFrom=e.target.value;_renderHistTxns();});
+  document.getElementById('hist-to')?.addEventListener('change',e=>{_hTo=e.target.value;_renderHistTxns();});
+  document.getElementById('hist-reset')?.addEventListener('click',()=>{
     _hType='all';_hPeriod='all';_hFrom='';_hTo='';_hPage=0;
-    typeSel.value='all';periodSel.value='all';
-    fromInp.value='';toInp.value='';
+    if(tSel)tSel.value='all'; if(pSel)pSel.value='all';
     document.getElementById('hist-from-wrap').style.display='none';
     document.getElementById('hist-to-wrap').style.display='none';
     if(_histTreeCtrl)_histTreeCtrl.reset();
     renderHistory();
   });
-  pgEl.addEventListener('click',e=>{
+  pgEl?.addEventListener('click',e=>{
     const btn=e.target.closest('[data-hpage]');if(!btn)return;
     _hPage=parseInt(btn.dataset.hpage);_renderHistTxns();
-    document.getElementById('view-history').scrollIntoView({behavior:'smooth',block:'start'});
+    document.getElementById('view-history')?.scrollIntoView({behavior:'smooth',block:'start'});
   });
 })();
 
@@ -1774,336 +2120,40 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
   saveDB(); renderBudgets(); toast('Budget set from 3-month average');
 });
 
-/* ================================================================
-   SHARED: Hierarchical Category Tree Component
-   Used by both Reports and History filters
-   ================================================================ */
-
-// Build selected IDs set from tree state object {catId: true/false/'partial'}
-/* ================================================================
-   SHARED: Hierarchical Category Tree Component
-   ================================================================ */
-function _treeGetLeafIds(state, allCats){
-  const ids = new Set();
-  allCats.forEach(cat=>{
-    const children = allCats.filter(c=>c.parentId===cat.id);
-    if(children.length){
-      // parent checked = all its children included
-      if(state[cat.id]===true) children.forEach(c=>ids.add(c.id));
-      else children.filter(c=>state[c.id]===true).forEach(c=>ids.add(c.id));
-    } else {
-      const par = cat.parentId ? allCats.find(p=>p.id===cat.parentId) : null;
-      if(state[cat.id]===true || (par && state[par.id]===true)) ids.add(cat.id);
-    }
-  });
-  return ids;
-}
-
-function _treeRender(containerEl, state, searchQ, allCats, onChangeImmediate){
-  const parents = allCats.filter(c=>!c.parentId);
-  const q = (searchQ||'').toLowerCase().trim();
-  let html = '';
-
-  parents.forEach(p=>{
-    const children = allCats.filter(c=>c.parentId===p.id);
-    // Filter by search
-    let visChildren = children;
-    if(q){
-      const pm = p.name.toLowerCase().includes(q);
-      const cm = children.filter(c=>c.name.toLowerCase().includes(q));
-      if(!pm && !cm.length) return;
-      visChildren = pm ? children : cm;
-    }
-    // Compute parent visual state
-    const numChSel = visChildren.filter(c=>state[c.id]===true).length;
-    const pChecked = state[p.id]===true || (visChildren.length>0 && numChSel===visChildren.length);
-    const pIndet   = !pChecked && numChSel>0;
-    // Expand state: default expanded (undefined = expanded)
-    const isExpanded = state['_exp_'+p.id] !== false;
-
-    const chHtml = visChildren.map(ch=>{
-      const checked = state[ch.id]===true || state[p.id]===true;
-      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 30px;cursor:pointer;border-radius:5px;margin:1px 4px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
-        <input type="checkbox" data-cc="${ch.id}" data-cp="${p.id}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
-        <span style="font-size:12.5px;">${ch.name}</span>
-      </label>`;
-    }).join('');
-
-    html += `<div>
-      <div style="display:flex;align-items:center;padding:2px 6px;">
-        ${visChildren.length
-          ? `<button type="button" data-tog="${p.id}" style="background:none;border:none;color:var(--text-faint);cursor:pointer;padding:5px 3px;font-size:11px;flex:none;line-height:1;min-width:22px;">${isExpanded?'▼':'▶'}</button>`
-          : `<span style="min-width:22px;"></span>`}
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:5px 6px;border-radius:6px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
-          <input type="checkbox" data-cp2="${p.id}" ${pChecked?'checked':''} ${pIndet?'data-ind="1"':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
-          <span style="font-size:13px;font-weight:600;">${p.name}</span>
-          ${visChildren.length?`<span style="font-size:10px;color:var(--text-faint);margin-left:auto;">${visChildren.length}</span>`:''}
-        </label>
-      </div>
-      <div id="tch-${p.id}" style="display:${isExpanded&&visChildren.length?'block':'none'};">${chHtml}</div>
-    </div>`;
-  });
-
-  containerEl.innerHTML = html || `<div style="padding:14px 12px;font-size:12px;color:var(--text-faint);">لا توجد نتائج</div>`;
-  containerEl.querySelectorAll('[data-ind="1"]').forEach(cb=>{ cb.indeterminate=true; });
-
-  // Toggle expand/collapse — manipulates DOM directly, no re-render needed
-  containerEl.querySelectorAll('[data-tog]').forEach(btn=>{
-    btn.addEventListener('click', ev=>{
-      ev.preventDefault(); ev.stopPropagation();
-      const pid = btn.dataset.tog;
-      const div = document.getElementById('tch-'+pid);
-      if(!div) return;
-      const nowOpen = div.style.display!=='none';
-      div.style.display = nowOpen?'none':'block';
-      btn.textContent = nowOpen?'▶':'▼';
-      state['_exp_'+pid] = !nowOpen;
-    });
-  });
-
-  // Parent checkbox → check/uncheck all visible children
-  containerEl.querySelectorAll('[data-cp2]').forEach(cb=>{
-    cb.addEventListener('change', ()=>{
-      const pid = cb.dataset.cp2;
-      const checked = cb.checked;
-      state[pid] = checked;
-      // Update all children in state AND in DOM
-      allCats.filter(c=>c.parentId===pid).forEach(c=>{ state[c.id]=checked; });
-      const chDiv = document.getElementById('tch-'+pid);
-      if(chDiv) chDiv.querySelectorAll('[data-cc]').forEach(chCb=>{ chCb.checked=checked; });
-      cb.indeterminate = false;
-      onChangeImmediate();
-    });
-  });
-
-  // Child checkbox → update parent indeterminate
-  containerEl.querySelectorAll('[data-cc]').forEach(cb=>{
-    cb.addEventListener('change', ()=>{
-      const cid = cb.dataset.cc;
-      const pid = cb.dataset.cp;
-      state[cid] = cb.checked;
-      // Clear parent "all-selected" override when manually toggling child
-      if(state[pid]===true) state[pid]=false;
-      // Update parent checkbox
-      const parCb = containerEl.querySelector(`[data-cp2="${pid}"]`);
-      if(parCb){
-        const sibs = allCats.filter(c=>c.parentId===pid);
-        const n = sibs.filter(c=>state[c.id]===true).length;
-        if(n===0){parCb.checked=false;parCb.indeterminate=false;}
-        else if(n===sibs.length){parCb.checked=true;parCb.indeterminate=false;state[pid]=true;}
-        else{parCb.checked=false;parCb.indeterminate=true;}
-      }
-      onChangeImmediate();
-    });
-  });
-}
-
-function _treeLabelText(state, allCats){
-  const leafIds = _treeGetLeafIds(state, allCats);
-  if(!leafIds.size) return 'كل الكاتيجوريز';
-  const selPar = allCats.filter(c=>!c.parentId && state[c.id]===true);
-  const selCh  = allCats.filter(c=>c.parentId  && state[c.id]===true && !selPar.find(p=>p.id===c.parentId));
-  const parts  = [...selPar.map(p=>p.name), ...selCh.map(c=>c.name)];
-  if(!parts.length) return 'كل الكاتيجوريز';
-  return parts.length<=2 ? parts.join(', ') : `${parts[0]} +${parts.length-1} أخرى`;
-}
-
-function _initTreeDropdown({btnId,dropdownId,treeId,labelId,searchId,allBtnId,noneBtnId,doneBtnId,catTypeFilter,onApply}){
-  const btn      = document.getElementById(btnId);
-  const dropdown = document.getElementById(dropdownId);
-  const treeEl   = document.getElementById(treeId);
-  const labelEl  = document.getElementById(labelId);
-  const searchEl = document.getElementById(searchId);
-  if(!btn||!dropdown) return null;
-
-  let state = {}, searchQ = '';
-  // NO catTypeFilter restriction — show both income AND expense categories
-  function getCats(){ return catTypeFilter ? DB.categories.filter(c=>c.type===catTypeFilter) : DB.categories; }
-
-  function rebuild(){
-    _treeRender(treeEl, state, searchQ, getCats(), ()=>{
-      // Immediate apply: update label & trigger filter instantly (no "Apply" button needed)
-      labelEl.textContent = _treeLabelText(state, getCats());
-      onApply(_treeGetLeafIds(state, getCats()));
-    });
-  }
-
-  // Toggle dropdown open/close
-  btn.addEventListener('click', ev=>{
-    ev.stopPropagation();
-    const opening = !dropdown.style.display || dropdown.style.display==='none';
-    document.querySelectorAll('.tree-dd-open').forEach(d=>{d.style.display='none';d.classList.remove('tree-dd-open');});
-    if(opening){
-      dropdown.style.display='block';
-      dropdown.classList.add('tree-dd-open');
-      rebuild();
-    } else {
-      dropdown.style.display='none';
-      dropdown.classList.remove('tree-dd-open');
-    }
-  });
-  document.addEventListener('click', ev=>{
-    if(!dropdown.contains(ev.target)&&ev.target!==btn){
-      dropdown.style.display='none';
-      dropdown.classList.remove('tree-dd-open');
-    }
-  });
-
-  if(searchEl){
-    searchEl.addEventListener('input', ()=>{ searchQ=searchEl.value; rebuild(); });
-    searchEl.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); dropdown.style.display='none'; }});
-  }
-
-  // Select All
-  if(allBtnId) document.getElementById(allBtnId).addEventListener('click', ()=>{
-    getCats().forEach(c=>{ state[c.id]=true; });
-    rebuild(); labelEl.textContent=_treeLabelText(state,getCats());
-  });
-  // Clear All
-  if(noneBtnId) document.getElementById(noneBtnId).addEventListener('click', ()=>{
-    const expKeys={}; Object.entries(state).filter(([k])=>k.startsWith('_exp_')).forEach(([k,v])=>expKeys[k]=v);
-    state=expKeys; rebuild(); labelEl.textContent='كل الكاتيجوريز';
-    onApply(new Set());
-  });
-  // Done button — just closes (filter already applied instantly)
-  if(doneBtnId) document.getElementById(doneBtnId).addEventListener('click', ()=>{
-    dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open');
-  });
-
-  return {
-    getSelectedIds(){ return _treeGetLeafIds(state, getCats()); },
-    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; }
-  };
-}
-
-/* ================================================================
-   RENDER: REPORTS
-   ================================================================ */
-let _rPeriod='all',_rFrom='',_rTo='';
-let _repTreeCtrl=null;
-
-function _repRange(){
-  const now=new Date(),thisM=thisMonthKey();
-  if(_rPeriod==='all')  return{from:null,to:null};
-  if(_rPeriod==='ytd')  return{from:`${now.getFullYear()}-01`,to:thisM};
-  if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:d.toISOString().slice(0,7),to:thisM};}
-  if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:d.toISOString().slice(0,7),to:thisM};}
-  if(_rPeriod==='1m')   return{from:thisM,to:thisM};
-  if(_rPeriod==='custom')return{from:_rFrom||null,to:_rTo||null};
-  return{from:null,to:null};
-}
-
-function _expInRange(from,to,catIds){
-  return allExpenseEntries().filter(e=>{
-    const mk=monthKey(e.date);
-    if(from&&mk<from)return false;
-    if(to&&mk>to)return false;
-    if(catIds&&catIds.size&&!catIds.has(e.categoryId))return false;
-    return true;
-  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
-}
-
+/* ---------------------------- RENDER: REPORTS ---------------------------- */
 function renderReports(){
-  const mKey=thisMonthKey();
-  const{from,to}=_repRange();
-  const hdr=document.getElementById('rep-period-hdr');
-  if(hdr)hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
+  const mKey = thisMonthKey();
+  const topCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
+  document.getElementById('reports-tree-body').innerHTML = topCats.map(c=>{
+    const children = DB.categories.filter(ch=>ch.parentId===c.id);
+    const parentRow = `<tr>
+      <td style="font-weight:600;">${c.name}</td>
+      <td class="amt">${fmtMoney(categoryTotal(c.id, mKey))}</td>
+      <td class="amt">${fmtMoney(categoryTotal(c.id, null))}</td>
+    </tr>`;
+    const childRows = children.map(ch=>`<tr>
+      <td style="padding-left:28px;color:var(--text-muted);font-size:12.5px;">— ${ch.name}</td>
+      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, mKey))}</td>
+      <td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(categorySelfTotal(ch.id, null))}</td>
+    </tr>`).join('');
+    return parentRow + childRows;
+  }).join('') || `<tr><td colspan="3" class="empty">No expense categories yet</td></tr>`;
 
-  // Init tree once
-  if(!_repTreeCtrl){
-    _repTreeCtrl = _initTreeDropdown({
-      btnId:'rep-cat-btn', dropdownId:'rep-cat-dropdown', treeId:'rep-cat-tree',
-      labelId:'rep-cat-label', searchId:'rep-cat-search',
-      allBtnId:'rep-cat-all', noneBtnId:'rep-cat-none', doneBtnId:'rep-cat-done',
-      catTypeFilter:'expense',
-      onApply: ()=>renderReports()
-    });
-  }
-
-  const selIds = _repTreeCtrl ? _repTreeCtrl.getSelectedIds() : new Set();
-  const useCatFilter = selIds.size>0;
-
-  // Summary strip
-  const totInc=DB.transactions.filter(t=>t.type==='income'&&(!from||t.date.slice(0,7)>=from)&&(!to||t.date.slice(0,7)<=to)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const totExp=_expInRange(from,to,useCatFilter?selIds:null);
-  const net=totInc-totExp;
-  const strip=document.getElementById('rep-summary-strip');
-  if(strip)strip.innerHTML=[
-    {l:'إجمالي الدخل',v:totInc,c:'var(--positive)'},
-    {l:'إجمالي المصاريف',v:totExp,c:'var(--negative)'},
-    {l:'الصافي',v:net,c:net>=0?'var(--positive)':'var(--negative)'}
-  ].map(s=>`<div class="card" style="flex:1;min-width:130px;padding:10px 14px;">
-    <div style="font-size:10.5px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
-    <div style="font-size:15px;font-weight:700;color:${s.c};">${s.v>=0?'+':''}EGP ${fmtMoney(Math.abs(s.v))}</div>
-  </div>`).join('');
-
-  // Category tree table
-  const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
-  document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
-    const ch=DB.categories.filter(x=>x.parentId===c.id);
-    // If filter active, show only relevant parents/children
-    if(useCatFilter){
-      const relChildren=ch.filter(x=>selIds.has(x.id));
-      const parentIncluded=relChildren.length>0||ch.length===0;
-      if(!parentIncluded)return '';
-    }
-    const pt=_expInRange(from,to,useCatFilter?selIds:null);
-    // For category-specific rows, compute without catIds filter but with descendant filter
-    const pDescIds=new Set([c.id,...ch.map(x=>x.id)]);
-    const pDescFilter=new Set([...pDescIds].filter(id=>!useCatFilter||selIds.has(id)));
-    const pTot=_expInRange(from,to,pDescFilter);
-    const pMon=_expInRange(mKey,mKey,pDescFilter);
-    if(pTot===0&&pMon===0)return '';
-    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pMon)}</td><td class="amt">${fmtMoney(pTot)}</td></tr>`
-      +ch.filter(x=>!useCatFilter||selIds.has(x.id)).map(x=>{
-        const xSet=new Set([x.id]);
-        const ct=_expInRange(from,to,xSet);
-        const cm=_expInRange(mKey,mKey,xSet);
-        if(ct===0&&cm===0)return '';
-        return `<tr><td style="padding-left:24px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;
-      }).join('');
-  }).join('')||`<tr><td colspan="3" class="empty">لا توجد مصاريف</td></tr>`;
-
+  const select = document.getElementById('reports-category-select');
+  const prevSelection = select.value;
+  select.innerHTML = categoryOptions('expense');
+  if(prevSelection && [...select.options].some(o=>o.value===prevSelection)) select.value = prevSelection;
   renderReportsMonthly();
 }
-
 function renderReportsMonthly(){
-  const{from,to}=_repRange();
-  const selIds=_repTreeCtrl?_repTreeCtrl.getSelectedIds():new Set();
-  const useCatFilter=selIds.size>0;
-  const hdr=document.getElementById('rep-monthly-hdr');
-  if(hdr)hdr.textContent=useCatFilter?document.getElementById('rep-cat-label').textContent:'كل الكاتيجوريز';
-  let months=allMonthsWithActivity();
-  if(from)months=months.filter(m=>m>=from);
-  if(to)months=months.filter(m=>m<=to);
-  months.sort().reverse();
-  document.getElementById('reports-monthly-body').innerHTML=months.map(mk=>{
-    const amt=_expInRange(mk,mk,useCatFilter?selIds:null);
-    if(amt===0)return '';
+  const catId = document.getElementById('reports-category-select').value;
+  const months = allMonthsWithActivity();
+  document.getElementById('reports-monthly-body').innerHTML = months.map(mk=>{
+    const amt = categoryTotal(catId, mk);
     return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
-  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
+  }).join('') || `<tr><td colspan="2" class="empty">No activity recorded yet</td></tr>`;
 }
-
-// Reports event wiring
-(function(){
-  const periodSel=document.getElementById('rep-period-sel');
-  periodSel.addEventListener('change',()=>{
-    _rPeriod=periodSel.value;
-    document.getElementById('rep-from-wrap').style.display=_rPeriod==='custom'?'block':'none';
-    document.getElementById('rep-to-wrap').style.display=_rPeriod==='custom'?'block':'none';
-    renderReports();
-  });
-  document.getElementById('rep-from').addEventListener('change',e=>{_rFrom=e.target.value;renderReports();});
-  document.getElementById('rep-to').addEventListener('change',e=>{_rTo=e.target.value;renderReports();});
-  document.getElementById('rep-reset').addEventListener('click',()=>{
-    _rPeriod='all';_rFrom='';_rTo='';
-    periodSel.value='all';
-    document.getElementById('rep-from-wrap').style.display='none';
-    document.getElementById('rep-to-wrap').style.display='none';
-    if(_repTreeCtrl) _repTreeCtrl.reset();
-    renderReports();
-  });
-})();
+document.getElementById('reports-category-select').addEventListener('change', renderReportsMonthly);
 
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
@@ -2284,97 +2334,54 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='category'){
-    const editing = ctx.editId ? DB.categories.find(c=>c.id===ctx.editId) : null;
-    const preType   = editing ? editing.type    : (ctx.parentType||'expense');
-    const preName   = editing ? editing.name    : '';
-    const preParent = editing ? (editing.parentId||'') : (ctx.parentId||'');
     html = `<div class="modal">
-      <h2>${editing?'Edit Category':'New Category'}</h2>
+      <h2>New Category</h2>
       <form id="form-category">
-        ${editing?`<input type="hidden" name="editId" value="${editing.id}">`:''}
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="cat-type-group">
-            <div class="radio-opt ${preType==='expense'?'selected':''}" data-val="expense">Expense</div>
-            <div class="radio-opt ${preType==='income'?'selected':''}" data-val="income">Income</div>
+            <div class="radio-opt selected" data-val="expense">Expense</div>
+            <div class="radio-opt" data-val="income">Income</div>
           </div>
-          <input type="hidden" name="type" value="${preType}">
+          <input type="hidden" name="type" value="expense">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء" value="${preName}"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء"></div>
         <div class="field">
-          <label>Parent category <span style="color:var(--text-faint);font-weight:400;">(optional)</span></label>
-          <select name="parentId" id="cat-parent-select">
-            <option value="">— None (top-level) —</option>
-            ${categoryParentOptions(preType, preParent)}
-          </select>
+          <label>Parent category (optional)</label>
+          <select name="parentId" id="cat-parent-select"><option value="">— None (top-level) —</option>${categoryParentOptions('expense')}</select>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">${editing?'Save Changes':'Create Category'}</button>
+          <button type="submit" class="btn">Create Category</button>
         </div>
       </form>
     </div>`;
   }
 
   if(kind==='commitment'){
-    const _now=new Date();
-    let _iS=0,_iM=0;
-    for(let i=1;i<=3;i++){
-      const d=new Date(_now.getFullYear(),_now.getMonth()-i,1);
-      const mk=d.toISOString().slice(0,7);
-      const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-      if(m>0){_iS+=m;_iM++;}
-    }
-    const _avgInc=_iM>0?Math.round(_iS/_iM):0;
-    const _exist=DB.commitments.filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity)).reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-    html=`<div class="modal" style="max-width:500px;">
+    html = `<div class="modal">
       <h2>New Commitment</h2>
       <form id="form-commitment">
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="commit-type-group">
-            <div class="radio-opt selected" data-val="installment">قسط (Installment)</div>
+            <div class="radio-opt selected" data-val="installment">Installment</div>
             <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
           </div>
           <input type="hidden" name="type" value="installment">
         </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت، جمعية 3"></div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
         <div class="field-row">
-          <div class="field"><label>Total Amount (EGP)</label><input type="number" step="0.01" name="totalAmount" required placeholder="0.00" id="cm-total-amt"></div>
-          <div class="field"><label>Monthly Installment (EGP)</label><input type="number" step="0.01" name="installmentAmount" required placeholder="0.00" id="cm-inst-amt"></div>
+          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" required></div>
+          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" required></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12" id="cm-total-inst"></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12"></div>
         </div>
         <div class="field" id="commit-payout-field" style="display:none;">
           <label>Expected Payout Date (جمعية)</label>
           <input type="date" name="payoutDate">
-        </div>
-        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:6px 0 14px;">
-          <div style="font-size:10px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;">📊 تأثير على الميزانية الشهرية</div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">متوسط دخلك (آخر 3 شهور)</span>
-            <span style="font-size:13px;font-weight:600;color:var(--positive);">${_avgInc>0?'EGP '+_avgInc.toLocaleString():'لا توجد بيانات'}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">الالتزامات الشهرية الحالية</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);">${_exist>0?'− EGP '+_exist.toLocaleString():'لا يوجد'}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:12.5px;color:var(--text-muted);">القسط الجديد</span>
-            <span style="font-size:13px;font-weight:600;color:var(--warning);" id="bud-new-lbl">— أدخل المبلغ</span>
-          </div>
-          <div style="border-top:1px solid var(--border);margin-bottom:10px;"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;font-weight:700;">المتبقي بعد كل الالتزامات</span>
-            <span style="font-size:16px;font-weight:700;" id="bud-rem-lbl">—</span>
-          </div>
-          <div style="background:var(--surface-3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:9px;">
-            <div id="bud-bar" style="height:100%;border-radius:6px;width:0%;transition:width .2s,background .2s;background:var(--positive);"></div>
-          </div>
-          <div id="bud-msg" style="font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
-          <div id="bud-extra" style="display:none;margin-top:8px;padding:9px 11px;background:rgba(220,70,80,.07);border:1px solid rgba(220,70,80,.2);border-radius:8px;font-size:12px;color:var(--negative);line-height:1.55;"></div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2568,19 +2575,11 @@ function openModal(kind, ctx={}){
         </table>
       </div>
       <div class="section-title" style="margin:0 0 10px 0;">Documents &amp; Renewals</div>
-      <div class="table-wrap" style="margin-bottom:4px;">
+      <div class="table-wrap">
         <table>
-          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th><th></th></tr></thead>
+          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th></tr></thead>
           <tbody>
-            ${docs.map(d=>`<tr>
-              <td style="font-weight:500;">${d.docType}</td>
-              <td>${fmtDate(d.renewalDate)}</td>
-              <td style="color:var(--text-muted);font-size:12px;">${d.note||''}</td>
-              <td style="white-space:nowrap;">
-                <button class="btn ghost sm" data-edit-doc="${d.id}" style="margin-right:4px;">Edit</button>
-                <button class="btn ghost sm" data-del-doc="${d.id}">✕</button>
-              </td>
-            </tr>`).join('') || `<tr><td colspan="4" class="empty">No documents tracked</td></tr>`}
+            ${docs.map(d=>`<tr><td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">No documents tracked</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2674,25 +2673,16 @@ function openModal(kind, ctx={}){
 
   if(kind==='vehicle-doc'){
     const v = vehicleById(ctx.vehicleId);
-    const editing = ctx.docId ? DB.vehicleDocs.find(d=>d.id===ctx.docId) : null;
-    const allVehicles = DB.vehicles;
     html = `<div class="modal">
-      <h2>${editing?'Edit Document':'Document / Renewal'} — ${v.name}</h2>
+      <h2>Document / Renewal — ${v.name}</h2>
       <form id="form-vehicle-doc">
-        ${editing?`<input type="hidden" name="docId" value="${editing.id}">`:''}
         <input type="hidden" name="vehicleId" value="${v.id}">
-        <div class="field"><label>Type</label><input name="docType" required placeholder="e.g. رخصة، تأمين، بطاقة" value="${editing?editing.docType:''}"></div>
-        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" required value="${editing?editing.renewalDate:''}"></div>
-        <div class="field"><label>Note (optional)</label><input name="note" value="${editing?editing.note||'':''}"></div>
-        ${allVehicles.length>1?`<div class="field">
-          <label>Vehicle ${editing?'(reassign)':''}:</label>
-          <select name="reassignVehicleId">
-            ${allVehicles.map(vv=>`<option value="${vv.id}" ${(editing?editing.vehicleId:v.id)===vv.id?'selected':''}>${vv.name}</option>`).join('')}
-          </select>
-        </div>`:`<input type="hidden" name="reassignVehicleId" value="${v.id}">`}
+        <div class="field"><label>Type</label><input name="docType" required placeholder="e.g. رخصة، تأمين، بطاقة"></div>
+        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" required></div>
+        <div class="field"><label>Note (optional)</label><input name="note"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">${editing?'Save Changes':'Save Document'}</button>
+          <button type="submit" class="btn">Save Document</button>
         </div>
       </form>
     </div>`;
@@ -2767,16 +2757,6 @@ function openModal(kind, ctx={}){
       saveDB(); renderAll();
       openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
       toast('Tank range updated');
-    });
-    // Doc edit/delete (delegated)
-    backdrop.addEventListener('click', e=>{
-      const editDocId = e.target.dataset.editDoc;
-      if(editDocId){ openModal('vehicle-doc', {vehicleId: ctx.vehicleId, docId: editDocId}); return; }
-      const delDocId = e.target.dataset.delDoc;
-      if(delDocId){
-        DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.id!==delDocId);
-        saveDB(); openModal('vehicle-detail', {vehicleId: ctx.vehicleId}); toast('Document deleted');
-      }
     });
   }
 
@@ -2881,66 +2861,6 @@ function wireModal(kind){
 
   const form = backdrop.querySelector('form');
   if(!form) return;
-
-  // ── Commitment budget calculator ────────────────────────────────────────
-  if(kind==='commitment'){
-    const instEl      = backdrop.querySelector('#cm-inst-amt');
-    const totalAmtEl  = backdrop.querySelector('#cm-total-amt');
-    const totalInstEl = backdrop.querySelector('#cm-total-inst');
-    if(instEl){
-      const nowC=new Date();
-      let iS=0,iM=0;
-      for(let i=1;i<=3;i++){
-        const d=new Date(nowC.getFullYear(),nowC.getMonth()-i,1);
-        const mk=d.toISOString().slice(0,7);
-        const m=DB.transactions.filter(t=>t.type==='income'&&t.date.startsWith(mk)).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-        if(m>0){iS+=m;iM++;}
-      }
-      const avgI=iM>0?Math.round(iS/iM):0;
-      const existM=DB.commitments.filter(c=>commitmentPayments(c.id).length<(c.totalInstallments||Infinity)).reduce((s,c)=>s+Number(c.installmentAmount||0),0);
-
-      function recalcBudget(){
-        const newI=Number(instEl.value)||0;
-        const tot=existM+newI;
-        const rem=avgI-tot;
-        const pct=avgI>0?Math.min(100,Math.round(tot/avgI*100)):0;
-        const newLbl=backdrop.querySelector('#bud-new-lbl');
-        const remLbl=backdrop.querySelector('#bud-rem-lbl');
-        const barEl=backdrop.querySelector('#bud-bar');
-        const msgEl=backdrop.querySelector('#bud-msg');
-        const extEl=backdrop.querySelector('#bud-extra');
-        if(newLbl)newLbl.textContent=newI>0?`− EGP ${newI.toLocaleString()}`:'— أدخل المبلغ';
-        if(remLbl){
-          if(avgI===0){remLbl.textContent='—';remLbl.style.color='var(--text-faint)';}
-          else{remLbl.textContent=(rem>=0?'':'− ')+'EGP '+Math.abs(rem).toLocaleString();remLbl.style.color=rem>=0?'var(--positive)':'var(--negative)';}
-        }
-        if(barEl){barEl.style.width=pct+'%';barEl.style.background=pct>=100?'var(--negative)':pct>=80?'var(--warning)':'var(--positive)';}
-        if(msgEl){
-          if(avgI===0){msgEl.textContent='لا توجد بيانات دخل بعد.';if(extEl)extEl.style.display='none';}
-          else if(rem<0){
-            msgEl.innerHTML=`<span style="color:var(--negative);">⚠️ الالتزامات (${pct}٪) تتجاوز دخلك!</span>`;
-            if(extEl){extEl.style.display='block';extEl.innerHTML=`💡 تحتاج دخلاً إضافياً: <strong>EGP ${Math.abs(rem).toLocaleString()}</strong>/شهر`;}
-          }else if(pct>=80){
-            msgEl.innerHTML=`<span style="color:var(--warning);">⚠️ ${pct}٪ من دخلك — هامش أمان ضيق.</span>`;
-            if(extEl)extEl.style.display='none';
-          }else if(newI>0){
-            msgEl.innerHTML=`<span style="color:var(--positive);">✅ ${pct}٪ من دخلك — نسبة صحية، يتبقى EGP ${rem.toLocaleString()}/شهر.</span>`;
-            if(extEl)extEl.style.display='none';
-          }else{
-            msgEl.textContent=`الالتزامات الحالية ${pct}٪ من دخلك.`;
-            if(extEl)extEl.style.display='none';
-          }
-        }
-      }
-      function autoFill(){
-        const t=Number(totalAmtEl.value),i=Number(instEl.value);
-        if(t>0&&i>0&&!totalInstEl.value)totalInstEl.value=Math.ceil(t/i);
-      }
-      instEl.addEventListener('input',()=>{recalcBudget();autoFill();});
-      if(totalAmtEl)totalAmtEl.addEventListener('input',autoFill);
-      recalcBudget();
-    }
-  }
   form.addEventListener('submit', e=>{
     e.preventDefault();
     const fd = new FormData(form);
@@ -3030,15 +2950,8 @@ const submitHandlers = {
     saveDB(); toast('Transaction saved');
   },
   category(data){
-    if(data.editId){
-      const cat = DB.categories.find(c=>c.id===data.editId);
-      if(!cat) throw new Error('Category not found');
-      cat.name = data.name.trim(); cat.type = data.type; cat.parentId = data.parentId||null;
-      saveDB(); toast('Category updated');
-    } else {
-      DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId||null});
-      saveDB(); toast('Category created');
-    }
+    DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+    saveDB(); toast('Category created');
   },
   commitment(data){
     DB.commitments.push({
@@ -3126,26 +3039,13 @@ const submitHandlers = {
     saveDB(); toast('Part tracked');
   },
   'vehicle-doc'(data){
-    const targetVehicleId = data.reassignVehicleId || data.vehicleId;
-    const targetV = vehicleById(targetVehicleId);
-    if(!targetV) throw new Error('Vehicle not found');
-    if(data.docId){
-      // Edit existing doc
-      const doc = DB.vehicleDocs.find(d=>d.id===data.docId);
-      if(!doc) throw new Error('Document not found');
-      doc.docType = data.docType.trim();
-      doc.renewalDate = data.renewalDate;
-      doc.note = data.note||'';
-      doc.vehicleId = targetVehicleId;  // reassign if changed
-      saveDB(); toast('Document updated');
-    } else {
-      // New doc
-      DB.vehicleDocs.push({
-        id: uid('vdoc'), vehicleId: targetVehicleId, docType: data.docType.trim(),
-        renewalDate: data.renewalDate, note: data.note||''
-      });
-      saveDB(); toast('Document saved');
-    }
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    DB.vehicleDocs.push({
+      id: uid('vdoc'), vehicleId: v.id, docType: data.docType.trim(),
+      renewalDate: data.renewalDate, note: data.note || ''
+    });
+    saveDB(); toast('Document saved');
   },
   'drive-setup'(data){
     setClientId(data.clientId.trim());

@@ -772,10 +772,18 @@ function todayLocalISO(){
   return `${y}-${m}-${day}`;
 }
 function thisMonthKey(){ return todayLocalISO().slice(0,7); }
+// Local "YYYY-MM" from a Date object's local getters — NEVER use date.toISOString().slice(0,7)
+// for this, since that converts through UTC and silently shifts the month near midnight in
+// Cairo (UTC+2/+3), the same class of bug todayLocalISO() above was written to avoid.
+function ymKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+// Adds n months to a 'YYYY-MM-DD' date, clamping the day so it never overflows into the
+// following month (e.g. 31 Jan + 1 month -> 28/29 Feb, not 3 Mar).
 function addMonths(dateStr, n){
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth()+n);
-  return d.toISOString().slice(0,10);
+  const [y, m, day] = dateStr.split('-').map(Number);
+  const target = new Date(Date.UTC(y, (m - 1) + n, 1));
+  const lastDayOfTarget = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDayOfTarget));
+  return target.toISOString().slice(0,10);
 }
 function fxRate(currency){
   const r = DB.fxRates.find(x=>x.currency===currency);
@@ -983,7 +991,7 @@ function categoryAvgSpend(catId, monthsCount){
   let total = 0;
   for(let i=1; i<=monthsCount; i++){
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    total += categorySpendInMonth(catId, d.toISOString().slice(0,7));
+    total += categorySpendInMonth(catId, ymKey(d));
   }
   return monthsCount ? total / monthsCount : 0;
 }
@@ -1691,8 +1699,8 @@ function _repRange(){
   const now=new Date(),thisM=thisMonthKey();
   if(_rPeriod==='all') return{from:null,to:null};
   if(_rPeriod==='ytd') return{from:`${now.getFullYear()}-01`,to:thisM};
-  if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:d.toISOString().slice(0,7),to:thisM};}
-  if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:d.toISOString().slice(0,7),to:thisM};}
+  if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:ymKey(d),to:thisM};}
+  if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:ymKey(d),to:thisM};}
   if(_rPeriod==='1m') return{from:thisM,to:thisM};
   if(_rPeriod==='custom') return{from:_rFrom||null,to:_rTo||null};
   return{from:null,to:null};
@@ -3076,7 +3084,8 @@ document.getElementById('file-import').addEventListener('change', e=>{
 // Clear old broken drag-drop positions from previous version
 try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 
- — Grid-aware, never breaks layout
+/* ================================================================
+   DRAG & DROP v2 — Grid-aware, never breaks layout
    Cards stay inside their grid. Only reorders siblings within same
    grid container. Stores order & width per container key.
    Reset Layout button clears all stored positions.

@@ -847,6 +847,24 @@ function commitmentPayments(commitId){
   return DB.commitmentPayments.filter(p=>p.commitmentId===commitId).sort((a,b)=> a.date.localeCompare(b.date));
 }
 
+// Resolves whether a transaction id is the auto-generated side-effect of a
+// commitment payment or a vehicle log entry (bank-transfer method), so Edit/Delete
+// can warn before touching it. Returns null if the transaction is a normal,
+// independently-entered one.
+function findLinkedSource(txnId){
+  const pmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===txnId);
+  if(pmt){
+    const c = DB.commitments.find(x=>x.id===pmt.commitmentId);
+    return {kind:'commitment', label: c ? c.name : 'a commitment'};
+  }
+  const log = DB.vehicleLogs.find(l=>l.linkedTransactionId===txnId);
+  if(log){
+    const v = vehicleById(log.vehicleId);
+    return {kind:'vehicle-log', label: `${v ? v.name : 'a vehicle'} — ${log.type}`};
+  }
+  return null;
+}
+
 function isArchiveTxn(t){
   const acc = accountById(t.accountId);
   if(!acc) return false;
@@ -1398,6 +1416,9 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
 let txnFilter = 'all';
+let txnSearchQuery = '';
+let txnMonthFilterVal = '';
+let txnAccountFilterVal = '';
 function renderTransactions(){
   const liveTxns = liveTransactions();
   document.getElementById('txn-count-label').textContent = `${liveTxns.length} transaction${liveTxns.length===1?'':'s'}`;
@@ -1412,10 +1433,41 @@ function renderTransactions(){
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
   ).join('');
 
+  // Populate month filter options (newest first), preserving current selection if still valid
+  const monthSel = document.getElementById('txn-month-filter');
+  const liveMonths = [...new Set(liveTxns.map(t=>monthKey(t.date)))].filter(Boolean).sort().reverse();
+  if(!liveMonths.includes(txnMonthFilterVal)) txnMonthFilterVal = '';
+  monthSel.innerHTML = `<option value="">كل الشهور</option>` +
+    liveMonths.map(m=>`<option value="${m}" ${m===txnMonthFilterVal?'selected':''}>${m}</option>`).join('');
+
+  // Populate account filter options, preserving current selection if still valid
+  const acctSel = document.getElementById('txn-account-filter');
+  const liveAccounts = DB.accounts.filter(a=>!a.excludeFromNetWorth);
+  if(!liveAccounts.some(a=>a.id===txnAccountFilterVal)) txnAccountFilterVal = '';
+  acctSel.innerHTML = `<option value="">كل الحسابات</option>` +
+    liveAccounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}</option>`).join('');
+
   let list = [...liveTxns].sort((a,b)=> b.date.localeCompare(a.date));
   if(txnFilter==='income') list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
+
+  if(txnMonthFilterVal) list = list.filter(t=>monthKey(t.date)===txnMonthFilterVal);
+  if(txnAccountFilterVal) list = list.filter(t=>t.accountId===txnAccountFilterVal);
+
+  const q = txnSearchQuery.trim().toLowerCase();
+  if(q){
+    list = list.filter(t=>{
+      const acc = accountById(t.accountId);
+      const haystack = [
+        t.note||'',
+        t.type.startsWith('transfer') ? 'Transfer' : categoryLabel(t.categoryId),
+        acc ? acc.name : '',
+        fmtMoney(t.amount)
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
 
   document.getElementById('txn-body').innerHTML = list.map(t=>{
     const acc = accountById(t.accountId);
@@ -1427,16 +1479,45 @@ function renderTransactions(){
       <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
       <td style="color:var(--text-muted);">${t.note||''}</td>
       <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
-      <td><button class="btn ghost sm" data-del-txn="${t.id}">Delete</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn ghost sm" data-edit-txn="${t.id}">Edit</button>
+        <button class="btn ghost sm" data-del-txn="${t.id}">Delete</button>
+      </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">No transactions match this filter</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No transactions match your filters</td></tr>`;
 }
 document.getElementById('txn-filters').addEventListener('click', e=>{
   const btn = e.target.closest('[data-filter]'); if(!btn) return;
   txnFilter = btn.dataset.filter; renderTransactions();
 });
+document.getElementById('txn-search').addEventListener('input', e=>{
+  txnSearchQuery = e.target.value; renderTransactions();
+});
+document.getElementById('txn-month-filter').addEventListener('change', e=>{
+  txnMonthFilterVal = e.target.value; renderTransactions();
+});
+document.getElementById('txn-account-filter').addEventListener('change', e=>{
+  txnAccountFilterVal = e.target.value; renderTransactions();
+});
+// Shared guard: if txnId is linked to a commitment payment or vehicle log,
+// confirm before letting the caller proceed. Returns true if it's safe to continue.
+function confirmIfLinked(txnId, action){
+  const src = findLinkedSource(txnId);
+  if(!src) return true;
+  return confirm(
+    `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ` +
+    `${action==='edit'?'Editing':'Deleting'} it here won't update that record — the two may go out of sync. Continue?`
+  );
+}
 document.getElementById('view-transactions').addEventListener('click', e=>{
+  const editId = e.target.dataset.editTxn;
+  if(editId){
+    if(!confirmIfLinked(editId, 'edit')) return;
+    openModal('transaction', {txnId: editId});
+    return;
+  }
   const id = e.target.dataset.delTxn; if(!id) return;
+  if(!confirmIfLinked(id, 'delete')) return;
   DB.transactions = DB.transactions.filter(t=>t.id!==id);
   saveDB(); renderAll(); toast('Transaction deleted');
 });
@@ -2287,41 +2368,74 @@ function openModal(kind, ctx={}){
 
   if(kind==='transaction'){
     if(!DB.accounts.length){ toast('Add an account first'); return; }
-    html = `<div class="modal">
-      <h2>New Transaction</h2>
-      <form id="form-transaction">
-        <div class="field">
-          <label>Type</label>
-          <div class="radio-group" id="txn-type-group">
-            <div class="radio-opt selected" data-val="expense">Expense</div>
-            <div class="radio-opt" data-val="income">Income</div>
-            <div class="radio-opt" data-val="transfer">Transfer</div>
+    const editing = ctx.txnId ? DB.transactions.find(t=>t.id===ctx.txnId) : null;
+    if(ctx.txnId && !editing){ toast('Transaction not found'); return; }
+
+    if(editing && editing.type.startsWith('transfer')){
+      // Reduced edit form for transfers: date/amount/note only, accounts read-only.
+      const pair = DB.transactions.filter(t=>t.transferPairId===editing.transferPairId);
+      const fromTxn = pair.find(t=>t.type==='transfer_out');
+      const toTxn = pair.find(t=>t.type==='transfer_in');
+      const fromAcc = fromTxn ? accountById(fromTxn.accountId) : null;
+      const toAcc = toTxn ? accountById(toTxn.accountId) : null;
+      html = `<div class="modal">
+        <h2>Edit Transfer</h2>
+        <form id="form-transaction">
+          <input type="hidden" name="transferPairId" value="${editing.transferPairId}">
+          <div class="field">
+            <label>Accounts</label>
+            <div class="help-text" style="margin-bottom:0;">${fromAcc?fromAcc.name:'—'} → ${toAcc?toAcc.name:'—'} (not editable — delete and re-create to change accounts)</div>
           </div>
-          <input type="hidden" name="type" value="expense">
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" required placeholder="0.00"></div>
-        </div>
-        <div class="field" id="txn-account-field">
-          <label>Account</label>
-          <select name="accountId">${accountOptions()}</select>
-        </div>
-        <div class="field" id="txn-dest-field" style="display:none;">
-          <label>To Account</label>
-          <select name="destAccountId">${accountOptions()}</select>
-        </div>
-        <div class="field" id="txn-category-field">
-          <label>Category</label>
-          <select name="categoryId">${categoryOptions('expense')}</select>
-        </div>
-        <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. صيانه العربيه"></div>
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Save Transaction</button>
-        </div>
-      </form>
-    </div>`;
+          <div class="field-row">
+            <div class="field"><label>Date</label><input type="date" name="date" value="${fromTxn?fromTxn.date:editing.date}" required></div>
+            <div class="field"><label>Amount (${fromAcc?fromAcc.currency:''})</label><input type="number" step="0.01" name="amount" value="${fromTxn?fromTxn.amount:editing.amount}" required></div>
+          </div>
+          <div class="field"><label>Note (optional)</label><input name="note" value="${(fromTxn?fromTxn.note:editing.note)||''}" placeholder="e.g. صيانه العربيه"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" data-close>Cancel</button>
+            <button type="submit" class="btn">Save Changes</button>
+          </div>
+        </form>
+      </div>`;
+    } else {
+      const typeVal = editing ? editing.type : 'expense';
+      html = `<div class="modal">
+        <h2>${editing ? 'Edit Transaction' : 'New Transaction'}</h2>
+        <form id="form-transaction">
+          ${editing ? `<input type="hidden" name="txnId" value="${editing.id}">` : ''}
+          <div class="field">
+            <label>Type</label>
+            <div class="radio-group" id="txn-type-group">
+              <div class="radio-opt ${typeVal==='expense'?'selected':''}" data-val="expense">Expense</div>
+              <div class="radio-opt ${typeVal==='income'?'selected':''}" data-val="income">Income</div>
+              ${editing ? '' : '<div class="radio-opt" data-val="transfer">Transfer</div>'}
+            </div>
+            <input type="hidden" name="type" value="${typeVal}">
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Date</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
+            <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${editing?editing.amount:''}" required placeholder="0.00"></div>
+          </div>
+          <div class="field" id="txn-account-field">
+            <label>Account</label>
+            <select name="accountId">${accountOptions(editing?editing.accountId:undefined)}</select>
+          </div>
+          <div class="field" id="txn-dest-field" style="display:none;">
+            <label>To Account</label>
+            <select name="destAccountId">${accountOptions()}</select>
+          </div>
+          <div class="field" id="txn-category-field">
+            <label>Category</label>
+            <select name="categoryId">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
+          </div>
+          <div class="field"><label>Note (optional)</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانه العربيه"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" data-close>Cancel</button>
+            <button type="submit" class="btn">${editing ? 'Save Changes' : 'Save Transaction'}</button>
+          </div>
+        </form>
+      </div>`;
+    }
   }
 
   if(kind==='category'){
@@ -2568,9 +2682,15 @@ function openModal(kind, ctx={}){
       <div class="section-title" style="margin:0 0 10px 0;">Documents &amp; Renewals</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th></tr></thead>
+          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th><th></th></tr></thead>
           <tbody>
-            ${docs.map(d=>`<tr><td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">No documents tracked</td></tr>`}
+            ${docs.map(d=>`<tr>
+              <td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td>
+              <td style="white-space:nowrap;">
+                <button class="btn ghost sm" data-edit-vdoc="${d.id}">Edit</button>
+                <button class="btn ghost sm" data-del-vdoc="${d.id}">Delete</button>
+              </td>
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">No documents tracked</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2664,16 +2784,18 @@ function openModal(kind, ctx={}){
 
   if(kind==='vehicle-doc'){
     const v = vehicleById(ctx.vehicleId);
+    const editing = ctx.docId ? DB.vehicleDocs.find(d=>d.id===ctx.docId) : null;
     html = `<div class="modal">
-      <h2>Document / Renewal — ${v.name}</h2>
+      <h2>${editing ? 'Edit' : 'Document / Renewal'} — ${v.name}</h2>
       <form id="form-vehicle-doc">
         <input type="hidden" name="vehicleId" value="${v.id}">
-        <div class="field"><label>Type</label><input name="docType" required placeholder="e.g. رخصة، تأمين، بطاقة"></div>
-        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" required></div>
-        <div class="field"><label>Note (optional)</label><input name="note"></div>
+        ${editing ? `<input type="hidden" name="docId" value="${editing.id}">` : ''}
+        <div class="field"><label>Type</label><input name="docType" value="${editing?editing.docType:''}" required placeholder="e.g. رخصة، تأمين، بطاقة"></div>
+        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" value="${editing?editing.renewalDate:''}" required></div>
+        <div class="field"><label>Note (optional)</label><input name="note" value="${editing?(editing.note||''):''}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Save Document</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Save Document'}</button>
         </div>
       </form>
     </div>`;
@@ -2748,6 +2870,17 @@ function openModal(kind, ctx={}){
       saveDB(); renderAll();
       openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
       toast('Tank range updated');
+    });
+    backdrop.addEventListener('click', e=>{
+      const editId = e.target.dataset.editVdoc;
+      if(editId){ openModal('vehicle-doc', {vehicleId: ctx.vehicleId, docId: editId}); return; }
+      const delId = e.target.dataset.delVdoc;
+      if(delId){
+        DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.id!==delId);
+        saveDB(); renderAll();
+        openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+        toast('Document deleted');
+      }
     });
   }
 
@@ -2923,6 +3056,30 @@ const submitHandlers = {
     saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
   },
   transaction(data){
+    if(data.transferPairId){
+      // Editing an existing transfer: date/amount/note only, accounts stay fixed.
+      const pair = DB.transactions.filter(t=>t.transferPairId===data.transferPairId);
+      const fromTxn = pair.find(t=>t.type==='transfer_out');
+      const toTxn = pair.find(t=>t.type==='transfer_in');
+      if(!fromTxn || !toTxn) throw new Error('Could not find the matching transfer leg');
+      const fromAcc = accountById(fromTxn.accountId), toAcc = accountById(toTxn.accountId);
+      const amount = Number(data.amount);
+      const destAmount = fromAcc.currency===toAcc.currency ? amount : amount * (fxRate(fromAcc.currency)/fxRate(toAcc.currency));
+      fromTxn.date = data.date; fromTxn.amount = amount; fromTxn.note = data.note;
+      toTxn.date = data.date; toTxn.amount = destAmount; toTxn.note = data.note;
+      saveDB(); toast('Transfer updated');
+      return;
+    }
+    if(data.txnId){
+      // Editing an existing regular (income/expense) transaction in place.
+      const t = DB.transactions.find(x=>x.id===data.txnId);
+      if(!t) throw new Error('Transaction not found');
+      const acc = accountById(data.accountId);
+      t.date = data.date; t.accountId = data.accountId; t.categoryId = data.categoryId;
+      t.amount = Number(data.amount); t.currency = acc.currency; t.note = data.note; t.type = data.type;
+      saveDB(); toast('Transaction updated');
+      return;
+    }
     if(data.type==='transfer'){
       if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
       const from = accountById(data.accountId), to = accountById(data.destAccountId);
@@ -3032,6 +3189,13 @@ const submitHandlers = {
   'vehicle-doc'(data){
     const v = vehicleById(data.vehicleId);
     if(!v) throw new Error('Vehicle not found');
+    if(data.docId){
+      const d = DB.vehicleDocs.find(x=>x.id===data.docId);
+      if(!d) throw new Error('Document not found');
+      d.docType = data.docType.trim(); d.renewalDate = data.renewalDate; d.note = data.note || '';
+      saveDB(); toast('Document updated');
+      return;
+    }
     DB.vehicleDocs.push({
       id: uid('vdoc'), vehicleId: v.id, docType: data.docType.trim(),
       renewalDate: data.renewalDate, note: data.note || ''

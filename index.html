@@ -29,6 +29,23 @@
     --font-mono:'JetBrains Mono',monospace;
     --radius:10px;
   }
+  body.light{
+    --bg:#F5F6F8;
+    --surface:#FFFFFF;
+    --surface-2:#F0F1F5;
+    --surface-3:#E6E8ED;
+    --border:#DDE0E7;
+    --text:#1A1D26;
+    --text-muted:#5B6178;
+    --text-faint:#9299AC;
+    --accent:#3D8377;
+    --accent-bright:#2E6B60;
+    --accent-soft:rgba(61,131,119,0.12);
+    --positive:#2F9463;
+    --negative:#C94A56;
+    --warning:#B3801F;
+    --warning-soft:rgba(179,128,31,0.12);
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
   body{
@@ -227,6 +244,18 @@
 
   .more-toggle{display:none;}
 
+  .sidebar{transition:width .2s ease, padding .2s ease;}
+  .app.sidebar-collapsed .sidebar{width:0;padding:0;overflow:hidden;border-right:none;}
+  .sidebar-toggle-btn{
+    position:fixed;top:20px;left:206px;z-index:500;
+    width:28px;height:28px;border-radius:50%;
+    background:var(--surface);border:1px solid var(--border);color:var(--text-muted);
+    display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;
+    transition:left .2s ease;box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .sidebar-toggle-btn:hover{color:var(--text);border-color:var(--accent);}
+  .app.sidebar-collapsed .sidebar-toggle-btn{left:6px;}
+
   /* Reports grid responsive */
   #rep-main-grid{grid-template-columns:3fr 2fr;}
   @media(max-width:900px){#rep-main-grid{grid-template-columns:1fr!important;}}
@@ -241,6 +270,7 @@
 
     .app{display:block;}
     .sidebar{display:contents;}
+    .sidebar-toggle-btn{display:none;}
 
     .brand{
       position:fixed;top:0;left:0;right:0;z-index:70;
@@ -326,8 +356,20 @@
 </style>
 </head>
 <body>
+<script>
+  try{ if(localStorage.getItem('fintrack_theme')==='light') document.body.classList.add('light'); }catch(e){}
+</script>
 
 <div class="app">
+<button id="btn-sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle sidebar" title="Toggle sidebar">‹</button>
+<script>
+  try{
+    if(localStorage.getItem('fintrack_sidebar_collapsed')==='1'){
+      document.querySelector('.app').classList.add('sidebar-collapsed');
+      document.getElementById('btn-sidebar-toggle').textContent = '\u203a';
+    }
+  }catch(e){}
+</script>
   <aside class="sidebar">
     <div class="brand">
       <div class="mark"><span class="dot"></span>FinTrack</div>
@@ -339,13 +381,13 @@
       <button data-view="transactions"><span class="ic">≡</span><span class="lbl">Transactions</span></button>
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
       <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
-      <button data-view="history"><span class="ic">🕘</span><span class="lbl">History</span></button>
       <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
       <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
       <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
     </nav>
     <div class="nav-footer" id="nav-footer">
+      <button id="btn-theme-toggle">☀ Light Mode</button>
       <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
       <button id="btn-connect-drive">🔗 Connect Google Drive</button>
       <button id="btn-export">⬇ Export backup (JSON)</button>
@@ -424,6 +466,22 @@
         <select id="txn-account-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الحسابات</option>
         </select>
+        <div style="position:relative;min-width:180px;">
+          <button type="button" id="txn-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <span id="txn-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الكاتيجوريز</span><span style="flex:none;font-size:10px;">▾</span>
+          </button>
+          <div id="txn-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+            <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
+              <input type="text" id="txn-cat-search" placeholder="ابحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none;">
+            </div>
+            <div style="padding:4px 0;" id="txn-cat-tree"></div>
+            <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
+              <button class="btn ghost sm" id="txn-cat-all">الكل</button>
+              <button class="btn ghost sm" id="txn-cat-none">إلغاء</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn ghost sm" id="txn-reset" title="مسح الفلاتر">↺</button>
       </div>
       <div class="pill-row" id="txn-filters"></div>
       <div class="table-wrap">
@@ -562,76 +620,6 @@
           <tbody id="reports-monthly-body"></tbody>
         </table>
       </div>
-    </section>
-
-    <!-- HISTORY (archived / imported historical records, excluded from Net Worth) -->
-    <section class="view" id="view-history">
-      <div class="topbar">
-        <div><h1>History</h1><div class="today">السجلات التاريخية المستوردة — دخل ومصاريف</div></div>
-      </div>
-      <!-- Archive balance strip -->
-      <div id="hist-acc-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
-      <!-- Filter bar -->
-      <div class="card" style="margin-bottom:12px;padding:12px 14px;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-          <div>
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">النوع</div>
-            <select id="hist-type-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
-              <option value="all">الكل</option>
-              <option value="income">دخل</option>
-              <option value="expense">مصاريف</option>
-            </select>
-          </div>
-          <div>
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفترة</div>
-            <select id="hist-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;min-width:130px;">
-              <option value="all">كل الوقت</option>
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-              <option value="2023">2023</option>
-              <option value="custom">تخصيص...</option>
-            </select>
-          </div>
-          <div id="hist-from-wrap" style="display:none;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">من</div>
-            <input type="month" id="hist-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
-          </div>
-          <div id="hist-to-wrap" style="display:none;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">إلى</div>
-            <input type="month" id="hist-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
-          </div>
-          <div style="position:relative;flex:1;min-width:180px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الكاتيجوري (دخل + مصاريف)</div>
-            <button type="button" id="hist-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
-              <span id="hist-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الكاتيجوريز</span><span style="flex:none;font-size:10px;">▾</span>
-            </button>
-            <div id="hist-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
-              <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
-                <input type="text" id="hist-cat-search" placeholder="ابحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none;">
-              </div>
-              <div style="padding:4px 0;" id="hist-cat-tree"></div>
-              <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
-                <button class="btn ghost sm" id="hist-cat-all">الكل</button>
-                <button class="btn ghost sm" id="hist-cat-none">إلغاء</button>
-              </div>
-            </div>
-          </div>
-          <button class="btn ghost sm" id="hist-reset" style="align-self:flex-end;padding:7px 11px;" title="مسح">↺</button>
-        </div>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <div id="hist-summary" style="font-size:12px;color:var(--text-muted);"></div>
-          <div id="hist-net" style="font-size:13px;font-weight:700;"></div>
-        </div>
-      </div>
-      <div class="section-title">Historical Transactions</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
-          <tbody id="history-txn-body"></tbody>
-        </table>
-      </div>
-      <div id="hist-pagination" style="display:flex;gap:7px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;"></div>
     </section>
 
   </main>
@@ -1220,6 +1208,23 @@ window.addEventListener('load', ()=>{
 });
 
 /* ---------------------------- NAVIGATION ---------------------------- */
+function updateThemeButtonLabel(){
+  const btn = document.getElementById('btn-theme-toggle');
+  const isLight = document.body.classList.contains('light');
+  btn.textContent = isLight ? '🌙 Dark Mode' : '☀ Light Mode';
+}
+document.getElementById('btn-theme-toggle').addEventListener('click', ()=>{
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  try{ localStorage.setItem('fintrack_theme', isLight ? 'light' : 'dark'); }catch(e){}
+  updateThemeButtonLabel();
+});
+updateThemeButtonLabel();
+document.getElementById('btn-sidebar-toggle').addEventListener('click', ()=>{
+  const collapsed = document.querySelector('.app').classList.toggle('sidebar-collapsed');
+  document.getElementById('btn-sidebar-toggle').textContent = collapsed ? '›' : '‹';
+  try{ localStorage.setItem('fintrack_sidebar_collapsed', collapsed ? '1' : '0'); }catch(e){}
+});
 document.getElementById('btn-more-toggle').addEventListener('click', ()=>{
   document.getElementById('nav-footer').classList.toggle('open');
 });
@@ -1368,10 +1373,10 @@ function renderDashboard(){
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
 function renderAccounts(){
-  document.getElementById('accounts-body').innerHTML = DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>{
+  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}</td>
+      <td>${a.name}${a.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
       <td><span class="tag">${a.type}</span></td>
       <td>${a.currency}</td>
       <td class="amt">${fmtMoney(a.openingBalance)}</td>
@@ -1419,9 +1424,18 @@ let txnFilter = 'all';
 let txnSearchQuery = '';
 let txnMonthFilterVal = '';
 let txnAccountFilterVal = '';
+let txnPage = 0;
+const TXN_PG = 100;
+let _txnTreeCtrl = null;
 function renderTransactions(){
-  const liveTxns = liveTransactions();
-  document.getElementById('txn-count-label').textContent = `${liveTxns.length} transaction${liveTxns.length===1?'':'s'}`;
+  if(!_txnTreeCtrl){
+    _txnTreeCtrl = _initTreeDropdown({
+      btnId:'txn-cat-btn', dropdownId:'txn-cat-dropdown', treeId:'txn-cat-tree',
+      labelId:'txn-cat-label', searchId:'txn-cat-search',
+      allBtnId:'txn-cat-all', noneBtnId:'txn-cat-none',
+      onApply: ()=>{ txnPage=0; renderTransactions(); }
+    });
+  }
 
   const filters = [
     {k:'all', label:'All'},
@@ -1433,27 +1447,30 @@ function renderTransactions(){
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
   ).join('');
 
-  // Populate month filter options (newest first), preserving current selection if still valid
+  // Populate month filter options (newest first) across ALL transactions (live + archived), preserving selection
   const monthSel = document.getElementById('txn-month-filter');
-  const liveMonths = [...new Set(liveTxns.map(t=>monthKey(t.date)))].filter(Boolean).sort().reverse();
-  if(!liveMonths.includes(txnMonthFilterVal)) txnMonthFilterVal = '';
+  const allMonths = [...new Set(DB.transactions.map(t=>monthKey(t.date)))].filter(Boolean).sort().reverse();
+  if(!allMonths.includes(txnMonthFilterVal)) txnMonthFilterVal = '';
   monthSel.innerHTML = `<option value="">كل الشهور</option>` +
-    liveMonths.map(m=>`<option value="${m}" ${m===txnMonthFilterVal?'selected':''}>${m}</option>`).join('');
+    allMonths.map(m=>`<option value="${m}" ${m===txnMonthFilterVal?'selected':''}>${m}</option>`).join('');
 
-  // Populate account filter options, preserving current selection if still valid
+  // Populate account filter options — ALL accounts (live + archived), archived ones labeled
   const acctSel = document.getElementById('txn-account-filter');
-  const liveAccounts = DB.accounts.filter(a=>!a.excludeFromNetWorth);
-  if(!liveAccounts.some(a=>a.id===txnAccountFilterVal)) txnAccountFilterVal = '';
+  if(!DB.accounts.some(a=>a.id===txnAccountFilterVal)) txnAccountFilterVal = '';
   acctSel.innerHTML = `<option value="">كل الحسابات</option>` +
-    liveAccounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}</option>`).join('');
+    DB.accounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}${a.excludeFromNetWorth?' (Archived)':''}</option>`).join('');
 
-  let list = [...liveTxns].sort((a,b)=> b.date.localeCompare(a.date));
+  // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
+  let list = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date));
   if(txnFilter==='income') list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
 
   if(txnMonthFilterVal) list = list.filter(t=>monthKey(t.date)===txnMonthFilterVal);
   if(txnAccountFilterVal) list = list.filter(t=>t.accountId===txnAccountFilterVal);
+
+  const selCatIds = _txnTreeCtrl ? _txnTreeCtrl.getSelectedIds() : new Set();
+  if(selCatIds.size>0) list = list.filter(t=>selCatIds.has(t.categoryId));
 
   const q = txnSearchQuery.trim().toLowerCase();
   if(q){
@@ -1469,13 +1486,19 @@ function renderTransactions(){
     });
   }
 
-  document.getElementById('txn-body').innerHTML = list.map(t=>{
+  document.getElementById('txn-count-label').textContent = `${list.length} transaction${list.length===1?'':'s'}`;
+
+  const pages = Math.ceil(list.length/TXN_PG) || 1;
+  if(txnPage >= pages) txnPage = pages - 1;
+  const pageSlice = list.slice(txnPage*TXN_PG, (txnPage+1)*TXN_PG);
+
+  document.getElementById('txn-body').innerHTML = pageSlice.map(t=>{
     const acc = accountById(t.accountId);
     const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
     const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
       <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
+      <td>${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
       <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
       <td style="color:var(--text-muted);">${t.note||''}</td>
       <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
@@ -1485,19 +1508,42 @@ function renderTransactions(){
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">No transactions match your filters</td></tr>`;
+
+  const pgEl = document.getElementById('txn-pagination');
+  if(pgEl){
+    if(pages<=1){ pgEl.innerHTML=''; }
+    else {
+      let pg = `<span style="font-size:12px;color:var(--text-muted);">Page ${txnPage+1} of ${pages} (${list.length})</span>`;
+      if(txnPage>0) pg += `<button class="btn ghost sm" data-txnpage="${txnPage-1}">← Prev</button>`;
+      for(let i=Math.max(0,txnPage-2); i<=Math.min(pages-1,txnPage+2); i++)
+        pg += `<button class="btn ghost sm${i===txnPage?' active':''}" data-txnpage="${i}" style="${i===txnPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
+      if(txnPage<pages-1) pg += `<button class="btn ghost sm" data-txnpage="${txnPage+1}">Next →</button>`;
+      pgEl.innerHTML = pg;
+    }
+  }
 }
 document.getElementById('txn-filters').addEventListener('click', e=>{
   const btn = e.target.closest('[data-filter]'); if(!btn) return;
-  txnFilter = btn.dataset.filter; renderTransactions();
+  txnFilter = btn.dataset.filter; txnPage=0; renderTransactions();
 });
 document.getElementById('txn-search').addEventListener('input', e=>{
-  txnSearchQuery = e.target.value; renderTransactions();
+  txnSearchQuery = e.target.value; txnPage=0; renderTransactions();
 });
 document.getElementById('txn-month-filter').addEventListener('change', e=>{
-  txnMonthFilterVal = e.target.value; renderTransactions();
+  txnMonthFilterVal = e.target.value; txnPage=0; renderTransactions();
 });
 document.getElementById('txn-account-filter').addEventListener('change', e=>{
-  txnAccountFilterVal = e.target.value; renderTransactions();
+  txnAccountFilterVal = e.target.value; txnPage=0; renderTransactions();
+});
+document.getElementById('txn-pagination').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-txnpage]'); if(!btn) return;
+  txnPage = parseInt(btn.dataset.txnpage); renderTransactions();
+});
+document.getElementById('txn-reset').addEventListener('click', ()=>{
+  txnFilter='all'; txnSearchQuery=''; txnMonthFilterVal=''; txnAccountFilterVal=''; txnPage=0;
+  document.getElementById('txn-search').value='';
+  if(_txnTreeCtrl) _txnTreeCtrl.reset();
+  renderTransactions();
 });
 // Shared guard: if txnId is linked to a commitment payment or vehicle log,
 // confirm before letting the caller proceed. Returns true if it's safe to continue.
@@ -1595,6 +1641,7 @@ function renderCommitments(){
       <div class="actions">
         ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>` : ''}
         ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>` : ''}
+        <button class="btn ghost sm" data-edit-commit="${c.id}">Edit</button>
         <button class="btn ghost sm" data-del-commit="${c.id}">Delete</button>
       </div>
     </div>`;
@@ -1603,9 +1650,11 @@ function renderCommitments(){
 document.getElementById('view-commitments').addEventListener('click', e=>{
   const payId = e.target.dataset.recordPayment;
   const payoutId = e.target.dataset.recordPayout;
+  const editId = e.target.dataset.editCommit;
   const delId = e.target.dataset.delCommit;
   if(payId) return openModal('payment', {commitmentId: payId});
   if(payoutId) return openModal('payout', {commitmentId: payoutId});
+  if(editId) return openModal('commitment', {commitId: editId});
   if(delId){
     DB.commitments = DB.commitments.filter(c=>c.id!==delId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.commitmentId!==delId);
@@ -1998,116 +2047,6 @@ function _renderReportsInner(){
   });
 })();
 
-/* ================================================================
-   RENDER: HISTORY (with hierarchical tree filter + pagination)
-   ================================================================ */
-let _hType='all',_hPeriod='all',_hFrom='',_hTo='',_hPage=0,_histTreeCtrl=null;
-const H_PG=100;
-
-function _histRange(){
-  if(_hPeriod==='all')return{from:null,to:null};
-  if(/^\d{4}$/.test(_hPeriod))return{from:`${_hPeriod}-01`,to:`${_hPeriod}-12`};
-  if(_hPeriod==='custom')return{from:_hFrom||null,to:_hTo||null};
-  return{from:null,to:null};
-}
-
-function renderHistory(){
-  // Archive balance strip
-  const strip=document.getElementById('hist-acc-strip');
-  if(strip)strip.innerHTML=DB.accounts.filter(a=>a.excludeFromNetWorth).map(a=>{
-    const bal=accountBalance(a);
-    return `<div class="card" style="padding:10px 14px;flex:1;min-width:150px;">
-      <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:2px;">${a.name}</div>
-      <div class="num" style="font-size:14px;font-weight:700;color:${bal>=0?'var(--positive)':'var(--negative)'};">${bal>=0?'+':''}EGP ${fmtMoney(Math.abs(bal))}</div>
-    </div>`;
-  }).join('');
-
-  // Init tree once
-  if(!_histTreeCtrl){
-    _histTreeCtrl = _initTreeDropdown({
-      btnId:'hist-cat-btn', dropdownId:'hist-cat-dropdown', treeId:'hist-cat-tree',
-      labelId:'hist-cat-label', searchId:'hist-cat-search',
-      allBtnId:'hist-cat-all', noneBtnId:'hist-cat-none',
-      onApply: ()=>{ _hPage=0; _renderHistTxns(); }
-    });
-  }
-  _hPage=0;
-  _renderHistTxns();
-}
-
-function _renderHistTxns(){
-  const{from,to}=_histRange();
-  const selIds=_histTreeCtrl?_histTreeCtrl.getSelectedIds():new Set();
-  const useCat=selIds.size>0;
-  let txns=archiveTransactions().slice().sort((a,b)=>b.date.localeCompare(a.date));
-  if(_hType==='income')  txns=txns.filter(t=>t.type==='income');
-  if(_hType==='expense') txns=txns.filter(t=>t.type==='expense');
-  if(from) txns=txns.filter(t=>t.date.slice(0,7)>=from);
-  if(to)   txns=txns.filter(t=>t.date.slice(0,7)<=to);
-  if(useCat) txns=txns.filter(t=>selIds.has(t.categoryId));
-
-  const totInc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const totExp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
-  const net=totInc-totExp;
-  const sumEl=document.getElementById('hist-summary');
-  const netEl=document.getElementById('hist-net');
-  if(sumEl)sumEl.textContent=`${txns.length} معاملة · دخل EGP ${fmtMoney(totInc)} · مصاريف EGP ${fmtMoney(totExp)}`;
-  if(netEl){netEl.textContent=`صافي: ${net>=0?'+':''}EGP ${fmtMoney(net)}`;netEl.style.color=net>=0?'var(--positive)':'var(--negative)';}
-
-  const pages=Math.ceil(txns.length/H_PG)||1;
-  if(_hPage>=pages)_hPage=pages-1;
-  const slice=txns.slice(_hPage*H_PG,(_hPage+1)*H_PG);
-
-  document.getElementById('history-txn-body').innerHTML=slice.map(t=>{
-    const isInc=t.type==='income';
-    return `<tr>
-      <td style="white-space:nowrap;font-size:12px;">${fmtDate(t.date)}</td>
-      <td style="font-size:12px;">${categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.note||''}</td>
-      <td class="amt ${isInc?'pos':'neg'}">${isInc?'+':'-'}${t.currency||'EGP'} ${fmtMoney(t.amount)}</td>
-    </tr>`;
-  }).join('')||`<tr><td colspan="4" class="empty">لا توجد سجلات — تأكد من استيراد الداتا</td></tr>`;
-
-  const pgEl=document.getElementById('hist-pagination');
-  if(!pgEl)return;
-  if(pages<=1){pgEl.innerHTML='';return;}
-  let pg=`<span style="font-size:12px;color:var(--text-muted);">صفحة ${_hPage+1} من ${pages} (${txns.length})</span>`;
-  if(_hPage>0)pg+=`<button class="btn ghost sm" data-hpage="${_hPage-1}">← السابق</button>`;
-  for(let i=Math.max(0,_hPage-2);i<=Math.min(pages-1,_hPage+2);i++)
-    pg+=`<button class="btn ghost sm${i===_hPage?' active':''}" data-hpage="${i}" style="${i===_hPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
-  if(_hPage<pages-1)pg+=`<button class="btn ghost sm" data-hpage="${_hPage+1}">التالي →</button>`;
-  pgEl.innerHTML=pg;
-}
-
-// History filter wiring
-(function(){
-  const tSel=document.getElementById('hist-type-sel');
-  const pSel=document.getElementById('hist-period-sel');
-  const pgEl=document.getElementById('hist-pagination');
-  tSel?.addEventListener('change',()=>{_hType=tSel.value;_hPage=0;_renderHistTxns();});
-  pSel?.addEventListener('change',()=>{
-    _hPeriod=pSel.value;
-    document.getElementById('hist-from-wrap').style.display=_hPeriod==='custom'?'block':'none';
-    document.getElementById('hist-to-wrap').style.display=_hPeriod==='custom'?'block':'none';
-    _hPage=0;_renderHistTxns();
-  });
-  document.getElementById('hist-from')?.addEventListener('change',e=>{_hFrom=e.target.value;_renderHistTxns();});
-  document.getElementById('hist-to')?.addEventListener('change',e=>{_hTo=e.target.value;_renderHistTxns();});
-  document.getElementById('hist-reset')?.addEventListener('click',()=>{
-    _hType='all';_hPeriod='all';_hFrom='';_hTo='';_hPage=0;
-    if(tSel)tSel.value='all'; if(pSel)pSel.value='all';
-    document.getElementById('hist-from-wrap').style.display='none';
-    document.getElementById('hist-to-wrap').style.display='none';
-    if(_histTreeCtrl)_histTreeCtrl.reset();
-    renderHistory();
-  });
-  pgEl?.addEventListener('click',e=>{
-    const btn=e.target.closest('[data-hpage]');if(!btn)return;
-    _hPage=parseInt(btn.dataset.hpage);_renderHistTxns();
-    document.getElementById('view-history')?.scrollIntoView({behavior:'smooth',block:'start'});
-  });
-})();
-
 /* ---------------------------- RENDER: VEHICLES ---------------------------- */
 function renderVehicles(){
   document.getElementById('fuel-price-input').value = DB.fuelPricePerLiter;
@@ -2178,6 +2117,37 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: BUDGETS ---------------------------- */
+let expandedBudgetCats = new Set();
+function budgetCardHTML(c, mKey, nested){
+  const budget = budgetFor(c.id);
+  const limit = budget ? budget.monthlyLimit : 0;
+  const spent = nested ? categorySelfTotal(c.id, mKey) : categorySpendInMonth(c.id, mKey);
+  const avg3 = categoryAvgSpend(c.id, 3);
+  const pct = limit>0 ? Math.min(100, Math.round(spent/limit*100)) : 0;
+  const over = limit>0 && spent>limit;
+  const children = nested ? [] : DB.categories.filter(x=>x.parentId===c.id && x.type==='expense');
+  const expanded = expandedBudgetCats.has(c.id);
+  return `<div class="${nested?'card':'commit-card'}" style="${nested?'padding:12px 14px;':''}">
+    <div class="top">
+      <div><div class="name" style="${nested?'font-size:13px;':''}">${c.name}</div><div class="meta">this month so far: EGP ${fmtMoney(spent)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${over ? '<span class="tag expense">Over</span>' : (limit>0?'<span class="tag income">On track</span>':'')}
+        ${!nested && children.length ? `<button class="btn ghost sm" data-toggle-budget-cat="${c.id}">${expanded?'▲ Hide sub-categories':'▼ Sub-categories ('+children.length+')'}</button>` : ''}
+      </div>
+    </div>
+    ${limit>0 ? `<div class="progress-bar"><div class="fill ${over?'over':''}" style="width:${pct}%;"></div></div>
+    <div class="stats"><span>${pct}% used</span><span class="num">${fmtMoney(Math.max(0,limit-spent))} left</span></div>` : ''}
+    <div class="field" style="margin-top:12px;margin-bottom:6px;">
+      <label>Monthly Limit (EGP)</label>
+      <input type="number" step="10" data-budget-input="${c.id}" value="${limit||''}" placeholder="no limit set">
+    </div>
+    <div class="meta" style="margin-bottom:8px;">Avg. last 3 months: EGP ${fmtMoney(avg3)}</div>
+    <button class="btn ghost sm" data-suggest-budget="${c.id}" data-suggest-value="${Math.round(avg3)}">Use average as limit</button>
+    ${!nested && children.length && expanded ? `<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
+      ${children.map(child=>budgetCardHTML(child, mKey, true)).join('')}
+    </div>` : ''}
+  </div>`;
+}
 function renderBudgets(){
   const topExpenseCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
   const mKey = thisMonthKey();
@@ -2185,28 +2155,7 @@ function renderBudgets(){
     document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">No expense categories yet</div>`;
     return;
   }
-  document.getElementById('budgets-grid').innerHTML = topExpenseCats.map(c=>{
-    const budget = budgetFor(c.id);
-    const limit = budget ? budget.monthlyLimit : 0;
-    const spent = categorySpendInMonth(c.id, mKey);
-    const avg3 = categoryAvgSpend(c.id, 3);
-    const pct = limit>0 ? Math.min(100, Math.round(spent/limit*100)) : 0;
-    const over = limit>0 && spent>limit;
-    return `<div class="commit-card">
-      <div class="top">
-        <div><div class="name">${c.name}</div><div class="meta">this month so far: EGP ${fmtMoney(spent)}</div></div>
-        ${over ? '<span class="tag expense">Over</span>' : (limit>0?'<span class="tag income">On track</span>':'')}
-      </div>
-      ${limit>0 ? `<div class="progress-bar"><div class="fill ${over?'over':''}" style="width:${pct}%;"></div></div>
-      <div class="stats"><span>${pct}% used</span><span class="num">${fmtMoney(Math.max(0,limit-spent))} left</span></div>` : ''}
-      <div class="field" style="margin-top:12px;margin-bottom:6px;">
-        <label>Monthly Limit (EGP)</label>
-        <input type="number" step="10" data-budget-input="${c.id}" value="${limit||''}" placeholder="no limit set">
-      </div>
-      <div class="meta" style="margin-bottom:8px;">Avg. last 3 months: EGP ${fmtMoney(avg3)}</div>
-      <button class="btn ghost sm" data-suggest-budget="${c.id}" data-suggest-value="${Math.round(avg3)}">Use average as limit</button>
-    </div>`;
-  }).join('');
+  document.getElementById('budgets-grid').innerHTML = topExpenseCats.map(c=>budgetCardHTML(c, mKey, false)).join('');
 }
 document.getElementById('view-budgets').addEventListener('change', e=>{
   const catId = e.target.dataset.budgetInput;
@@ -2218,6 +2167,13 @@ document.getElementById('view-budgets').addEventListener('change', e=>{
   saveDB(); renderBudgets(); toast('Budget updated');
 });
 document.getElementById('view-budgets').addEventListener('click', e=>{
+  const toggleId = e.target.dataset.toggleBudgetCat;
+  if(toggleId){
+    if(expandedBudgetCats.has(toggleId)) expandedBudgetCats.delete(toggleId);
+    else expandedBudgetCats.add(toggleId);
+    renderBudgets();
+    return;
+  }
   const catId = e.target.dataset.suggestBudget;
   if(!catId) return;
   const val = Number(e.target.dataset.suggestValue) || 0;
@@ -2226,6 +2182,7 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
   else b.monthlyLimit = val;
   saveDB(); renderBudgets(); toast('Budget set from 3-month average');
 });
+
 
 /* ---------------------------- MODALS ---------------------------- */
 function accountOptions(selected){
@@ -2464,9 +2421,13 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='commitment'){
+    const editing = ctx.commitId ? DB.commitments.find(c=>c.id===ctx.commitId) : null;
     html = `<div class="modal">
-      <h2>New Commitment</h2>
+      <h2>${editing ? 'Edit Commitment' : 'New Commitment'}</h2>
       <form id="form-commitment">
+        ${editing ? `<input type="hidden" name="commitId" value="${editing.id}">
+        <input type="hidden" name="type" value="${editing.type}">
+        <input type="hidden" name="payoutDate" value="${editing.payoutDate||''}">` : `
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="commit-type-group">
@@ -2474,23 +2435,23 @@ function openModal(kind, ctx={}){
             <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
           </div>
           <input type="hidden" name="type" value="installment">
-        </div>
-        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
+        </div>`}
+        <div class="field"><label>Name</label><input name="name" value="${editing?editing.name:''}" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
         <div class="field-row">
-          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" required></div>
-          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" required></div>
+          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" value="${editing?editing.totalAmount:''}" required></div>
+          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" value="${editing?editing.installmentAmount:''}" required></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" required placeholder="e.g. 12"></div>
+          <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${editing?editing.startDate:todayLocalISO()}" required></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" value="${editing?editing.totalInstallments:''}" required placeholder="e.g. 12"></div>
         </div>
-        <div class="field" id="commit-payout-field" style="display:none;">
+        ${editing ? '' : `<div class="field" id="commit-payout-field" style="display:none;">
           <label>Expected Payout Date (جمعية)</label>
           <input type="date" name="payoutDate">
-        </div>
+        </div>`}
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Create Commitment</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Create Commitment'}</button>
         </div>
       </form>
     </div>`;
@@ -3102,6 +3063,17 @@ const submitHandlers = {
     saveDB(); toast('Category created');
   },
   commitment(data){
+    if(data.commitId){
+      const c = DB.commitments.find(x=>x.id===data.commitId);
+      if(!c) throw new Error('Commitment not found');
+      c.name = data.name.trim();
+      c.totalAmount = Number(data.totalAmount);
+      c.installmentAmount = Number(data.installmentAmount);
+      c.startDate = data.startDate;
+      c.totalInstallments = Number(data.totalInstallments);
+      saveDB(); toast('Commitment updated');
+      return;
+    }
     DB.commitments.push({
       id: uid('cm'), name:data.name.trim(), type:data.type,
       totalAmount:Number(data.totalAmount), installmentAmount:Number(data.installmentAmount),
@@ -3488,7 +3460,6 @@ function renderAll(){
   renderVehicles();
   renderBudgets();
   renderReports();
-  renderHistory();
 }
 renderAll();
 </script>

@@ -810,8 +810,12 @@ function totalLiabilitiesEGP(){
 }
 
 function monthTotals(mKey){
-  const liveTxns = liveTransactions().filter(t=>monthKey(t.date)===mKey);
-  const src = liveTxns.length>0 ? liveTxns : DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  // Match Reports page: income/expense cash-flow totals include ALL transactions,
+  // regardless of whether the account is excluded from net worth (archived).
+  // excludeFromNetWorth should only affect balance/net-worth calculations, not
+  // monthly income/expense totals — previously this silently dropped archived-
+  // account transactions whenever the month also had at least one "live" transaction.
+  const src = DB.transactions.filter(t=>monthKey(t.date)===mKey);
   let income=0,expense=0;
   src.forEach(t=>{
     if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
@@ -975,7 +979,7 @@ function vehicleLogCategoryId(log){
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
   const txnEntries = DB.transactions.filter(t=>t.type==='expense')
-    .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction'}));
+    .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
   return txnEntries.concat(cmPmtEntries);
@@ -2514,10 +2518,10 @@ function openModal(kind, ctx={}){
     const isIncome = ctx.type === 'income';
     let rows;
     if(isIncome){
-      rows = liveTransactions().filter(t=>t.type==='income' && monthKey(t.date)===mKey)
+      rows = DB.transactions.filter(t=>t.type==='income' && monthKey(t.date)===mKey)
         .map(t=>({date:t.date, label: categoryLabel(t.categoryId), note:t.note, amount:t.amount, currency:t.currency}));
     } else {
-      rows = liveExpenseEntries().filter(e=>monthKey(e.date)===mKey)
+      rows = allExpenseEntries().filter(e=>monthKey(e.date)===mKey)
         .map(e=>({date:e.date, label: categoryLabel(e.categoryId), note:e.note, amount:e.amount, currency:e.currency}));
     }
     rows.sort((a,b)=> b.date.localeCompare(a.date));

@@ -955,6 +955,10 @@ function vehicleMonthCost(vehicleId, mKey){
 function vehicleDocsFor(vehicleId){
   return DB.vehicleDocs.filter(d=>d.vehicleId===vehicleId).sort((a,b)=> (a.renewalDate||'').localeCompare(b.renewalDate||''));
 }
+// Chronological fuel log entries that have a computed km/L value, for the efficiency trend chart.
+function vehicleFuelEfficiencySeries(vehicleId){
+  return vehicleLogsComputed(vehicleId).filter(l=>l.type==='fuel' && l.kmPerLiter!=null);
+}
 
 /* ---------------------------- BUDGETS ---------------------------- */
 // A budget on a parent category (e.g. "Home Expenses") rolls up spend from its sub-categories too.
@@ -988,12 +992,13 @@ function categoryVehicleInfo(categoryId){
   };
   return map[categoryId] || null;
 }
-// <select> options of vehicles matching a given type (car/scooter), for the Transaction modal.
-function vehicleOptionsByType(vehicleType, selectedId){
-  const list = DB.vehicles.filter(v=>v.type===vehicleType);
-  if(!list.length) return '<option value="">— No vehicles of this type yet —</option>';
-  return '<option value="">— Select vehicle —</option>' + list.map(v=>
-    `<option value="${v.id}" ${v.id===selectedId?'selected':''}>${v.name}</option>`
+// <select> options listing every vehicle in the system (car + scooter), for the Transaction
+// modal. Each option is prefixed with its type icon so it's clear which is which — the user
+// picks freely rather than being restricted to the category's car/scooter split.
+function vehicleOptionsAll(selectedId){
+  if(!DB.vehicles.length) return '<option value="">— No vehicles yet, add one from the Vehicles tab —</option>';
+  return '<option value="">— Select vehicle —</option>' + DB.vehicles.map(v=>
+    `<option value="${v.id}" ${v.id===selectedId?'selected':''}>${v.type==='scooter'?'🛵':'🚗'} ${v.name}</option>`
   ).join('');
 }
 // Unified expense list for category totals: regular expense transactions, PLUS vehicle logs that
@@ -1891,6 +1896,59 @@ function _incInRange(from,to,catIds){
   }).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
 }
 
+// Small reusable line-chart renderer (simpler variant of _drawChart, for non-currency series
+// like fuel efficiency). labels/values must be the same length and already chronological.
+function _drawSimpleLineChart(canvasId, emptyElId, labels, values, opts){
+  opts = opts || {};
+  const canvas = document.getElementById(canvasId);
+  const emptyEl = document.getElementById(emptyElId);
+  if(!canvas) return;
+  if(!values.length || values.length < 2){
+    canvas.style.display='none'; if(emptyEl) emptyEl.style.display='block'; return;
+  }
+  canvas.style.display='block'; if(emptyEl) emptyEl.style.display='none';
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth - 32, H = 150;
+  canvas.width = W*window.devicePixelRatio; canvas.height = H*window.devicePixelRatio;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const pad = {top:16, right:14, bottom:26, left:34};
+  const cW = W-pad.left-pad.right, cH = H-pad.top-pad.bottom;
+  const minVal = Math.min(...values), maxVal = Math.max(...values, minVal+1);
+  const range = (maxVal-minVal) || 1;
+
+  ctx.strokeStyle = 'rgba(100,110,140,0.15)'; ctx.lineWidth = 1;
+  ctx.fillStyle = 'rgba(130,140,165,0.85)'; ctx.font = '10px Inter,sans-serif';
+  for(let i=0;i<=3;i++){
+    const y = pad.top+cH-(i/3)*cH;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+    const v = minVal+range*i/3;
+    ctx.textAlign='right';
+    ctx.fillText(v.toFixed(1), pad.left-5, y+3.5);
+  }
+
+  const step = cW/(values.length-1);
+  ctx.beginPath(); ctx.strokeStyle = opts.color || '#4C9A8E'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  values.forEach((v,i)=>{
+    const x = pad.left+i*step, y = pad.top+cH-((v-minVal)/range)*cH;
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  values.forEach((v,i)=>{
+    const x = pad.left+i*step, y = pad.top+cH-((v-minVal)/range)*cH;
+    ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle = opts.color || '#4C9A8E'; ctx.fill();
+  });
+
+  ctx.fillStyle = 'rgba(130,140,165,0.85)'; ctx.font = '10px Inter,sans-serif'; ctx.textAlign = 'center';
+  const maxLabels = Math.floor(cW/44);
+  const labelStep = Math.max(1, Math.ceil(labels.length/maxLabels));
+  labels.forEach((lb,i)=>{
+    if(i%labelStep!==0 && i!==labels.length-1) return;
+    ctx.fillText(lb, pad.left+i*step, pad.top+cH+16);
+  });
+}
+
 function _drawChart(months, amounts, chartType){
   const canvas=document.getElementById('rep-chart');
   const emptyEl=document.getElementById('rep-chart-empty');
@@ -2642,6 +2700,12 @@ function openModal(kind, ctx={}){
         </div>
       </div>
 
+      <div class="section-title" style="margin:20px 0 10px 0;">Fuel Efficiency (km/L)<span class="hint">from odometer + liters on fuel logs</span></div>
+      <div class="table-wrap" style="margin-bottom:18px;padding:14px 16px;">
+        <canvas id="veh-fuel-chart" style="max-height:150px;width:100%;"></canvas>
+        <div id="veh-fuel-chart-empty" class="empty" style="display:none;padding:16px 0 4px 0;">Log at least 2 fuel fill-ups with odometer readings to see your consumption trend</div>
+      </div>
+
       <div class="section-title" style="margin:0 0 10px 0;">Tracked Parts (tires, brakes, filters...)<span class="hint">alerts the same way as oil</span></div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
         ${parts.map(p=>{
@@ -2668,7 +2732,7 @@ function openModal(kind, ctx={}){
       </div>
       <div class="table-wrap" style="margin-bottom:18px;">
         <table>
-          <thead><tr><th>Date</th><th>Type</th><th class="amt">Amount</th><th class="amt">KM</th><th class="amt">Dist.</th><th class="amt">km/L</th><th>Note</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th class="amt">Amount</th><th class="amt">KM</th><th class="amt">Dist.</th><th class="amt">km/L</th><th>Note</th><th></th></tr></thead>
           <tbody>
             ${logs.map(l=>{
               const partName = l.partId ? (parts.find(p=>p.id===l.partId)||{}).name : null;
@@ -2680,8 +2744,12 @@ function openModal(kind, ctx={}){
               <td class="amt">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
               <td class="amt">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
               <td style="color:var(--text-muted);">${partName?'['+partName+'] ':''}${l.note||''}</td>
+              <td style="white-space:nowrap;">
+                <button class="btn ghost sm" data-edit-vlog="${l.id}">Edit</button>
+                <button class="btn ghost sm" data-del-vlog="${l.id}">Delete</button>
+              </td>
             </tr>`;
-            }).join('') || `<tr><td colspan="7" class="empty">No log entries yet</td></tr>`}
+            }).join('') || `<tr><td colspan="8" class="empty">No log entries yet</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2706,51 +2774,56 @@ function openModal(kind, ctx={}){
 
   if(kind==='vehicle-log'){
     const v = vehicleById(ctx.vehicleId);
+    const editing = ctx.logId ? DB.vehicleLogs.find(l=>l.id===ctx.logId) : null;
+    const typeVal = editing ? editing.type : 'fuel';
+    const methodVal = editing ? editing.method : 'cash';
+    const typeLabelsShort = {fuel:'⛽ Fuel', maintenance:'🔧 Maint.', oil:'🛢 Oil', asset:'💰 Asset'};
     html = `<div class="modal">
-      <h2>Log Entry — ${v.name}</h2>
+      <h2>${editing ? 'Edit Log Entry' : 'Log Entry'} — ${v.name}</h2>
       <form id="form-vehicle-log">
         <input type="hidden" name="vehicleId" value="${v.id}">
+        ${editing ? `<input type="hidden" name="logId" value="${editing.id}">` : ''}
         <div class="field">
           <label>Type</label>
           <div class="radio-group" id="vlog-type-group">
-            <div class="radio-opt selected" data-val="fuel">⛽ Fuel</div>
-            <div class="radio-opt" data-val="maintenance">🔧 Maint.</div>
-            <div class="radio-opt" data-val="oil">🛢 Oil</div>
-            <div class="radio-opt" data-val="asset">💰 Asset</div>
+            <div class="radio-opt ${typeVal==='fuel'?'selected':''}" data-val="fuel">⛽ Fuel</div>
+            <div class="radio-opt ${typeVal==='maintenance'?'selected':''}" data-val="maintenance">🔧 Maint.</div>
+            <div class="radio-opt ${typeVal==='oil'?'selected':''}" data-val="oil">🛢 Oil</div>
+            <div class="radio-opt ${typeVal==='asset'?'selected':''}" data-val="asset">💰 Asset</div>
           </div>
-          <input type="hidden" name="type" value="fuel">
+          <input type="hidden" name="type" value="${typeVal}">
         </div>
         <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
-          <div class="field"><label>Amount (EGP)</label><input type="number" step="0.01" name="amount" required></div>
+          <div class="field"><label>Date</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
+          <div class="field"><label>Amount (EGP)</label><input type="number" step="0.01" name="amount" value="${editing?editing.amount:''}" required></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Odometer (km)</label><input type="number" step="1" name="odometerKm" id="vlog-odometer"></div>
-          <div class="field" id="vlog-liters-field"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters"></div>
+          <div class="field"><label>Odometer (km)</label><input type="number" step="1" name="odometerKm" id="vlog-odometer" value="${editing&&editing.odometerKm!=null?editing.odometerKm:''}"></div>
+          <div class="field" id="vlog-liters-field" style="${typeVal==='fuel'?'':'display:none;'}"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters" value="${editing&&editing.litersFilled!=null?editing.litersFilled:''}"></div>
         </div>
-        <div class="field"><label>Description</label><input name="note" placeholder="e.g. صيانة دورية" required></div>
-        <div class="field" id="vlog-part-field" style="display:none;">
+        <div class="field"><label>Description</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانة دورية" required></div>
+        <div class="field" id="vlog-part-field" style="${typeVal==='maintenance'?'':'display:none;'}">
           <label>Part (optional)</label>
           <select name="partId">
             <option value="">General maintenance (no specific part)</option>
-            ${vehiclePartsFor(v.id).map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+            ${vehiclePartsFor(v.id).map(p=>`<option value="${p.id}" ${editing&&editing.partId===p.id?'selected':''}>${p.name}</option>`).join('')}
           </select>
         </div>
         <div class="field">
           <label>Method</label>
           <div class="radio-group" id="vlog-method-group">
-            <div class="radio-opt selected" data-val="cash">Cash</div>
-            <div class="radio-opt" data-val="bank_transfer">Bank Transfer</div>
+            <div class="radio-opt ${methodVal==='cash'?'selected':''}" data-val="cash">Cash</div>
+            <div class="radio-opt ${methodVal==='bank_transfer'?'selected':''}" data-val="bank_transfer">Bank Transfer</div>
           </div>
-          <input type="hidden" name="method" value="cash">
+          <input type="hidden" name="method" value="${methodVal}">
         </div>
-        <div class="field" id="vlog-account-field" style="display:none;">
+        <div class="field" id="vlog-account-field" style="${methodVal==='bank_transfer'?'':'display:none;'}">
           <label>From Account</label>
-          <select name="accountId">${accountOptions()}</select>
+          <select name="accountId">${accountOptions(editing?editing.accountId:undefined)}</select>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Save Log Entry</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Save Log Entry'}</button>
         </div>
       </form>
     </div>`;
@@ -2886,8 +2959,25 @@ function openModal(kind, ctx={}){
         saveDB(); renderAll();
         openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
         toast('Document deleted');
+        return;
+      }
+      const editLogId = e.target.dataset.editVlog;
+      if(editLogId){ openModal('vehicle-log', {vehicleId: ctx.vehicleId, logId: editLogId}); return; }
+      const delLogId = e.target.dataset.delVlog;
+      if(delLogId){
+        const log = DB.vehicleLogs.find(l=>l.id===delLogId);
+        const hasLinkedTxn = log && log.linkedTransactionId;
+        if(!confirm(`Delete this log entry?${hasLinkedTxn ? ' Its linked transaction will be deleted too.' : ''}`)) return;
+        if(hasLinkedTxn) DB.transactions = DB.transactions.filter(t=>t.id!==log.linkedTransactionId);
+        DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==delLogId);
+        saveDB(); renderAll();
+        openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+        toast('Log entry deleted');
       }
     });
+    const fuelSeries = vehicleFuelEfficiencySeries(ctx.vehicleId);
+    _drawSimpleLineChart('veh-fuel-chart', 'veh-fuel-chart-empty',
+      fuelSeries.map(l=>fmtDate(l.date)), fuelSeries.map(l=>l.kmPerLiter));
   }
 
   if(kind==='vehicle-log'){
@@ -3017,7 +3107,7 @@ function wireModal(kind){
       vehicleField.style.display='block'; odoRow.style.display='flex'; hint.style.display='block';
       litersField.style.display = info.logType==='fuel' ? 'block' : 'none';
       partField.style.display = info.logType==='maintenance' ? 'block' : 'none';
-      vehicleSelect.innerHTML = vehicleOptionsByType(info.vehicleType);
+      vehicleSelect.innerHTML = vehicleOptionsAll();
       updatePartOptions();
     };
     catSelect.addEventListener('change', updateVehicleFields);
@@ -3218,17 +3308,51 @@ const submitHandlers = {
   'vehicle-log'(data){
     const v = vehicleById(data.vehicleId);
     if(!v) throw new Error('Vehicle not found');
-    let accountId = null, currency = 'EGP', txnId = null;
+    let accountId = null, currency = 'EGP';
     if(data.method === 'bank_transfer'){
       if(!data.accountId) throw new Error('Choose an account');
       const acc = accountById(data.accountId);
       accountId = acc.id; currency = acc.currency;
     }
+    const noteTxt = `${v.name} — ${data.type}${data.note?': '+data.note:''}`;
+    const catId = vehicleLogCategoryId({vehicleId: v.id, type: data.type});
+
+    if(data.logId){
+      // Editing an existing log entry. Keep its linked transaction (if any) in sync, creating
+      // or dropping it if the payment method changed between cash and bank transfer.
+      const editing = DB.vehicleLogs.find(l=>l.id===data.logId);
+      if(!editing) throw new Error('Log entry not found');
+      let txnId = editing.linkedTransactionId;
+      if(accountId){
+        if(txnId && DB.transactions.find(t=>t.id===txnId)){
+          const t = DB.transactions.find(t=>t.id===txnId);
+          t.date = data.date; t.accountId = accountId; t.categoryId = catId;
+          t.amount = Number(data.amount); t.currency = currency; t.note = noteTxt; t.type = 'expense';
+        } else {
+          txnId = uid('txn');
+          DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:catId, amount:Number(data.amount), currency, note:noteTxt, type:'expense', transferPairId:null});
+        }
+      } else if(txnId){
+        DB.transactions = DB.transactions.filter(t=>t.id!==txnId);
+        txnId = null;
+      }
+      Object.assign(editing, {
+        date: data.date, type: data.type, amount: Number(data.amount),
+        odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+        litersFilled: (data.type==='fuel' && data.litersFilled) ? Number(data.litersFilled) : null,
+        partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
+        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+      });
+      saveDB(); toast('Log entry updated');
+      return;
+    }
+
+    let txnId = null;
     if(accountId){
       txnId = uid('txn');
       DB.transactions.push({
-        id: txnId, date: data.date, accountId, categoryId: vehicleLogCategoryId({vehicleId: v.id, type: data.type}),
-        amount: Number(data.amount), currency, note: `${v.name} — ${data.type}${data.note?': '+data.note:''}`,
+        id: txnId, date: data.date, accountId, categoryId: catId,
+        amount: Number(data.amount), currency, note: noteTxt,
         type: 'expense', transferPairId: null
       });
     }

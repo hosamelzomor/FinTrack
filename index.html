@@ -866,9 +866,20 @@ function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t));
 function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
 
 /* ---------------------------- VEHICLES ---------------------------- */
+// Remembers the log table's filter/sort choice across re-renders of the vehicle-detail modal
+// (e.g. after adding/editing/deleting an entry) within the current page session.
+let vehicleLogViewState = {type:'all', sort:'desc'};
 function vehicleById(id){ return DB.vehicles.find(v=>v.id===id); }
 function vehicleLogsRaw(vehicleId){
-  return DB.vehicleLogs.filter(l=>l.vehicleId===vehicleId).sort((a,b)=> a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  // DB.vehicleLogs is always appended to (push) and never reordered by edits, so its array index
+  // is a reliable stand-in for "when was this actually entered" — unlike the id string, whose
+  // random prefix makes localeCompare an unstable, near-random tiebreaker for same-date entries.
+  // Sorting by id alone was silently scrambling same-day logs and producing negative distances.
+  return DB.vehicleLogs
+    .map((l, idx)=>({l, idx}))
+    .filter(o=>o.l.vehicleId===vehicleId)
+    .sort((a,b)=> a.l.date.localeCompare(b.l.date) || a.idx-b.idx)
+    .map(o=>o.l);
 }
 // Ascending-date logs enriched with distance-since-previous-odometer-reading and km/liter for fuel entries.
 function vehicleLogsComputed(vehicleId){
@@ -2674,7 +2685,11 @@ function openModal(kind, ctx={}){
     const lastOil = vehicleLastOilChangeKm(v.id);
     const oilStatus = vehicleOilDueStatus(v.id);
     const fuelStatus = vehicleFuelDueStatus(v.id);
-    const logs = vehicleLogsComputed(v.id).slice().reverse();
+    const logs = vehicleLogsComputed(v.id)
+      .filter(l => vehicleLogViewState.type==='all' || l.type===vehicleLogViewState.type)
+      .sort((a,b) => vehicleLogViewState.sort==='asc'
+        ? (a.date.localeCompare(b.date) || 0)
+        : (b.date.localeCompare(a.date) || 0));
     const docs = vehicleDocsFor(v.id);
     const parts = vehiclePartsFor(v.id);
     const typeLabels = {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
@@ -2730,6 +2745,16 @@ function openModal(kind, ctx={}){
         <button type="button" class="btn secondary sm" id="btn-add-vehicle-log">+ Log Entry</button>
         <button type="button" class="btn secondary sm" id="btn-add-vehicle-doc">+ Document / Renewal</button>
       </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <select id="vlog-filter-type" style="max-width:180px;">
+          <option value="all" ${vehicleLogViewState.type==='all'?'selected':''}>All types</option>
+          <option value="fuel" ${vehicleLogViewState.type==='fuel'?'selected':''}>⛽ Fuel</option>
+          <option value="maintenance" ${vehicleLogViewState.type==='maintenance'?'selected':''}>🔧 Maintenance</option>
+          <option value="oil" ${vehicleLogViewState.type==='oil'?'selected':''}>🛢 Oil Change</option>
+          <option value="asset" ${vehicleLogViewState.type==='asset'?'selected':''}>💰 Asset</option>
+        </select>
+        <button type="button" class="btn ghost sm" id="vlog-sort-toggle">Date: ${vehicleLogViewState.sort==='asc'?'Oldest first ↑':'Newest first ↓'}</button>
+      </div>
       <div class="table-wrap" style="margin-bottom:18px;">
         <table>
           <thead><tr><th>Date</th><th>Type</th><th class="amt">Amount</th><th class="amt">KM</th><th class="amt">Dist.</th><th class="amt">km/L</th><th>Note</th><th></th></tr></thead>
@@ -2749,7 +2774,7 @@ function openModal(kind, ctx={}){
                 <button class="btn ghost sm" data-del-vlog="${l.id}">Delete</button>
               </td>
             </tr>`;
-            }).join('') || `<tr><td colspan="8" class="empty">No log entries yet</td></tr>`}
+            }).join('') || `<tr><td colspan="8" class="empty">No log entries${vehicleLogViewState.type!=='all'?' of this type':''}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2978,6 +3003,15 @@ function openModal(kind, ctx={}){
     const fuelSeries = vehicleFuelEfficiencySeries(ctx.vehicleId);
     _drawSimpleLineChart('veh-fuel-chart', 'veh-fuel-chart-empty',
       fuelSeries.map(l=>fmtDate(l.date)), fuelSeries.map(l=>l.kmPerLiter));
+
+    backdrop.querySelector('#vlog-filter-type').addEventListener('change', e=>{
+      vehicleLogViewState.type = e.target.value;
+      openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+    });
+    backdrop.querySelector('#vlog-sort-toggle').addEventListener('click', ()=>{
+      vehicleLogViewState.sort = vehicleLogViewState.sort==='asc' ? 'desc' : 'asc';
+      openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+    });
   }
 
   if(kind==='vehicle-log'){

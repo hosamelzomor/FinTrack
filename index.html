@@ -974,6 +974,28 @@ function vehicleLogCategoryId(log){
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
 }
+// Reverse of vehicleLogCategoryId: given a category id picked in the regular Transaction form,
+// tells us it's a vehicle-tracked category and what vehicle type / log type it implies.
+// Returns null for any non-vehicle category (so the vehicle fields stay hidden).
+function categoryVehicleInfo(categoryId){
+  const map = {
+    cat_car_fuel: {vehicleType:'car', logType:'fuel'},
+    cat_car_maint: {vehicleType:'car', logType:'maintenance'},
+    cat_car_oil: {vehicleType:'car', logType:'oil'},
+    cat_scooter_fuel: {vehicleType:'scooter', logType:'fuel'},
+    cat_scooter_maint: {vehicleType:'scooter', logType:'maintenance'},
+    cat_scooter_oil: {vehicleType:'scooter', logType:'oil'}
+  };
+  return map[categoryId] || null;
+}
+// <select> options of vehicles matching a given type (car/scooter), for the Transaction modal.
+function vehicleOptionsByType(vehicleType, selectedId){
+  const list = DB.vehicles.filter(v=>v.type===vehicleType);
+  if(!list.length) return '<option value="">— No vehicles of this type yet —</option>';
+  return '<option value="">— Select vehicle —</option>' + list.map(v=>
+    `<option value="${v.id}" ${v.id===selectedId?'selected':''}>${v.name}</option>`
+  ).join('');
+}
 // Unified expense list for category totals: regular expense transactions, PLUS vehicle logs that
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
@@ -2387,8 +2409,27 @@ function openModal(kind, ctx={}){
           </div>
           <div class="field" id="txn-category-field">
             <label>Category</label>
-            <select name="categoryId">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
+            <select name="categoryId" id="txn-category-select">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
           </div>
+          ${editing ? '' : `
+          <div class="field" id="txn-vehicle-field" style="display:none;">
+            <label>Vehicle</label>
+            <select name="vehicleId" id="txn-vehicle-select"></select>
+          </div>
+          <div class="field-row" id="txn-odometer-row" style="display:none;">
+            <div class="field"><label>Odometer (km)</label><input type="number" step="1" name="odometerKm" id="txn-odometer" placeholder="current reading"></div>
+            <div class="field" id="txn-liters-field" style="display:none;">
+              <label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label>
+              <input type="number" step="0.01" name="litersFilled" id="txn-liters">
+            </div>
+          </div>
+          <div class="field" id="txn-part-field" style="display:none;">
+            <label>Part (optional)</label>
+            <select name="partId" id="txn-part-select"><option value="">General maintenance (no specific part)</option></select>
+          </div>
+          <div class="help-text" id="txn-vehicle-hint" style="display:none;margin-top:-6px;">
+            Entering the odometer here lets FinTrack track fuel efficiency, oil-change intervals and part wear for this vehicle automatically.
+          </div>`}
           <div class="field"><label>Note (optional)</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانه العربيه"></div>
           <div class="modal-actions">
             <button type="button" class="btn secondary" data-close>Cancel</button>
@@ -2948,6 +2989,42 @@ function wireModal(kind){
     });
   });
 
+  // Transaction modal: when the picked category is a vehicle category (fuel/maintenance/oil,
+  // car or scooter), reveal Vehicle + Odometer (+ Liters / Part) fields so this transaction also
+  // becomes a vehicle log entry — driving fuel-efficiency, oil-change and part-wear tracking.
+  const catSelect = backdrop.querySelector('#txn-category-select');
+  if(kind==='transaction' && catSelect){
+    const vehicleField = backdrop.querySelector('#txn-vehicle-field');
+    const vehicleSelect = backdrop.querySelector('#txn-vehicle-select');
+    const odoRow = backdrop.querySelector('#txn-odometer-row');
+    const litersField = backdrop.querySelector('#txn-liters-field');
+    const partField = backdrop.querySelector('#txn-part-field');
+    const partSelect = backdrop.querySelector('#txn-part-select');
+    const hint = backdrop.querySelector('#txn-vehicle-hint');
+    const updatePartOptions = ()=>{
+      if(!partSelect) return;
+      const vid = vehicleSelect.value;
+      partSelect.innerHTML = '<option value="">General maintenance (no specific part)</option>' +
+        (vid ? vehiclePartsFor(vid).map(p=>`<option value="${p.id}">${p.name}</option>`).join('') : '');
+    };
+    const updateVehicleFields = ()=>{
+      const info = categoryVehicleInfo(catSelect.value);
+      if(!info){
+        vehicleField.style.display='none'; odoRow.style.display='none';
+        partField.style.display='none'; hint.style.display='none';
+        return;
+      }
+      vehicleField.style.display='block'; odoRow.style.display='flex'; hint.style.display='block';
+      litersField.style.display = info.logType==='fuel' ? 'block' : 'none';
+      partField.style.display = info.logType==='maintenance' ? 'block' : 'none';
+      vehicleSelect.innerHTML = vehicleOptionsByType(info.vehicleType);
+      updatePartOptions();
+    };
+    catSelect.addEventListener('change', updateVehicleFields);
+    vehicleSelect.addEventListener('change', updatePartOptions);
+    updateVehicleFields();
+  }
+
   const form = backdrop.querySelector('form');
   if(!form) return;
   form.addEventListener('submit', e=>{
@@ -3055,10 +3132,26 @@ const submitHandlers = {
       DB.transactions.push({id:uid('txn'), date:data.date, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
     } else {
       const acc = accountById(data.accountId);
+      const txnId = uid('txn');
       DB.transactions.push({
-        id: uid('txn'), date:data.date, accountId:data.accountId, categoryId:data.categoryId,
+        id: txnId, date:data.date, accountId:data.accountId, categoryId:data.categoryId,
         amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
       });
+      // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log
+      // entry too, so odometer-based fuel efficiency, oil-change and part-wear tracking pick it up.
+      const info = categoryVehicleInfo(data.categoryId);
+      if(info && data.vehicleId){
+        const v = vehicleById(data.vehicleId);
+        if(v){
+          DB.vehicleLogs.push({
+            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
+            amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+            litersFilled: (info.logType==='fuel' && data.litersFilled) ? Number(data.litersFilled) : null,
+            partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
+            note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
+          });
+        }
+      }
     }
     saveDB(); toast('Transaction saved');
   },

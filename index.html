@@ -2036,4 +2036,2018 @@ function _initTreeDropdown({btnId,dropdownId,treeId,labelId,searchId,allBtnId,no
     getCats().forEach(c=>{ state[c.id]=true; }); rebuild();
     labelEl.textContent=_treeLabelText(state,getCats());
   });
-  document.getElementById(noneBtnId)?.addEventListe
+  document.getElementById(noneBtnId)?.addEventListener('click', ()=>{
+    const expKeys={}; Object.entries(state).filter(([k])=>k.startsWith('_exp_')).forEach(([k,v])=>expKeys[k]=v);
+    state=expKeys; rebuild(); labelEl.textContent='كل الكاتيجوريز'; onApply(new Set());
+  });
+  return {
+    getSelectedIds(){ return _treeGetLeafIds(state,getCats()); },
+    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; }
+  };
+}
+
+/* ================================================================
+   RENDER: REPORTS (with chart + hierarchical tree filter)
+   ================================================================ */
+let _rPeriod='all',_rFrom='',_rTo='',_repTreeCtrl=null;
+
+function _repRange(){
+  const now=new Date(),thisM=thisMonthKey();
+  if(_rPeriod==='all') return{from:null,to:null};
+  if(_rPeriod==='ytd') return{from:`${now.getFullYear()}-01`,to:thisM};
+  if(_rPeriod==='6m'){const d=new Date(now.getFullYear(),now.getMonth()-5,1);return{from:ymKey(d),to:thisM};}
+  if(_rPeriod==='3m'){const d=new Date(now.getFullYear(),now.getMonth()-2,1);return{from:ymKey(d),to:thisM};}
+  if(_rPeriod==='1m') return{from:thisM,to:thisM};
+  if(_rPeriod==='custom') return{from:_rFrom||null,to:_rTo||null};
+  return{from:null,to:null};
+}
+
+function _expInRange(from,to,catIds){
+  return allExpenseEntries().filter(e=>{
+    const mk=monthKey(e.date);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    if(catIds&&catIds.size&&!catIds.has(e.categoryId))return false;
+    return true;
+  }).reduce((s,e)=>s+toEGP(e.amount,e.currency),0);
+}
+
+function _incInRange(from,to,catIds){
+  // Income transactions — catIds filter only applied if they contain income categories
+  // When filtering by expense categories only, show total income unfiltered
+  const incCatIds = catIds ? new Set([...catIds].filter(id=>{
+    const cat=DB.categories.find(c=>c.id===id);
+    return !cat || cat.type==='income';  // include if income or unknown
+  })) : null;
+  const useFilter = incCatIds && incCatIds.size > 0;
+  return DB.transactions.filter(t=>{
+    if(t.type!=='income')return false;
+    const mk=monthKey(t.date);
+    if(from&&mk<from)return false;
+    if(to&&mk>to)return false;
+    // Only filter by category if we have income-type categories selected
+    if(useFilter && !incCatIds.has(t.categoryId)) return false;
+    return true;
+  }).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+}
+
+// Chart for the Vehicles > All Logs panel. mode='line' draws a km/L trend (with a dashed average
+// line and a value label above every point); mode='bar' draws total spend per vehicle. Both draw
+// their value labels directly on the chart — the old mini chart in the vehicle modal only had
+// axis ticks, which made single data points/short series basically unreadable.
+function _drawVehicleLogsChart(mode, labels, values, opts){
+  opts = opts || {};
+  const canvas = document.getElementById('vlogs-chart');
+  const emptyEl = document.getElementById('vlogs-chart-empty');
+  if(!canvas) return;
+  if(!values.length || (mode==='line' && values.length < 2)){
+    canvas.style.display='none';
+    if(emptyEl){ emptyEl.style.display='block'; emptyEl.textContent = opts.emptyText || 'No data to chart yet'; }
+    return;
+  }
+  canvas.style.display='block'; if(emptyEl) emptyEl.style.display='none';
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth - 40, H = 220;
+  canvas.width = W*window.devicePixelRatio; canvas.height = H*window.devicePixelRatio;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const pad = {top:26, right:16, bottom:30, left:44};
+  const cW = W-pad.left-pad.right, cH = H-pad.top-pad.bottom;
+  const color = opts.color || '#4C9A8E';
+  const fmtVal = opts.formatValue || (v=>v.toFixed(1));
+
+  if(mode==='line'){
+    const minVal = Math.min(0, ...values), maxVal = Math.max(...values)*1.15 || 1;
+    const range = (maxVal-minVal) || 1;
+    const yOf = v => pad.top+cH-((v-minVal)/range)*cH;
+
+    ctx.strokeStyle = 'rgba(100,110,140,0.15)'; ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(130,140,165,0.85)'; ctx.font = '10px Inter,sans-serif';
+    for(let i=0;i<=4;i++){
+      const y = pad.top+cH-(i/4)*cH;
+      ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+      ctx.textAlign='right';
+      ctx.fillText(fmtVal(minVal+range*i/4), pad.left-6, y+3.5);
+    }
+
+    if(opts.showAverage){
+      const avg = values.reduce((a,b)=>a+b,0)/values.length;
+      const y = yOf(avg);
+      ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(230,180,80,0.65)'; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+      ctx.setLineDash([]);
+      // No inline text label here — the average is already shown in the summary strip below the
+      // chart, and a label on the dashed line tends to collide with the nearest data-point label.
+    }
+
+    const step = cW/(values.length-1);
+    ctx.beginPath();
+    values.forEach((v,i)=>{ const x=pad.left+i*step, y=yOf(v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.lineTo(pad.left+(values.length-1)*step, pad.top+cH); ctx.lineTo(pad.left, pad.top+cH); ctx.closePath();
+    const g = ctx.createLinearGradient(0,pad.top,0,pad.top+cH);
+    g.addColorStop(0, color+'40'); g.addColorStop(1, color+'00');
+    ctx.fillStyle = g; ctx.fill();
+
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.lineJoin='round';
+    values.forEach((v,i)=>{ const x=pad.left+i*step, y=yOf(v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.stroke();
+
+    values.forEach((v,i)=>{
+      const x = pad.left+i*step, y = yOf(v);
+      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+      ctx.fillStyle = 'var(--text)'.startsWith('var')?'#EAEFF5':'#EAEFF5';
+      ctx.font = '600 10px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText(fmtVal(v), x, Math.max(12, y-9));
+    });
+
+    ctx.fillStyle = 'rgba(130,140,165,0.85)'; ctx.font = '10px Inter,sans-serif'; ctx.textAlign = 'center';
+    const maxLabels = Math.floor(cW/50);
+    const labelStep = Math.max(1, Math.ceil(labels.length/maxLabels));
+    labels.forEach((lb,i)=>{
+      if(i%labelStep!==0 && i!==labels.length-1) return;
+      ctx.fillText(lb, pad.left+i*step, pad.top+cH+16);
+    });
+  } else {
+    const maxVal = Math.max(...values, 1)*1.15;
+    ctx.strokeStyle = 'rgba(100,110,140,0.15)'; ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(130,140,165,0.85)'; ctx.font = '10px Inter,sans-serif';
+    for(let i=0;i<=4;i++){
+      const y = pad.top+cH-(i/4)*cH;
+      ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+      const v = maxVal*i/4;
+      ctx.textAlign='right';
+      ctx.fillText(v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0), pad.left-6, y+3.5);
+    }
+    const step = cW/values.length;
+    const barW = Math.max(24, Math.min(64, step-16));
+    values.forEach((v,i)=>{
+      const x = pad.left+i*step+(step-barW)/2;
+      const bH = (v/maxVal)*cH, y = pad.top+cH-bH;
+      const r = Math.min(6,barW/2);
+      const g = ctx.createLinearGradient(0,y,0,y+bH);
+      g.addColorStop(0, color+'EB'); g.addColorStop(1, color+'55');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.lineTo(x+barW-r,y);
+      ctx.quadraticCurveTo(x+barW,y,x+barW,y+r);
+      ctx.lineTo(x+barW,y+bH); ctx.lineTo(x,y+bH);
+      ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#EAEFF5'; ctx.font = '600 10px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText(fmtVal(v), x+barW/2, Math.max(12, y-8));
+    });
+    ctx.fillStyle = 'rgba(130,140,165,0.85)'; ctx.font = '10px Inter,sans-serif'; ctx.textAlign = 'center';
+    labels.forEach((lb,i)=>{
+      ctx.fillText(lb, pad.left+i*step+step/2, pad.top+cH+16);
+    });
+  }
+}
+
+function _drawChart(months, amounts, chartType){
+  const canvas=document.getElementById('rep-chart');
+  const emptyEl=document.getElementById('rep-chart-empty');
+  if(!canvas) return;
+  if(!months.length||amounts.every(v=>v===0)){
+    canvas.style.display='none'; if(emptyEl)emptyEl.style.display='block'; return;
+  }
+  canvas.style.display='block'; if(emptyEl)emptyEl.style.display='none';
+  const ctx=canvas.getContext('2d');
+  const W=canvas.parentElement.clientWidth-32, H=220;
+  canvas.width=W*window.devicePixelRatio; canvas.height=H*window.devicePixelRatio;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+  const pad={top:20,right:14,bottom:42,left:60};
+  const cW=W-pad.left-pad.right, cH=H-pad.top-pad.bottom;
+  const maxVal=Math.max(...amounts,1);
+
+  // Grid lines + Y labels
+  ctx.strokeStyle='rgba(100,110,140,0.15)'; ctx.lineWidth=1;
+  ctx.fillStyle='rgba(130,140,165,0.85)'; ctx.font=`10px Inter,sans-serif`;
+  for(let i=0;i<=4;i++){
+    const y=pad.top+cH-(i/4)*cH;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+    const v=maxVal*i/4;
+    ctx.textAlign='right';
+    ctx.fillText(v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0), pad.left-5, y+3.5);
+  }
+
+  const step=cW/months.length;
+  const barW=Math.max(5,Math.min(36,step-8));
+
+  if(chartType==='line'){
+    // Area + line
+    ctx.beginPath(); ctx.strokeStyle='#4C9A8E'; ctx.lineWidth=2.5; ctx.lineJoin='round';
+    amounts.forEach((v,i)=>{
+      const x=pad.left+i*step+step/2, y=pad.top+cH-(v/maxVal)*cH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    ctx.beginPath();
+    amounts.forEach((v,i)=>{
+      const x=pad.left+i*step+step/2, y=pad.top+cH-(v/maxVal)*cH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.lineTo(pad.left+(amounts.length-1)*step+step/2,pad.top+cH);
+    ctx.lineTo(pad.left+step/2,pad.top+cH); ctx.closePath();
+    const g=ctx.createLinearGradient(0,pad.top,0,pad.top+cH);
+    g.addColorStop(0,'rgba(76,154,142,0.25)'); g.addColorStop(1,'rgba(76,154,142,0)');
+    ctx.fillStyle=g; ctx.fill();
+    // Dots
+    amounts.forEach((v,i)=>{
+      const x=pad.left+i*step+step/2, y=pad.top+cH-(v/maxVal)*cH;
+      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+      ctx.fillStyle='#4C9A8E'; ctx.fill();
+    });
+  } else {
+    // Bar chart
+    amounts.forEach((v,i)=>{
+      if(!v) return;
+      const x=pad.left+i*step+(step-barW)/2;
+      const bH=(v/maxVal)*cH, y=pad.top+cH-bH;
+      const r=Math.min(4,barW/2);
+      const g=ctx.createLinearGradient(0,y,0,y+bH);
+      g.addColorStop(0,'rgba(76,154,142,0.92)'); g.addColorStop(1,'rgba(76,154,142,0.38)');
+      ctx.fillStyle=g;
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.lineTo(x+barW-r,y);
+      ctx.quadraticCurveTo(x+barW,y,x+barW,y+r);
+      ctx.lineTo(x+barW,y+bH); ctx.lineTo(x,y+bH);
+      ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath(); ctx.fill();
+    });
+  }
+
+  // X labels
+  ctx.fillStyle='rgba(130,140,165,0.85)'; ctx.font='10px Inter,sans-serif'; ctx.textAlign='center';
+  const maxLabels=Math.floor(cW/36);
+  const labelStep=Math.max(1,Math.ceil(months.length/maxLabels));
+  months.forEach((m,i)=>{
+    if(i%labelStep!==0&&i!==months.length-1) return;
+    ctx.fillText(m.slice(2), pad.left+i*step+step/2, pad.top+cH+14);
+  });
+}
+
+function renderReports(){
+  // Init tree once
+  if(!_repTreeCtrl){
+    _repTreeCtrl = _initTreeDropdown({
+      btnId:'rep-cat-btn', dropdownId:'rep-cat-dropdown', treeId:'rep-cat-tree',
+      labelId:'rep-cat-label', searchId:'rep-cat-search',
+      allBtnId:'rep-cat-all', noneBtnId:'rep-cat-none',
+      onApply: ()=>{ _renderReportsInner(); }
+    });
+  }
+  _renderReportsInner();
+}
+
+function _renderReportsInner(){
+  const mKey=thisMonthKey();
+  const{from,to}=_repRange();
+  const selIds=_repTreeCtrl?_repTreeCtrl.getSelectedIds():new Set();
+  const useCat=selIds.size>0;
+  const catIds=useCat?selIds:null;
+
+  // Period header
+  const hdr=document.getElementById('rep-period-hdr');
+  if(hdr)hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
+
+  // Summary strip
+  const totInc=_incInRange(from,to,catIds);
+  const totExp=_expInRange(from,to,catIds);
+  const net=totInc-totExp;
+  const strip=document.getElementById('rep-summary-strip');
+  if(strip) strip.innerHTML=[
+    {l:'إجمالي الدخل',   v:totInc, c:'var(--positive)', sign:'+'},
+    {l:'إجمالي المصاريف',v:totExp, c:'var(--negative)', sign:'-'},
+    {l:'الصافي',         v:net,    c:net>=0?'var(--positive)':'var(--negative)', sign:net>=0?'+':'-'}
+  ].map(s=>`<div class="card" style="padding:10px 14px;">
+    <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
+    <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">${s.sign}EGP ${fmtMoney(Math.abs(s.v))}</div>
+  </div>`).join('');
+
+  // Category tree table
+  const topCats=DB.categories.filter(c=>c.type==='expense'&&!c.parentId);
+  document.getElementById('reports-tree-body').innerHTML=topCats.map(c=>{
+    const ch=DB.categories.filter(x=>x.parentId===c.id);
+    const pSet=new Set([c.id,...ch.map(x=>x.id)]);
+    const filtSet=new Set([...pSet].filter(id=>!useCat||selIds.has(id)));
+    if(!filtSet.size) return '';
+    const pTot=_expInRange(from,to,filtSet);
+    const pMon=_expInRange(mKey,mKey,filtSet);
+    if(pTot===0&&pMon===0) return '';
+    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pMon)}</td><td class="amt">${fmtMoney(pTot)}</td></tr>`
+      +ch.filter(x=>!useCat||selIds.has(x.id)).map(x=>{
+        const ct=_expInRange(from,to,new Set([x.id]));
+        const cm=_expInRange(mKey,mKey,new Set([x.id]));
+        if(ct===0&&cm===0) return '';
+        return `<tr><td style="padding-left:22px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;
+      }).join('');
+  }).join('')||`<tr><td colspan="3" class="empty">لا توجد بيانات</td></tr>`;
+
+  // Monthly breakdown + chart
+  let months=allMonthsWithActivity();
+  if(from)months=months.filter(m=>m>=from);
+  if(to)months=months.filter(m=>m<=to);
+  months.sort(); // ascending for chart
+  const amounts=months.map(mk=>_expInRange(mk,mk,catIds));
+  const chartType=(document.getElementById('rep-chart-type')||{}).value||'bar';
+  _drawChart(months, amounts, chartType);
+
+  const hdrMon=document.getElementById('rep-monthly-hdr');
+  if(hdrMon)hdrMon.textContent=useCat?document.getElementById('rep-cat-label').textContent:'كل الكاتيجوريز';
+  const monthsDesc=[...months].reverse();
+  document.getElementById('reports-monthly-body').innerHTML=monthsDesc.map(mk=>{
+    const amt=amounts[months.indexOf(mk)];
+    if(!amt)return '';
+    return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
+  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
+}
+
+// Reports event wiring
+(function(){
+  const pSel=document.getElementById('rep-period-sel');
+  pSel?.addEventListener('change',()=>{
+    _rPeriod=pSel.value;
+    document.getElementById('rep-from-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    document.getElementById('rep-to-wrap').style.display=_rPeriod==='custom'?'block':'none';
+    _renderReportsInner();
+  });
+  document.getElementById('rep-from')?.addEventListener('change',e=>{_rFrom=e.target.value;_renderReportsInner();});
+  document.getElementById('rep-to')?.addEventListener('change',e=>{_rTo=e.target.value;_renderReportsInner();});
+  document.getElementById('rep-chart-type')?.addEventListener('change',()=>_renderReportsInner());
+  document.getElementById('rep-reset')?.addEventListener('click',()=>{
+    _rPeriod='all';_rFrom='';_rTo='';
+    if(pSel)pSel.value='all';
+    document.getElementById('rep-from-wrap').style.display='none';
+    document.getElementById('rep-to-wrap').style.display='none';
+    if(_repTreeCtrl)_repTreeCtrl.reset();
+    _renderReportsInner();
+  });
+})();
+
+/* ---------------------------- RENDER: VEHICLES ---------------------------- */
+function renderVehicles(){
+  document.getElementById('fuel-price-input').value = DB.fuelPricePerLiter;
+  if(!DB.vehicles.length){
+    document.getElementById('vehicles-grid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
+        <div class="big-ic">🚗</div>
+        No vehicles yet. Add your car or scooter to start logging fuel, maintenance and mileage.
+      </div>`;
+    renderVehicleLogsPanel();
+    return;
+  }
+  const mKey = thisMonthKey();
+  document.getElementById('vehicles-grid').innerHTML = DB.vehicles.map(v=>{
+    const odo = vehicleCurrentOdometer(v.id);
+    const lastOil = vehicleLastOilChangeKm(v.id);
+    const sinceOil = (odo!=null && lastOil!=null) ? odo - lastOil : null;
+    const oilStatus = vehicleOilDueStatus(v.id);
+    const fuelStatus = vehicleFuelDueStatus(v.id);
+    const monthCost = vehicleMonthCost(v.id, mKey);
+    const logsCount = vehicleLogsRaw(v.id).length;
+    const docsCount = vehicleDocsFor(v.id).length;
+    return `<div class="commit-card">
+      <div class="top">
+        <div>
+          <div class="name">${v.name}</div>
+          <div class="meta">${v.type==='car'?'🚗 Car':'🛵 Scooter'}${v.plateNote?' · '+v.plateNote:''}</div>
+        </div>
+        <span class="tag">${logsCount} log${logsCount===1?'':'s'}</span>
+      </div>
+      <div class="stats" style="margin-top:8px;">
+        <span>Odometer</span><span class="num">${odo!=null? fmtMoney(odo)+' km' : '—'}</span>
+      </div>
+      ${fuelStatus ? `<div class="stats" style="margin-top:4px;">
+        <span>⛽ Fuel range</span><span class="num" style="color:${fuelStatus.overdue?'var(--negative)':(fuelStatus.remaining<=100?'var(--warning)':'var(--positive)')}">${fuelStatus.overdue?'Likely empty':fmtMoney(fuelStatus.remaining)+' km left'}</span>
+      </div>` : ''}
+      <div class="stats" style="margin-top:4px;">
+        <span>Since oil change</span><span class="num">${sinceOil!=null? fmtMoney(sinceOil)+' km' : '—'}</span>
+      </div>
+      ${oilStatus ? `<div class="stats" style="margin-top:4px;">
+        <span>Oil change</span><span class="num" style="color:${oilStatus.overdue?'var(--negative)':(oilStatus.remaining<=500?'var(--warning)':'var(--positive)')}">${oilStatus.overdue?'Overdue '+fmtMoney(Math.abs(oilStatus.remaining))+' km':fmtMoney(oilStatus.remaining)+' km left'}</span>
+      </div>` : ''}
+      <div class="stats" style="margin-top:4px;">
+        <span>This month cost</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
+      </div>
+      ${docsCount? `<div class="meta" style="margin-top:8px;">${docsCount} document${docsCount===1?'':'s'} tracked</div>` : ''}
+      <div class="actions">
+        <button class="btn secondary sm" data-view-vehicle="${v.id}">View / Log Entry</button>
+        <button class="btn ghost sm" data-del-vehicle="${v.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+  renderVehicleLogsPanel();
+}
+document.getElementById('fuel-price-input').addEventListener('change', e=>{
+  const val = Number(e.target.value);
+  if(val > 0){ DB.fuelPricePerLiter = val; saveDB(); toast('Fuel price updated'); renderAll(); }
+});
+document.getElementById('view-vehicles').addEventListener('click', e=>{
+  const viewId = e.target.dataset.viewVehicle;
+  const delId = e.target.dataset.delVehicle;
+  if(viewId) return openModal('vehicle-detail', {vehicleId: viewId});
+  if(delId){
+    const hasLogs = DB.vehicleLogs.some(l=>l.vehicleId===delId);
+    if(hasLogs){ toast('Cannot delete: vehicle has log entries'); return; }
+    DB.vehicles = DB.vehicles.filter(v=>v.id!==delId);
+    DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.vehicleId!==delId);
+    saveDB(); renderAll(); toast('Vehicle deleted');
+    return;
+  }
+  const editLogId = e.target.dataset.editVlog;
+  if(editLogId){
+    const log = DB.vehicleLogs.find(l=>l.id===editLogId);
+    if(log) openModal('vehicle-log', {vehicleId: log.vehicleId, logId: editLogId});
+    return;
+  }
+  const delLogId = e.target.dataset.delVlog;
+  if(delLogId){
+    const log = DB.vehicleLogs.find(l=>l.id===delLogId);
+    const hasLinkedTxn = log && log.linkedTransactionId;
+    if(!confirm(`Delete this log entry?${hasLinkedTxn ? ' Its linked transaction will be deleted too.' : ''}`)) return;
+    if(hasLinkedTxn) DB.transactions = DB.transactions.filter(t=>t.id!==log.linkedTransactionId);
+    DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==delLogId);
+    saveDB(); renderAll();
+    toast('Log entry deleted');
+  }
+});
+
+/* ---------------------------- RENDER: VEHICLES > ALL LOGS PANEL ---------------------------- */
+function renderVehicleLogsPanel(){
+  const vehSel = document.getElementById('vlogs-filter-vehicle');
+  if(!vehSel) return; // shell not in DOM yet (shouldn't happen, but stay safe)
+
+  // Keep the vehicle <select> in sync with the vehicle list without clobbering the user's choice.
+  const vehOptionsHtml = '<option value="all">All vehicles</option>' + DB.vehicles.map(v=>
+    `<option value="${v.id}">${v.type==='scooter'?'🛵':'🚗'} ${v.name}</option>`).join('');
+  if(vehSel.innerHTML !== vehOptionsHtml) vehSel.innerHTML = vehOptionsHtml;
+  if(_vlVehicle!=='all' && !DB.vehicles.some(v=>v.id===_vlVehicle)) _vlVehicle = 'all';
+  vehSel.value = _vlVehicle;
+  document.getElementById('vlogs-filter-type').value = _vlType;
+  document.getElementById('vlogs-filter-from').value = _vlFrom;
+  document.getElementById('vlogs-filter-to').value = _vlTo;
+  document.getElementById('vlogs-sort-toggle').textContent = 'Date: ' + (_vlSort==='asc' ? 'Oldest first ↑' : 'Newest first ↓');
+
+  const typeLabels = {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
+  let logs = allVehicleLogsComputed()
+    .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
+    .filter(l => _vlType==='all' || l.type===_vlType)
+    .filter(l => !_vlFrom || l.date>=_vlFrom)
+    .filter(l => !_vlTo || l.date<=_vlTo)
+    .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+
+  // Table
+  document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
+      <td>${fmtDate(l.date)}</td>
+      <td>${l.vehicleIcon} ${l.vehicleName}</td>
+      <td><span class="tag">${typeLabels[l.type]||l.type}</span></td>
+      <td class="amt neg">${fmtMoney(l.amount)}</td>
+      <td class="amt">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
+      <td class="amt">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
+      <td class="amt">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
+      <td style="color:var(--text-muted);">${l.note||''}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn ghost sm" data-edit-vlog="${l.id}">Edit</button>
+        <button class="btn ghost sm" data-del-vlog="${l.id}">Delete</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="9" class="empty">No log entries match these filters</td></tr>`;
+
+  // Summary strip
+  const totalSpend = logs.reduce((s,l)=>s+l.amount,0);
+  const fuelLogsWithEff = logs.filter(l=>l.type==='fuel' && l.kmPerLiter!=null);
+  const avgKmL = fuelLogsWithEff.length ? fuelLogsWithEff.reduce((s,l)=>s+l.kmPerLiter,0)/fuelLogsWithEff.length : null;
+  const summaryCards = [
+    {l:'Entries', v: logs.length},
+    {l:'Total Spend', v: 'EGP '+fmtMoney(totalSpend)},
+    {l:'Avg km/L', v: avgKmL!=null ? avgKmL.toFixed(2) : '—'}
+  ];
+  document.getElementById('vlogs-summary-strip').innerHTML = summaryCards.map(s=>`
+    <div class="card" style="padding:10px 14px;flex:1;min-width:120px;">
+      <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
+      <div class="num" style="font-size:15px;font-weight:700;">${s.v}</div>
+    </div>`).join('');
+
+  // Chart: a single vehicle selected -> km/L trend for its fuel logs (respecting the date filter).
+  // "All vehicles" -> total spend per vehicle so the chart still means something with a mixed set.
+  const chartHeader = document.getElementById('vlogs-chart-header');
+  if(_vlVehicle!=='all'){
+    const v = vehicleById(_vlVehicle);
+    const series = allVehicleLogsComputed()
+      .filter(l=>l.vehicleId===_vlVehicle && l.type==='fuel' && l.kmPerLiter!=null)
+      .filter(l => !_vlFrom || l.date>=_vlFrom)
+      .filter(l => !_vlTo || l.date<=_vlTo)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    chartHeader.innerHTML = `<div style="font-weight:700;font-size:14px;">Fuel Efficiency — ${v?v.name:''}</div>
+      <div class="help-text" style="margin:2px 0 0 0;">km/L per fill-up, measured since the previous fuel entry for this vehicle</div>`;
+    _drawVehicleLogsChart('line', series.map(l=>fmtDate(l.date)), series.map(l=>l.kmPerLiter), {
+      showAverage: true, emptyText: 'Log at least 2 fuel fill-ups with odometer readings for this vehicle to see a trend'
+    });
+  } else {
+    const byVehicle = DB.vehicles.map(v=>({
+      name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
+      total: allVehicleLogsComputed()
+        .filter(l=>l.vehicleId===v.id)
+        .filter(l => _vlType==='all' || l.type===_vlType)
+        .filter(l => !_vlFrom || l.date>=_vlFrom)
+        .filter(l => !_vlTo || l.date<=_vlTo)
+        .reduce((s,l)=>s+l.amount,0)
+    })).filter(x=>x.total>0);
+    chartHeader.innerHTML = `<div style="font-weight:700;font-size:14px;">Total Spend by Vehicle</div>
+      <div class="help-text" style="margin:2px 0 0 0;">pick a single vehicle above to see its fuel-efficiency trend instead</div>`;
+    _drawVehicleLogsChart('bar', byVehicle.map(x=>x.name), byVehicle.map(x=>x.total), {
+      color:'#4C9A8E', formatValue: v=>fmtMoney(v), emptyText: 'No spend in this date range yet'
+    });
+  }
+}
+(function(){
+  const vehSel = document.getElementById('vlogs-filter-vehicle');
+  if(!vehSel) return;
+  vehSel.addEventListener('change', e=>{ _vlVehicle = e.target.value; renderVehicleLogsPanel(); });
+  document.getElementById('vlogs-filter-type').addEventListener('change', e=>{ _vlType = e.target.value; renderVehicleLogsPanel(); });
+  document.getElementById('vlogs-filter-from').addEventListener('change', e=>{ _vlFrom = e.target.value; renderVehicleLogsPanel(); });
+  document.getElementById('vlogs-filter-to').addEventListener('change', e=>{ _vlTo = e.target.value; renderVehicleLogsPanel(); });
+  document.getElementById('vlogs-sort-toggle').addEventListener('click', ()=>{
+    _vlSort = _vlSort==='asc' ? 'desc' : 'asc';
+    renderVehicleLogsPanel();
+  });
+  document.getElementById('vlogs-filter-reset').addEventListener('click', ()=>{
+    _vlVehicle='all'; _vlType='all'; _vlFrom=''; _vlTo=''; _vlSort='desc';
+    renderVehicleLogsPanel();
+  });
+  document.getElementById('veh-subtab-group').addEventListener('click', e=>{
+    const opt = e.target.closest('.radio-opt');
+    if(!opt) return;
+    document.querySelectorAll('#veh-subtab-group .radio-opt').forEach(o=>o.classList.remove('selected'));
+    opt.classList.add('selected');
+    _vlSubtab = opt.dataset.val;
+    document.getElementById('veh-cards-panel').style.display = _vlSubtab==='cards' ? 'block' : 'none';
+    document.getElementById('veh-logs-panel').style.display = _vlSubtab==='logs' ? 'block' : 'none';
+    if(_vlSubtab==='logs') renderVehicleLogsPanel();
+  });
+})();
+
+/* ---------------------------- RENDER: BUDGETS ---------------------------- */
+let expandedBudgetCats = new Set();
+function budgetCardHTML(c, mKey, nested){
+  const budget = budgetFor(c.id);
+  const limit = budget ? budget.monthlyLimit : 0;
+  const spent = nested ? categorySelfTotal(c.id, mKey) : categorySpendInMonth(c.id, mKey);
+  const avg3 = categoryAvgSpend(c.id, 3);
+  const pct = limit>0 ? Math.min(100, Math.round(spent/limit*100)) : 0;
+  const over = limit>0 && spent>limit;
+  const children = nested ? [] : DB.categories.filter(x=>x.parentId===c.id && x.type==='expense');
+  const expanded = expandedBudgetCats.has(c.id);
+  return `<div class="${nested?'card':'commit-card'}" style="${nested?'padding:12px 14px;':''}">
+    <div class="top">
+      <div><div class="name" style="${nested?'font-size:13px;':''}">${c.name}</div><div class="meta">this month so far: EGP ${fmtMoney(spent)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${over ? '<span class="tag expense">Over</span>' : (limit>0?'<span class="tag income">On track</span>':'')}
+        ${!nested && children.length ? `<button class="btn ghost sm" data-toggle-budget-cat="${c.id}">${expanded?'▲ Hide sub-categories':'▼ Sub-categories ('+children.length+')'}</button>` : ''}
+      </div>
+    </div>
+    ${limit>0 ? `<div class="progress-bar"><div class="fill ${over?'over':''}" style="width:${pct}%;"></div></div>
+    <div class="stats"><span>${pct}% used</span><span class="num">${fmtMoney(Math.max(0,limit-spent))} left</span></div>` : ''}
+    <div class="field" style="margin-top:12px;margin-bottom:6px;">
+      <label>Monthly Limit (EGP)</label>
+      <input type="number" step="10" data-budget-input="${c.id}" value="${limit||''}" placeholder="no limit set">
+    </div>
+    <div class="meta" style="margin-bottom:8px;">Avg. last 3 months: EGP ${fmtMoney(avg3)}</div>
+    <button class="btn ghost sm" data-suggest-budget="${c.id}" data-suggest-value="${Math.round(avg3)}">Use average as limit</button>
+    ${!nested && children.length && expanded ? `<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
+      ${children.map(child=>budgetCardHTML(child, mKey, true)).join('')}
+    </div>` : ''}
+  </div>`;
+}
+function renderBudgets(){
+  const topExpenseCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
+  const mKey = thisMonthKey();
+  if(!topExpenseCats.length){
+    document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">No expense categories yet</div>`;
+    return;
+  }
+  document.getElementById('budgets-grid').innerHTML = topExpenseCats.map(c=>budgetCardHTML(c, mKey, false)).join('');
+}
+document.getElementById('view-budgets').addEventListener('change', e=>{
+  const catId = e.target.dataset.budgetInput;
+  if(!catId) return;
+  const val = Number(e.target.value) || 0;
+  let b = budgetFor(catId);
+  if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
+  else b.monthlyLimit = val;
+  saveDB(); renderBudgets(); toast('Budget updated');
+});
+document.getElementById('view-budgets').addEventListener('click', e=>{
+  const toggleId = e.target.dataset.toggleBudgetCat;
+  if(toggleId){
+    if(expandedBudgetCats.has(toggleId)) expandedBudgetCats.delete(toggleId);
+    else expandedBudgetCats.add(toggleId);
+    renderBudgets();
+    return;
+  }
+  const catId = e.target.dataset.suggestBudget;
+  if(!catId) return;
+  const val = Number(e.target.dataset.suggestValue) || 0;
+  let b = budgetFor(catId);
+  if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
+  else b.monthlyLimit = val;
+  saveDB(); renderBudgets(); toast('Budget set from 3-month average');
+});
+
+
+/* ---------------------------- MODALS ---------------------------- */
+function accountOptions(selected){
+  return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
+}
+function categoryOptions(type, selected){
+  // Build tree with <optgroup> for parents and indented children
+  const parents = DB.categories.filter(c=>c.type===type && !c.parentId);
+  const rows = [];
+  parents.forEach(p=>{
+    const children = DB.categories.filter(c=>c.type===type && c.parentId===p.id);
+    if(children.length){
+      // Parent is selectable + has children shown in group
+      rows.push(`<optgroup label="${p.name}">`);
+      rows.push(`<option value="${p.id}" ${p.id===selected?'selected':''}>${p.name} (كل البند)</option>`);
+      children.forEach(c=>{
+        rows.push(`<option value="${c.id}" ${c.id===selected?'selected':''}>　└ ${c.name}</option>`);
+      });
+      rows.push(`</optgroup>`);
+    } else {
+      rows.push(`<option value="${p.id}" ${p.id===selected?'selected':''} style="font-weight:600;">${p.name}</option>`);
+    }
+  });
+  return rows.join('');
+}
+
+function categoryParentOptions(type, selected){
+  return DB.categories.filter(c=>c.type===type && !c.parentId)
+    .map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${c.name}</option>`).join('');
+}
+
+function openModal(kind, ctx={}){
+  const root = document.getElementById('modal-root');
+  let html = '';
+
+  if(kind==='account'){
+    const editing = ctx.accountId ? accountById(ctx.accountId) : null;
+    html = `<div class="modal">
+      <h2>${editing ? 'Edit Account' : 'New Account'}</h2>
+      <form id="form-account">
+        ${editing ? `<input type="hidden" name="accountId" value="${editing.id}">` : ''}
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. QNB Bank" value="${editing?editing.name:''}"></div>
+        <div class="field-row">
+          <div class="field"><label>Type</label>
+            <select name="type">
+              <option value="cash" ${editing&&editing.type==='cash'?'selected':''}>Cash</option>
+              <option value="bank" ${editing&&editing.type==='bank'?'selected':''}>Bank</option>
+              <option value="wallet" ${editing&&editing.type==='wallet'?'selected':''}>Mobile Wallet</option>
+            </select>
+          </div>
+          <div class="field"><label>Currency</label>
+            <select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Opening Balance</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
+          <div class="field"><label>Opening Date</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="excludeFromNetWorth" style="width:auto;" ${editing&&editing.excludeFromNetWorth?'checked':''}>
+            Exclude from Net Worth (e.g. a historical archive, not a real balance)
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Create Account'}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='reconcile'){
+    const a = accountById(ctx.accountId);
+    const computed = accountBalance(a);
+    html = `<div class="modal">
+      <h2>Reconcile — ${a.name}</h2>
+      <div class="help-text">
+        System shows <strong>${a.currency} ${fmtMoney(computed)}</strong>. Count your actual cash / check your
+        actual bank balance and enter it below — if there's a difference, it usually means a transaction
+        is missing somewhere.
+      </div>
+      <form id="form-reconcile">
+        <input type="hidden" name="accountId" value="${a.id}">
+        <input type="hidden" name="computed" value="${computed}">
+        <div class="field"><label>Actual Balance (${a.currency})</label><input type="number" step="0.01" name="actualBalance" id="reconcile-actual" required></div>
+        <div class="card" id="reconcile-diff-card" style="margin-bottom:14px;display:none;">
+          <h3>Difference</h3>
+          <div class="big" id="reconcile-diff-value"></div>
+        </div>
+        <div class="help-text" style="margin-bottom:8px;">
+          Only record an adjustment if you've genuinely looked and can't find the missing transaction —
+          it'll be logged as an "Adjustment" expense/income so your balance matches reality.
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel, I'll find it myself</button>
+          <button type="submit" class="btn">Record Adjustment for Difference</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='reconcile-all'){
+    const accounts = DB.accounts.filter(a=>!a.excludeFromNetWorth);
+    html = `<div class="modal" style="width:520px;">
+      <h2>Reconcile with Real Balances</h2>
+      <div class="help-text">
+        For each account, count what you actually have (cash in hand / real bank balance) and type it in.
+        The system total is Income − Expenses since each account's opening balance — this finds exactly
+        where the difference is, account by account, so you can go track down what's missing.
+      </div>
+      <form id="form-reconcile-all">
+        ${accounts.map(a=>{
+          const computed = accountBalance(a);
+          return `<div class="field-row" style="align-items:flex-end;">
+            <div class="field" style="flex:1.4;margin-bottom:14px;">
+              <label>${a.name} <span style="color:var(--text-faint);">(system: ${a.currency} ${fmtMoney(computed)})</span></label>
+              <input type="number" step="0.01" name="actual_${a.id}" data-recall-actual="${a.id}" data-recall-computed="${computed}" data-recall-currency="${a.currency}" placeholder="actual ${a.currency}">
+            </div>
+            <div class="field" style="margin-bottom:14px;">
+              <div class="num" data-recall-diff="${a.id}" style="text-align:right;color:var(--text-faint);padding-bottom:9px;">—</div>
+            </div>
+          </div>`;
+        }).join('')}
+        <div class="card" style="margin-bottom:14px;">
+          <h3>Total Difference (EGP)</h3>
+          <div class="big" id="reconcile-all-total">0.00</div>
+        </div>
+        <div class="help-text" style="margin-bottom:8px;">
+          Leave any account blank to skip it. Adjustments are only recorded for accounts where you entered
+          an actual balance different from the system total.
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Record Adjustments</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='transaction'){
+    if(!DB.accounts.length){ toast('Add an account first'); return; }
+    const editing = ctx.txnId ? DB.transactions.find(t=>t.id===ctx.txnId) : null;
+    if(ctx.txnId && !editing){ toast('Transaction not found'); return; }
+
+    if(editing && editing.type.startsWith('transfer')){
+      // Reduced edit form for transfers: date/amount/note only, accounts read-only.
+      const pair = DB.transactions.filter(t=>t.transferPairId===editing.transferPairId);
+      const fromTxn = pair.find(t=>t.type==='transfer_out');
+      const toTxn = pair.find(t=>t.type==='transfer_in');
+      const fromAcc = fromTxn ? accountById(fromTxn.accountId) : null;
+      const toAcc = toTxn ? accountById(toTxn.accountId) : null;
+      html = `<div class="modal">
+        <h2>Edit Transfer</h2>
+        <form id="form-transaction">
+          <input type="hidden" name="transferPairId" value="${editing.transferPairId}">
+          <div class="field">
+            <label>Accounts</label>
+            <div class="help-text" style="margin-bottom:0;">${fromAcc?fromAcc.name:'—'} → ${toAcc?toAcc.name:'—'} (not editable — delete and re-create to change accounts)</div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Date</label><input type="date" name="date" value="${fromTxn?fromTxn.date:editing.date}" required></div>
+            <div class="field"><label>Amount (${fromAcc?fromAcc.currency:''})</label><input type="number" step="0.01" name="amount" value="${fromTxn?fromTxn.amount:editing.amount}" required></div>
+          </div>
+          <div class="field"><label>Note (optional)</label><input name="note" value="${(fromTxn?fromTxn.note:editing.note)||''}" placeholder="e.g. صيانه العربيه"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" data-close>Cancel</button>
+            <button type="submit" class="btn">Save Changes</button>
+          </div>
+        </form>
+      </div>`;
+    } else {
+      const typeVal = editing ? editing.type : 'expense';
+      html = `<div class="modal">
+        <h2>${editing ? 'Edit Transaction' : 'New Transaction'}</h2>
+        <form id="form-transaction">
+          ${editing ? `<input type="hidden" name="txnId" value="${editing.id}">` : ''}
+          <div class="field">
+            <label>Type</label>
+            <div class="radio-group" id="txn-type-group">
+              <div class="radio-opt ${typeVal==='expense'?'selected':''}" data-val="expense">Expense</div>
+              <div class="radio-opt ${typeVal==='income'?'selected':''}" data-val="income">Income</div>
+              ${editing ? '' : '<div class="radio-opt" data-val="transfer">Transfer</div>'}
+            </div>
+            <input type="hidden" name="type" value="${typeVal}">
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Date</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
+            <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${editing?editing.amount:''}" required placeholder="0.00"></div>
+          </div>
+          <div class="field" id="txn-account-field">
+            <label>Account</label>
+            <select name="accountId">${accountOptions(editing?editing.accountId:undefined)}</select>
+          </div>
+          <div class="field" id="txn-dest-field" style="display:none;">
+            <label>To Account</label>
+            <select name="destAccountId">${accountOptions()}</select>
+          </div>
+          <div class="field" id="txn-category-field">
+            <label>Category</label>
+            <select name="categoryId" id="txn-category-select">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
+          </div>
+          ${editing ? '' : `
+          <div class="field" id="txn-vehicle-field" style="display:none;">
+            <label>Vehicle</label>
+            <select name="vehicleId" id="txn-vehicle-select"></select>
+          </div>
+          <div class="field-row" id="txn-odometer-row" style="display:none;">
+            <div class="field"><label>Odometer (km)</label><input type="number" step="0.01" name="odometerKm" id="txn-odometer" placeholder="current reading"></div>
+            <div class="field" id="txn-liters-field" style="display:none;">
+              <label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L — not editable, change the price on the Vehicles page instead)</span></label>
+              <input type="number" step="0.01" name="litersFilled" id="txn-liters" readonly>
+            </div>
+          </div>
+          <div class="field" id="txn-part-field" style="display:none;">
+            <label>Part (optional)</label>
+            <select name="partId" id="txn-part-select"><option value="">General maintenance (no specific part)</option></select>
+          </div>
+          <div class="help-text" id="txn-vehicle-hint" style="display:none;margin-top:-6px;">
+            Entering the odometer here lets FinTrack track fuel efficiency, oil-change intervals and part wear for this vehicle automatically.
+          </div>`}
+          <div class="field"><label>Note (optional)</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانه العربيه"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" data-close>Cancel</button>
+            <button type="submit" class="btn">${editing ? 'Save Changes' : 'Save Transaction'}</button>
+          </div>
+        </form>
+      </div>`;
+    }
+  }
+
+  if(kind==='category'){
+    html = `<div class="modal">
+      <h2>New Category</h2>
+      <form id="form-category">
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="cat-type-group">
+            <div class="radio-opt selected" data-val="expense">Expense</div>
+            <div class="radio-opt" data-val="income">Income</div>
+          </div>
+          <input type="hidden" name="type" value="expense">
+        </div>
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. كهرباء"></div>
+        <div class="field">
+          <label>Parent category (optional)</label>
+          <select name="parentId" id="cat-parent-select"><option value="">— None (top-level) —</option>${categoryParentOptions('expense')}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create Category</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='commitment'){
+    const editing = ctx.commitId ? DB.commitments.find(c=>c.id===ctx.commitId) : null;
+    html = `<div class="modal">
+      <h2>${editing ? 'Edit Commitment' : 'New Commitment'}</h2>
+      <form id="form-commitment">
+        ${editing ? `<input type="hidden" name="commitId" value="${editing.id}">
+        <input type="hidden" name="type" value="${editing.type}">
+        <input type="hidden" name="payoutDate" value="${editing.payoutDate||''}">` : `
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="commit-type-group">
+            <div class="radio-opt selected" data-val="installment">Installment</div>
+            <div class="radio-opt" data-val="rotating_saving">جمعية (Rotating Saving)</div>
+          </div>
+          <input type="hidden" name="type" value="installment">
+        </div>`}
+        <div class="field"><label>Name</label><input name="name" value="${editing?editing.name:''}" required placeholder="e.g. تابلت أو الجمعيه 1"></div>
+        <div class="field-row">
+          <div class="field"><label>Total Amount</label><input type="number" step="0.01" name="totalAmount" value="${editing?editing.totalAmount:''}" required></div>
+          <div class="field"><label>Monthly Installment</label><input type="number" step="0.01" name="installmentAmount" value="${editing?editing.installmentAmount:''}" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Start Date</label><input type="date" name="startDate" value="${editing?editing.startDate:todayLocalISO()}" required></div>
+          <div class="field"><label>Total Installments</label><input type="number" name="totalInstallments" value="${editing?editing.totalInstallments:''}" required placeholder="e.g. 12"></div>
+        </div>
+        ${editing ? '' : `<div class="field" id="commit-payout-field" style="display:none;">
+          <label>Expected Payout Date (جمعية)</label>
+          <input type="date" name="payoutDate">
+        </div>`}
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Create Commitment'}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='payment'){
+    const c = DB.commitments.find(x=>x.id===ctx.commitmentId);
+    html = `<div class="modal">
+      <h2>Record Payment — ${c.name}</h2>
+      <form id="form-payment">
+        <input type="hidden" name="commitmentId" value="${c.id}">
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
+          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${c.installmentAmount}" required></div>
+        </div>
+        <div class="field">
+          <label>Method</label>
+          <div class="radio-group" id="pay-method-group">
+            <div class="radio-opt selected" data-val="cash">Cash</div>
+            <div class="radio-opt" data-val="bank_transfer">Bank Transfer</div>
+          </div>
+          <input type="hidden" name="method" value="cash">
+        </div>
+        <div class="field" id="pay-account-field" style="display:none;">
+          <label>From Account</label>
+          <select name="accountId">${accountOptions()}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Record Payment</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='payout'){
+    const c = DB.commitments.find(x=>x.id===ctx.commitmentId);
+    html = `<div class="modal">
+      <h2>Mark Payout Received — ${c.name}</h2>
+      <form id="form-payout">
+        <input type="hidden" name="commitmentId" value="${c.id}">
+        <div class="field-row">
+          <div class="field"><label>Date Received</label><input type="date" name="date" value="${todayLocalISO()}" required></div>
+          <div class="field"><label>Amount</label><input type="number" step="0.01" name="amount" value="${c.totalAmount}" required></div>
+        </div>
+        <div class="field">
+          <label>Deposit Into</label>
+          <select name="accountId">${accountOptions()}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Confirm Payout</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='month-detail'){
+    const mKey = thisMonthKey();
+    const isIncome = ctx.type === 'income';
+    let rows;
+    if(isIncome){
+      rows = DB.transactions.filter(t=>t.type==='income' && monthKey(t.date)===mKey)
+        .map(t=>({date:t.date, label: categoryLabel(t.categoryId), note:t.note, amount:t.amount, currency:t.currency}));
+    } else {
+      rows = allExpenseEntries().filter(e=>monthKey(e.date)===mKey)
+        .map(e=>({date:e.date, label: categoryLabel(e.categoryId), note:e.note, amount:e.amount, currency:e.currency}));
+    }
+    rows.sort((a,b)=> b.date.localeCompare(a.date));
+    const total = rows.reduce((s,r)=> s + toEGP(r.amount, r.currency), 0);
+    html = `<div class="modal" style="width:560px;">
+      <h2>This Month — ${isIncome?'Income':'Expenses'} Breakdown</h2>
+      <div class="help-text">${mKey} · ${rows.length} entr${rows.length===1?'y':'ies'} · total EGP ${fmtMoney(total)}</div>
+      <div class="table-wrap" style="margin-top:14px;">
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr>
+              <td>${fmtDate(r.date)}</td>
+              <td>${r.label}</td>
+              <td style="color:var(--text-muted);">${r.note||''}</td>
+              <td class="amt ${isIncome?'pos':'neg'}">${r.currency} ${fmtMoney(r.amount)}</td>
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">No entries yet this month</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
+    </div>`;
+  }
+
+  if(kind==='vehicle'){
+    html = `<div class="modal">
+      <h2>New Vehicle</h2>
+      <form id="form-vehicle">
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. العربية or السكوتر"></div>
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="vehicle-type-group">
+            <div class="radio-opt selected" data-val="car">🚗 Car</div>
+            <div class="radio-opt" data-val="scooter">🛵 Scooter</div>
+          </div>
+          <input type="hidden" name="type" value="car">
+        </div>
+        <div class="field"><label>Plate / Note (optional)</label><input name="plateNote" placeholder="e.g. plate number"></div>
+        <div class="field"><label>Oil change interval (km, optional)</label><input type="number" step="100" name="oilIntervalKm" placeholder="e.g. 5000"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create Vehicle</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='vehicle-detail'){
+    const v = vehicleById(ctx.vehicleId);
+    const odo = vehicleCurrentOdometer(v.id);
+    const lastOil = vehicleLastOilChangeKm(v.id);
+    const oilStatus = vehicleOilDueStatus(v.id);
+    const fuelStatus = vehicleFuelDueStatus(v.id);
+    const docs = vehicleDocsFor(v.id);
+    const parts = vehiclePartsFor(v.id);
+    html = `<div class="modal" style="width:660px;">
+      <h2>${v.name}</h2>
+      <div class="help-text">${v.type==='car'?'Car':'Scooter'} · Odometer: ${odo!=null?fmtMoney(odo)+' km':'—'}${lastOil!=null?' · Last oil change: '+fmtMoney(lastOil)+' km':''}</div>
+      <div class="field-row" style="align-items:flex-end;margin-bottom:8px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Oil change interval (km)</label>
+          <input type="number" step="100" data-oil-interval="${v.id}" value="${v.oilIntervalKm||''}" placeholder="e.g. 5000">
+        </div>
+        <div class="field" style="margin-bottom:0;flex:1.4;">
+          ${oilStatus ? `<label>Status</label><div class="tag ${oilStatus.overdue?'expense':(oilStatus.remaining<=500?'warning':'income')}" style="display:block;text-align:center;padding:8px;">${oilStatus.overdue ? 'Overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km' : fmtMoney(oilStatus.remaining)+' km left'}</div>` : ''}
+        </div>
+      </div>
+      <div class="field-row" style="align-items:flex-end;margin-bottom:12px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Tank range (km per full tank)</label>
+          <input type="number" step="10" data-tank-range="${v.id}" value="${v.tankRangeKm||''}" placeholder="e.g. 550">
+        </div>
+        <div class="field" style="margin-bottom:0;flex:1.4;">
+          ${fuelStatus ? `<label>Fuel Status</label><div class="tag ${fuelStatus.overdue?'expense':(fuelStatus.remaining<=100?'warning':'income')}" style="display:block;text-align:center;padding:8px;">${fuelStatus.overdue ? 'Likely empty — over by '+fmtMoney(Math.abs(fuelStatus.remaining))+' km' : fmtMoney(fuelStatus.remaining)+' km range left'}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="section-title" style="margin:20px 0 10px 0;">Tracked Parts (tires, brakes, filters...)<span class="hint">alerts the same way as oil</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        ${parts.map(p=>{
+          const st = vehiclePartDueStatus(p);
+          const isTime = p.intervalType==='time';
+          const meta = isTime
+            ? `every ${fmtMoney(p.intervalDays)} days${st?' · last changed '+fmtDate(vehiclePartLastChangeDate(p.id)||p.createdDate):''}`
+            : `every ${fmtMoney(p.intervalKm)} km${st?' · changed at '+(vehiclePartLastChangeKm(p.id)!=null?fmtMoney(vehiclePartLastChangeKm(p.id))+' km':'—'):''}`;
+          const threshold = isTime ? 30 : 500;
+          const unitLabel = isTime ? ' days' : ' km';
+          return `<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+            <div><div style="font-weight:600;font-size:13px;">${p.name}</div><div class="meta">${meta}</div></div>
+            ${st ? `<span class="tag ${st.overdue?'expense':(st.remaining<=threshold?'warning':'income')}">${st.overdue?'Overdue '+fmtMoney(Math.abs(st.remaining))+unitLabel:fmtMoney(st.remaining)+unitLabel+' left'}</span>` : '<span class="tag">—</span>'}
+          </div>`;
+        }).join('') || `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">No parts tracked yet</div>`}
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button type="button" class="btn secondary sm" id="btn-add-vehicle-part">+ Track a Part</button>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">
+        <button type="button" class="btn secondary sm" id="btn-add-vehicle-log">+ Log Entry</button>
+        <button type="button" class="btn secondary sm" id="btn-add-vehicle-doc">+ Document / Renewal</button>
+        <button type="button" class="btn sm" id="btn-view-vehicle-logs">View Logs &amp; Chart →</button>
+      </div>
+      <div class="section-title" style="margin:0 0 10px 0;">Documents &amp; Renewals</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th><th></th></tr></thead>
+          <tbody>
+            ${docs.map(d=>`<tr>
+              <td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td>
+              <td style="white-space:nowrap;">
+                <button class="btn ghost sm" data-edit-vdoc="${d.id}">Edit</button>
+                <button class="btn ghost sm" data-del-vdoc="${d.id}">Delete</button>
+              </td>
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">No documents tracked</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
+    </div>`;
+  }
+
+  if(kind==='vehicle-log'){
+    const v = vehicleById(ctx.vehicleId);
+    const editing = ctx.logId ? DB.vehicleLogs.find(l=>l.id===ctx.logId) : null;
+    const typeVal = editing ? editing.type : 'fuel';
+    const methodVal = editing ? editing.method : 'cash';
+    const typeLabelsShort = {fuel:'⛽ Fuel', maintenance:'🔧 Maint.', oil:'🛢 Oil', asset:'💰 Asset'};
+    html = `<div class="modal">
+      <h2>${editing ? 'Edit Log Entry' : 'Log Entry'} — ${v.name}</h2>
+      <form id="form-vehicle-log">
+        <input type="hidden" name="vehicleId" value="${v.id}">
+        ${editing ? `<input type="hidden" name="logId" value="${editing.id}">` : ''}
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="vlog-type-group">
+            <div class="radio-opt ${typeVal==='fuel'?'selected':''}" data-val="fuel">⛽ Fuel</div>
+            <div class="radio-opt ${typeVal==='maintenance'?'selected':''}" data-val="maintenance">🔧 Maint.</div>
+            <div class="radio-opt ${typeVal==='oil'?'selected':''}" data-val="oil">🛢 Oil</div>
+            <div class="radio-opt ${typeVal==='asset'?'selected':''}" data-val="asset">💰 Asset</div>
+          </div>
+          <input type="hidden" name="type" value="${typeVal}">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
+          <div class="field"><label>Amount (EGP)</label><input type="number" step="0.01" name="amount" value="${editing?editing.amount:''}" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Odometer (km)</label><input type="number" step="0.01" name="odometerKm" id="vlog-odometer" value="${editing&&editing.odometerKm!=null?editing.odometerKm:''}"></div>
+          <div class="field" id="vlog-liters-field" style="${typeVal==='fuel'?'':'display:none;'}"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L — not editable, change the price on the Vehicles page instead)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters" value="${editing&&editing.litersFilled!=null?editing.litersFilled:''}" readonly></div>
+        </div>
+        <div class="field"><label>Description (optional)</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانة دورية"></div>
+        <div class="field" id="vlog-part-field" style="${typeVal==='maintenance'?'':'display:none;'}">
+          <label>Part (optional)</label>
+          <select name="partId">
+            <option value="">General maintenance (no specific part)</option>
+            ${vehiclePartsFor(v.id).map(p=>`<option value="${p.id}" ${editing&&editing.partId===p.id?'selected':''}>${p.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Method</label>
+          <div class="radio-group" id="vlog-method-group">
+            <div class="radio-opt ${methodVal==='cash'?'selected':''}" data-val="cash">Cash</div>
+            <div class="radio-opt ${methodVal==='bank_transfer'?'selected':''}" data-val="bank_transfer">Bank Transfer</div>
+          </div>
+          <input type="hidden" name="method" value="${methodVal}">
+        </div>
+        <div class="field" id="vlog-account-field" style="${methodVal==='bank_transfer'?'':'display:none;'}">
+          <label>From Account</label>
+          <select name="accountId">${accountOptions(editing?editing.accountId:undefined)}</select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Save Log Entry'}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='vehicle-part'){
+    const v = vehicleById(ctx.vehicleId);
+    html = `<div class="modal">
+      <h2>Track a Part — ${v.name}</h2>
+      <form id="form-vehicle-part">
+        <input type="hidden" name="vehicleId" value="${v.id}">
+        <div class="field"><label>Part Name</label><input name="name" required placeholder="e.g. إطارات، فرامل، فلتر هواء، بطارية"></div>
+        <div class="field">
+          <label>Replace based on</label>
+          <div class="radio-group" id="vpart-type-group">
+            <div class="radio-opt selected" data-val="km">Distance (km)</div>
+            <div class="radio-opt" data-val="time">Time (days)</div>
+          </div>
+          <input type="hidden" name="intervalType" value="km">
+        </div>
+        <div class="field" id="vpart-km-field">
+          <label>Replace every (km)</label>
+          <input type="number" step="100" name="intervalKm" placeholder="e.g. 20000">
+        </div>
+        <div class="field" id="vpart-days-field" style="display:none;">
+          <label>Replace every (days)</label>
+          <input type="number" step="1" name="intervalDays" placeholder="e.g. 730 for ~2 years">
+        </div>
+        <div class="help-text">Distance-based: tag your maintenance log entries to this part so FinTrack can measure km since the last change (same as oil). Time-based: the countdown starts from today, or from your last log tagged to this part.</div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save Part</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='vehicle-doc'){
+    const v = vehicleById(ctx.vehicleId);
+    const editing = ctx.docId ? DB.vehicleDocs.find(d=>d.id===ctx.docId) : null;
+    html = `<div class="modal">
+      <h2>${editing ? 'Edit' : 'Document / Renewal'} — ${v.name}</h2>
+      <form id="form-vehicle-doc">
+        <input type="hidden" name="vehicleId" value="${v.id}">
+        ${editing ? `<input type="hidden" name="docId" value="${editing.id}">` : ''}
+        <div class="field"><label>Type</label><input name="docType" value="${editing?editing.docType:''}" required placeholder="e.g. رخصة، تأمين، بطاقة"></div>
+        <div class="field"><label>Renewal Date</label><input type="date" name="renewalDate" value="${editing?editing.renewalDate:''}" required></div>
+        <div class="field"><label>Note (optional)</label><input name="note" value="${editing?(editing.note||''):''}"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">${editing ? 'Save Changes' : 'Save Document'}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='drive-setup'){
+    html = `<div class="modal">
+      <h2>Connect Google Drive</h2>
+      <div class="help-text">
+        One-time setup: create a free OAuth Client ID in Google Cloud Console, then paste it below.
+        Full step-by-step instructions were provided alongside this file. The app only ever accesses
+        the single data file it creates itself (never your other Drive files).
+      </div>
+      <form id="form-drive-setup">
+        <div class="field"><label>OAuth Client ID</label>
+          <input name="clientId" required placeholder="xxxxxxxx.apps.googleusercontent.com" value="${getClientId()}">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save &amp; Connect</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='drive-manage'){
+    html = `<div class="modal">
+      <h2>Google Drive Sync</h2>
+      <div class="help-text">Connected. Data file: <strong>${DRIVE_FILE_NAME}</strong> in your Drive.</div>
+      <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+        <button type="button" class="btn secondary sm" id="btn-force-pull">⬇ Force Pull from Drive</button>
+        <button type="button" class="btn secondary sm" id="btn-force-push">⬆ Force Push to Drive</button>
+        <button type="button" class="btn danger sm" id="btn-disconnect-drive">Disconnect</button>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
+    </div>`;
+  }
+
+  root.innerHTML = `<div class="modal-backdrop" id="modal-backdrop">${html}</div>`;
+  wireModal(kind);
+
+  if(kind==='drive-manage'){
+    const backdrop = document.getElementById('modal-backdrop');
+    backdrop.querySelector('#btn-force-pull').addEventListener('click', async ()=>{
+      try{ updateSyncStatus('syncing'); await drivePullOverwriteLocal(); updateSyncStatus('connected'); closeModal(); }
+      catch(e){ toast('Pull failed: '+e.message); updateSyncStatus('error'); }
+    });
+    backdrop.querySelector('#btn-force-push').addEventListener('click', async ()=>{
+      try{ updateSyncStatus('syncing'); await drivePushNow(); updateSyncStatus('connected'); closeModal(); }
+      catch(e){ toast('Push failed: '+e.message); updateSyncStatus('error'); }
+    });
+    backdrop.querySelector('#btn-disconnect-drive').addEventListener('click', ()=>{
+      disconnectDrive(); closeModal();
+    });
+  }
+
+  if(kind==='vehicle-detail'){
+    const backdrop = document.getElementById('modal-backdrop');
+    backdrop.querySelector('#btn-add-vehicle-log').addEventListener('click', ()=> openModal('vehicle-log', {vehicleId: ctx.vehicleId}));
+    backdrop.querySelector('#btn-add-vehicle-doc').addEventListener('click', ()=> openModal('vehicle-doc', {vehicleId: ctx.vehicleId}));
+    backdrop.querySelector('#btn-add-vehicle-part').addEventListener('click', ()=> openModal('vehicle-part', {vehicleId: ctx.vehicleId}));
+    backdrop.querySelector('[data-oil-interval]').addEventListener('change', e=>{
+      const v = vehicleById(ctx.vehicleId);
+      v.oilIntervalKm = e.target.value ? Number(e.target.value) : null;
+      saveDB(); renderAll();
+      openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+      toast('Oil interval updated');
+    });
+    backdrop.querySelector('[data-tank-range]').addEventListener('change', e=>{
+      const v = vehicleById(ctx.vehicleId);
+      v.tankRangeKm = e.target.value ? Number(e.target.value) : null;
+      saveDB(); renderAll();
+      openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+      toast('Tank range updated');
+    });
+    backdrop.addEventListener('click', e=>{
+      const editId = e.target.dataset.editVdoc;
+      if(editId){ openModal('vehicle-doc', {vehicleId: ctx.vehicleId, docId: editId}); return; }
+      const delId = e.target.dataset.delVdoc;
+      if(delId){
+        DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.id!==delId);
+        saveDB(); renderAll();
+        openModal('vehicle-detail', {vehicleId: ctx.vehicleId});
+        toast('Document deleted');
+      }
+    });
+    backdrop.querySelector('#btn-view-vehicle-logs').addEventListener('click', ()=>{
+      closeModal();
+      _vlVehicle = ctx.vehicleId;
+      showView('vehicles');
+      document.querySelector('#veh-subtab-group [data-val="logs"]')?.click();
+    });
+  }
+
+  if(kind==='vehicle-log'){
+    const backdrop = document.getElementById('modal-backdrop');
+    const amountInput = backdrop.querySelector('input[name="amount"]');
+    const litersInput = backdrop.querySelector('#vlog-liters');
+    const recalc = ()=>{
+      const activeType = backdrop.querySelector('#vlog-type-group .radio-opt.selected').dataset.val;
+      if(activeType !== 'fuel') return;
+      litersInput.value = computeLitersFromAmount(amountInput.value) ?? '';
+    };
+    amountInput.addEventListener('input', recalc);
+    recalc(); // show a correct preview immediately when editing an existing fuel entry
+  }
+  if(kind==='reconcile'){
+    const backdrop = document.getElementById('modal-backdrop');
+    const input = backdrop.querySelector('#reconcile-actual');
+    const diffCard = backdrop.querySelector('#reconcile-diff-card');
+    const diffValue = backdrop.querySelector('#reconcile-diff-value');
+    const computed = Number(backdrop.querySelector('input[name="computed"]').value);
+    input.addEventListener('input', ()=>{
+      if(input.value === ''){ diffCard.style.display = 'none'; return; }
+      const diff = Number(input.value) - computed;
+      diffCard.style.display = 'block';
+      diffValue.textContent = (diff>=0?'+':'') + fmtMoney(diff);
+      diffValue.style.color = Math.abs(diff) < 0.01 ? 'var(--positive)' : (diff>0 ? 'var(--positive)' : 'var(--negative)');
+    });
+  }
+
+  if(kind==='reconcile-all'){
+    const backdrop = document.getElementById('modal-backdrop');
+    const inputs = backdrop.querySelectorAll('[data-recall-actual]');
+    const totalEl = backdrop.querySelector('#reconcile-all-total');
+    function recalc(){
+      let total = 0;
+      inputs.forEach(inp=>{
+        const accId = inp.dataset.recallActual;
+        const diffEl = backdrop.querySelector(`[data-recall-diff="${accId}"]`);
+        if(inp.value === ''){ diffEl.textContent = '—'; diffEl.style.color = 'var(--text-faint)'; return; }
+        const computed = Number(inp.dataset.recallComputed);
+        const currency = inp.dataset.recallCurrency;
+        const diff = Number(inp.value) - computed;
+        diffEl.textContent = (diff>=0?'+':'') + fmtMoney(diff);
+        diffEl.style.color = Math.abs(diff) < 0.01 ? 'var(--positive)' : (diff>0 ? 'var(--positive)' : 'var(--negative)');
+        total += toEGP(diff, currency);
+      });
+      totalEl.textContent = (total>=0?'+':'') + fmtMoney(total) + ' EGP';
+      totalEl.style.color = Math.abs(total) < 0.01 ? 'var(--positive)' : (total>0 ? 'var(--positive)' : 'var(--negative)');
+    }
+    inputs.forEach(inp=> inp.addEventListener('input', recalc));
+  }
+}
+
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+function wireModal(kind){
+  const backdrop = document.getElementById('modal-backdrop');
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop) closeModal(); });
+  const closeBtn = backdrop.querySelector('[data-close]');
+  if(closeBtn) closeBtn.addEventListener('click', closeModal);
+
+  // radio groups (generic)
+  backdrop.querySelectorAll('.radio-group').forEach(group=>{
+    group.addEventListener('click', e=>{
+      const opt = e.target.closest('.radio-opt'); if(!opt) return;
+      group.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      group.nextElementSibling.value = opt.dataset.val;
+      // side effects
+      if(group.id==='txn-type-group'){
+        const val = opt.dataset.val;
+        document.getElementById('txn-dest-field').style.display = val==='transfer' ? 'block' : 'none';
+        document.getElementById('txn-category-field').style.display = val==='transfer' ? 'none' : 'block';
+        if(val!=='transfer'){
+          const sel = backdrop.querySelector('select[name="categoryId"]');
+          sel.innerHTML = categoryOptions(val==='income'?'income':'expense');
+        }
+      }
+      if(group.id==='cat-type-group'){
+        const val = opt.dataset.val;
+        document.getElementById('cat-parent-select').innerHTML = '<option value="">— None (top-level) —</option>' + categoryParentOptions(val);
+      }
+      if(group.id==='commit-type-group'){
+        document.getElementById('commit-payout-field').style.display = opt.dataset.val==='rotating_saving' ? 'block' : 'none';
+      }
+      if(group.id==='pay-method-group'){
+        document.getElementById('pay-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
+      }
+      if(group.id==='vlog-type-group'){
+        document.getElementById('vlog-liters-field').style.display = opt.dataset.val==='fuel' ? 'block' : 'none';
+        document.getElementById('vlog-part-field').style.display = opt.dataset.val==='maintenance' ? 'block' : 'none';
+      }
+      if(group.id==='vlog-method-group'){
+        document.getElementById('vlog-account-field').style.display = opt.dataset.val==='bank_transfer' ? 'block' : 'none';
+      }
+      if(group.id==='vpart-type-group'){
+        document.getElementById('vpart-km-field').style.display = opt.dataset.val==='km' ? 'block' : 'none';
+        document.getElementById('vpart-days-field').style.display = opt.dataset.val==='time' ? 'block' : 'none';
+      }
+    });
+  });
+
+  // Transaction modal: when the picked category is a vehicle category (fuel/maintenance/oil,
+  // car or scooter), reveal Vehicle + Odometer (+ Liters / Part) fields so this transaction also
+  // becomes a vehicle log entry — driving fuel-efficiency, oil-change and part-wear tracking.
+  const catSelect = backdrop.querySelector('#txn-category-select');
+  if(kind==='transaction' && catSelect){
+    const vehicleField = backdrop.querySelector('#txn-vehicle-field');
+    const vehicleSelect = backdrop.querySelector('#txn-vehicle-select');
+    const odoRow = backdrop.querySelector('#txn-odometer-row');
+    const litersField = backdrop.querySelector('#txn-liters-field');
+    const litersInput = backdrop.querySelector('#txn-liters');
+    const amountInput = backdrop.querySelector('input[name="amount"]');
+    const partField = backdrop.querySelector('#txn-part-field');
+    const partSelect = backdrop.querySelector('#txn-part-select');
+    const hint = backdrop.querySelector('#txn-vehicle-hint');
+    const updatePartOptions = ()=>{
+      if(!partSelect) return;
+      const vid = vehicleSelect.value;
+      partSelect.innerHTML = '<option value="">General maintenance (no specific part)</option>' +
+        (vid ? vehiclePartsFor(vid).map(p=>`<option value="${p.id}">${p.name}</option>`).join('') : '');
+    };
+    // Liters is never something the user types by hand: it's always derived from the amount and
+    // the global fuel price (set on the Vehicles page) — this is only a live preview, the actual
+    // saved value is always recomputed fresh at submit time (see computeLitersFromAmount).
+    const recalcLiters = ()=>{
+      if(litersField.style.display==='none') return;
+      litersInput.value = computeLitersFromAmount(amountInput.value) ?? '';
+    };
+    const updateVehicleFields = ()=>{
+      const info = categoryVehicleInfo(catSelect.value);
+      if(!info){
+        vehicleField.style.display='none'; odoRow.style.display='none';
+        partField.style.display='none'; hint.style.display='none';
+        return;
+      }
+      vehicleField.style.display='block'; odoRow.style.display='flex'; hint.style.display='block';
+      litersField.style.display = info.logType==='fuel' ? 'block' : 'none';
+      partField.style.display = info.logType==='maintenance' ? 'block' : 'none';
+      // Auto-pick the vehicle when there's exactly one of the matching type (car/scooter) — the
+      // category already tells us which type, so there's nothing left to ask when it's unambiguous.
+      // Still overridable, and left blank when there's more than one vehicle of that type.
+      const matching = DB.vehicles.filter(v=>v.type===info.vehicleType);
+      const autoId = matching.length===1 ? matching[0].id : undefined;
+      vehicleSelect.innerHTML = vehicleOptionsAll(autoId);
+      updatePartOptions();
+      recalcLiters();
+    };
+    catSelect.addEventListener('change', updateVehicleFields);
+    vehicleSelect.addEventListener('change', updatePartOptions);
+    amountInput?.addEventListener('input', recalcLiters);
+    updateVehicleFields();
+  }
+
+  const form = backdrop.querySelector('form');
+  if(!form) return;
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    try{
+      submitHandlers[kind](data);
+      annotatePartialFillNotes();
+      renderAll();
+      if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
+        openModal('vehicle-detail', {vehicleId: data.vehicleId});
+      } else {
+        closeModal();
+      }
+    }catch(err){ toast(err.message || 'Something went wrong'); }
+  });
+}
+
+const submitHandlers = {
+  account(data){
+    if(data.accountId){
+      const a = accountById(data.accountId);
+      if(!a) throw new Error('Account not found');
+      a.name = data.name.trim(); a.type = data.type; a.currency = data.currency;
+      a.openingBalance = Number(data.openingBalance)||0; a.openingDate = data.openingDate;
+      a.excludeFromNetWorth = data.excludeFromNetWorth === 'on';
+      saveDB(); toast('Account updated');
+    } else {
+      DB.accounts.push({
+        id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency,
+        openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate,
+        excludeFromNetWorth: data.excludeFromNetWorth === 'on'
+      });
+      saveDB(); toast('Account created');
+    }
+  },
+  reconcile(data){
+    const a = accountById(data.accountId);
+    const computed = Number(data.computed);
+    const actual = Number(data.actualBalance);
+    const diff = actual - computed;
+    if(Math.abs(diff) < 0.01){ toast('No difference to record'); return; }
+    DB.transactions.push({
+      id: uid('txn'), date: todayLocalISO(), accountId: a.id,
+      categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
+      amount: Math.abs(diff), currency: a.currency,
+      note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
+    });
+    saveDB(); toast('Adjustment recorded — balance now matches');
+  },
+  'reconcile-all'(data){
+    const today = todayLocalISO();
+    let recorded = 0;
+    Object.keys(data).forEach(key=>{
+      if(!key.startsWith('actual_') || data[key]==='') return;
+      const accId = key.slice('actual_'.length);
+      const a = accountById(accId);
+      if(!a) return;
+      const computed = accountBalance(a);
+      const diff = Number(data[key]) - computed;
+      if(Math.abs(diff) < 0.01) return;
+      DB.transactions.push({
+        id: uid('txn'), date: today, accountId: a.id,
+        categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
+        amount: Math.abs(diff), currency: a.currency,
+        note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
+      });
+      recorded++;
+    });
+    if(recorded===0){ toast('No differences to record'); return; }
+    saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
+  },
+  transaction(data){
+    if(data.transferPairId){
+      // Editing an existing transfer: date/amount/note only, accounts stay fixed.
+      const pair = DB.transactions.filter(t=>t.transferPairId===data.transferPairId);
+      const fromTxn = pair.find(t=>t.type==='transfer_out');
+      const toTxn = pair.find(t=>t.type==='transfer_in');
+      if(!fromTxn || !toTxn) throw new Error('Could not find the matching transfer leg');
+      const fromAcc = accountById(fromTxn.accountId), toAcc = accountById(toTxn.accountId);
+      const amount = Number(data.amount);
+      const destAmount = fromAcc.currency===toAcc.currency ? amount : amount * (fxRate(fromAcc.currency)/fxRate(toAcc.currency));
+      fromTxn.date = data.date; fromTxn.amount = amount; fromTxn.note = data.note;
+      toTxn.date = data.date; toTxn.amount = destAmount; toTxn.note = data.note;
+      saveDB(); toast('Transfer updated');
+      return;
+    }
+    if(data.txnId){
+      // Editing an existing regular (income/expense) transaction in place.
+      const t = DB.transactions.find(x=>x.id===data.txnId);
+      if(!t) throw new Error('Transaction not found');
+      const acc = accountById(data.accountId);
+      t.date = data.date; t.accountId = data.accountId; t.categoryId = data.categoryId;
+      t.amount = Number(data.amount); t.currency = acc.currency; t.note = data.note; t.type = data.type;
+      saveDB(); toast('Transaction updated');
+      return;
+    }
+    if(data.type==='transfer'){
+      if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
+      const from = accountById(data.accountId), to = accountById(data.destAccountId);
+      const amount = Number(data.amount);
+      const destAmount = from.currency===to.currency ? amount : amount * (fxRate(from.currency)/fxRate(to.currency));
+      const pairId = uid('pair');
+      DB.transactions.push({id:uid('txn'), date:data.date, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
+      DB.transactions.push({id:uid('txn'), date:data.date, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
+    } else {
+      const acc = accountById(data.accountId);
+      const txnId = uid('txn');
+      DB.transactions.push({
+        id: txnId, date:data.date, accountId:data.accountId, categoryId:data.categoryId,
+        amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
+      });
+      // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log
+      // entry too, so odometer-based fuel efficiency, oil-change and part-wear tracking pick it up.
+      const info = categoryVehicleInfo(data.categoryId);
+      if(info && data.vehicleId){
+        const v = vehicleById(data.vehicleId);
+        if(v){
+          DB.vehicleLogs.push({
+            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
+            amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+            litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
+            partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
+            note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
+          });
+        }
+      }
+    }
+    saveDB(); toast('Transaction saved');
+  },
+  category(data){
+    DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+    saveDB(); toast('Category created');
+  },
+  commitment(data){
+    if(data.commitId){
+      const c = DB.commitments.find(x=>x.id===data.commitId);
+      if(!c) throw new Error('Commitment not found');
+      c.name = data.name.trim();
+      c.totalAmount = Number(data.totalAmount);
+      c.installmentAmount = Number(data.installmentAmount);
+      c.startDate = data.startDate;
+      c.totalInstallments = Number(data.totalInstallments);
+      saveDB(); toast('Commitment updated');
+      return;
+    }
+    DB.commitments.push({
+      id: uid('cm'), name:data.name.trim(), type:data.type,
+      totalAmount:Number(data.totalAmount), installmentAmount:Number(data.installmentAmount),
+      startDate:data.startDate, totalInstallments:Number(data.totalInstallments),
+      status:'active', payoutDate:data.payoutDate||null, payoutReceived:false
+    });
+    saveDB(); toast('Commitment created');
+  },
+  payment(data){
+    const c = DB.commitments.find(x=>x.id===data.commitmentId);
+    const method = data.method;
+    let accountId = data.accountId || null;
+    let currency = 'EGP';
+    let txnId = null;
+    if(method==='bank_transfer'){
+      if(!accountId) throw new Error('Choose an account');
+      const acc = accountById(accountId); currency = acc.currency;
+      txnId = uid('txn');
+      DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
+    }
+    DB.commitmentPayments.push({
+      id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
+      method, accountId, linkedTransactionId: txnId
+    });
+    const paidCount = commitmentPayments(c.id).length;
+    if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+    saveDB(); toast('Payment recorded');
+  },
+  payout(data){
+    const c = DB.commitments.find(x=>x.id===data.commitmentId);
+    const acc = accountById(data.accountId);
+    DB.transactions.push({id:uid('txn'), date:data.date, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
+    c.payoutReceived = true;
+    const paidCount = commitmentPayments(c.id).length;
+    if(paidCount >= c.totalInstallments) c.status='completed';
+    saveDB(); toast('Payout recorded');
+  },
+  vehicle(data){
+    DB.vehicles.push({
+      id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || '',
+      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
+    });
+    saveDB(); toast('Vehicle created');
+  },
+  'vehicle-log'(data){
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    let accountId = null, currency = 'EGP';
+    if(data.method === 'bank_transfer'){
+      if(!data.accountId) throw new Error('Choose an account');
+      const acc = accountById(data.accountId);
+      accountId = acc.id; currency = acc.currency;
+    }
+    const noteTxt = `${v.name} — ${data.type}${data.note?': '+data.note:''}`;
+    const catId = vehicleLogCategoryId({vehicleId: v.id, type: data.type});
+
+    if(data.logId){
+      // Editing an existing log entry. Keep its linked transaction (if any) in sync, creating
+      // or dropping it if the payment method changed between cash and bank transfer.
+      const editing = DB.vehicleLogs.find(l=>l.id===data.logId);
+      if(!editing) throw new Error('Log entry not found');
+      let txnId = editing.linkedTransactionId;
+      if(accountId){
+        if(txnId && DB.transactions.find(t=>t.id===txnId)){
+          const t = DB.transactions.find(t=>t.id===txnId);
+          t.date = data.date; t.accountId = accountId; t.categoryId = catId;
+          t.amount = Number(data.amount); t.currency = currency; t.note = noteTxt; t.type = 'expense';
+        } else {
+          txnId = uid('txn');
+          DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:catId, amount:Number(data.amount), currency, note:noteTxt, type:'expense', transferPairId:null});
+        }
+      } else if(txnId){
+        DB.transactions = DB.transactions.filter(t=>t.id!==txnId);
+        txnId = null;
+      }
+      Object.assign(editing, {
+        date: data.date, type: data.type, amount: Number(data.amount),
+        odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+        litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
+        partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
+        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+      });
+      saveDB(); toast('Log entry updated');
+      return;
+    }
+
+    let txnId = null;
+    if(accountId){
+      txnId = uid('txn');
+      DB.transactions.push({
+        id: txnId, date: data.date, accountId, categoryId: catId,
+        amount: Number(data.amount), currency, note: noteTxt,
+        type: 'expense', transferPairId: null
+      });
+    }
+    DB.vehicleLogs.push({
+      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type,
+      amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+      litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
+      partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
+      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+    });
+    saveDB(); toast('Log entry saved');
+  },
+  'vehicle-part'(data){
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    if(data.intervalType==='time' && !data.intervalDays) throw new Error('Enter an interval in days');
+    if(data.intervalType==='km' && !data.intervalKm) throw new Error('Enter an interval in km');
+    DB.vehicleParts.push({
+      id: uid('vpart'), vehicleId: v.id, name: data.name.trim(),
+      intervalType: data.intervalType,
+      intervalKm: data.intervalType==='km' ? Number(data.intervalKm) : null,
+      intervalDays: data.intervalType==='time' ? Number(data.intervalDays) : null,
+      createdDate: todayLocalISO()
+    });
+    saveDB(); toast('Part tracked');
+  },
+  'vehicle-doc'(data){
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    if(data.docId){
+      const d = DB.vehicleDocs.find(x=>x.id===data.docId);
+      if(!d) throw new Error('Document not found');
+      d.docType = data.docType.trim(); d.renewalDate = data.renewalDate; d.note = data.note || '';
+      saveDB(); toast('Document updated');
+      return;
+    }
+    DB.vehicleDocs.push({
+      id: uid('vdoc'), vehicleId: v.id, docType: data.docType.trim(),
+      renewalDate: data.renewalDate, note: data.note || ''
+    });
+    saveDB(); toast('Document saved');
+  },
+  'drive-setup'(data){
+    setClientId(data.clientId.trim());
+    initGoogleAuth();
+    if(tokenClient) tokenClient.requestAccessToken({prompt:'consent'});
+    else toast('Google Sign-In library still loading — try again in a moment');
+  }
+};
+
+document.addEventListener('click', e=>{
+  const opener = e.target.closest('[data-open-modal]');
+  if(opener) openModal(opener.dataset.openModal, opener.dataset.monthDetailType ? {type: opener.dataset.monthDetailType} : {});
+});
+
+/* ---------------------------- BACKUP / RESTORE ---------------------------- */
+document.getElementById('btn-export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `fintrack-backup-${todayLocalISO()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Backup exported');
+});
+document.getElementById('btn-import').addEventListener('click', ()=> document.getElementById('file-import').click());
+document.getElementById('file-import').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed.accounts || !parsed.transactions) throw new Error('Not a valid FinTrack backup');
+      DB = migrateDB(parsed); saveDB(); renderAll();
+      toast('Backup restored');
+    }catch(err){ toast('Import failed: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ================================================================
+   DRAG & DROP — Cards
+   Cards with class "card" inside .view are draggable when user
+   holds the header area (first 40px). Position is saved per card id.
+   ================================================================ */
+// Clear old broken drag-drop positions from previous version
+try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
+
+/* ================================================================
+   DRAG & DROP v2 — Grid-aware, never breaks layout
+   Cards stay inside their grid. Only reorders siblings within same
+   grid container. Stores order & width per container key.
+   Reset Layout button clears all stored positions.
+   ================================================================ */
+(function initCardManagement(){
+  const STORE_KEY = 'ft_layout_v2';
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'{}'); }catch(e){return{};} }
+  function save(d){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }catch(e){} }
+
+  // Add Reset Layout button to sidebar below nav
+  const resetBtn = document.createElement('button');
+  resetBtn.textContent = '↺ Reset Layout';
+  resetBtn.title = 'Restore all cards to default positions and sizes';
+  resetBtn.style.cssText = 'display:block;width:calc(100% - 20px);margin:8px 10px 0;padding:7px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-faint);border-radius:7px;font-size:11px;cursor:pointer;text-align:center;';
+  resetBtn.addEventListener('click', ()=>{
+    localStorage.removeItem(STORE_KEY);
+    // Remove all inline width/order styles from cards
+    document.querySelectorAll('.card[data-card-id]').forEach(c=>{
+      c.style.removeProperty('width');
+      c.style.removeProperty('order');
+      c.style.removeProperty('min-height');
+    });
+    toast('Layout reset to default ✅');
+  });
+  document.querySelector('.nav')?.after(resetBtn);
+
+  function getContainerKey(el){
+    // Unique key per container — use its id or its parent's id
+    const c = el.parentElement;
+    return c?.id || c?.className?.split(' ')[0] || 'container';
+  }
+
+  function makeCardManageable(card){
+    if(card.dataset.cardId) return;
+    card.dataset.cardId = 'c'+(Date.now()+Math.random()).toString(36).slice(-6);
+
+    // Ensure card stays in flow (never absolute)
+    card.style.position = 'relative';
+    card.style.boxSizing = 'border-box';
+
+    // --- Drag handle (top-right, ⠿ icon) ---
+    const handle = document.createElement('span');
+    handle.innerHTML = '⠿';
+    handle.title = 'Drag to reorder';
+    handle.setAttribute('aria-label','drag handle');
+    handle.style.cssText = [
+      'position:absolute','top:7px','right:28px',
+      'cursor:grab','font-size:14px','color:var(--text-faint)',
+      'opacity:0','transition:opacity .15s','line-height:1',
+      'z-index:4','user-select:none','padding:2px 4px','border-radius:4px'
+    ].join(';');
+    card.appendChild(handle);
+    card.addEventListener('mouseenter',()=>handle.style.opacity='.55');
+    card.addEventListener('mouseleave',()=>handle.style.opacity='0');
+
+    // --- Resize handle (bottom-right corner) ---
+    const resizer = document.createElement('span');
+    resizer.style.cssText = 'position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;z-index:4;opacity:0;transition:opacity .15s;';
+    resizer.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;bottom:3px;right:3px;">
+      <path d="M9 1L1 9M9 5L5 9M9 8L8 9" stroke="var(--text-faint)" stroke-width="1.5" opacity=".5"/>
+    </svg>`;
+    card.appendChild(resizer);
+    card.addEventListener('mouseenter',()=>resizer.style.opacity='1');
+    card.addEventListener('mouseleave',()=>resizer.style.opacity='0');
+
+    // --- Resize logic (width only, card stays in grid flow) ---
+    let rStartX, rStartW;
+    resizer.addEventListener('mousedown', ev=>{
+      ev.preventDefault(); ev.stopPropagation();
+      rStartX=ev.clientX; rStartW=card.offsetWidth;
+      const mm=ev2=>{
+        const newW = Math.max(120, rStartW+(ev2.clientX-rStartX));
+        card.style.width = newW+'px';
+      };
+      const mu=()=>{
+        document.removeEventListener('mousemove',mm);
+        document.removeEventListener('mouseup',mu);
+        // Persist width
+        const d=load();
+        if(!d.widths) d.widths={};
+        d.widths[card.dataset.cardId]=card.style.width;
+        save(d);
+      };
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    });
+
+    // --- Drag to reorder logic ---
+    let clone=null, ghost=null, srcIdx, cards, parent;
+    handle.addEventListener('mousedown', ev=>{
+      ev.preventDefault();
+      parent = card.parentElement;
+      // Only reorder direct siblings that are .card
+      cards = [...parent.children].filter(c=>c.classList.contains('card'));
+      srcIdx = cards.indexOf(card);
+      if(srcIdx===-1) return;
+
+      // Ghost placeholder
+      ghost = card.cloneNode(true);
+      ghost.style.cssText += ';opacity:.25;pointer-events:none;';
+
+      // Floating clone
+      const rect = card.getBoundingClientRect();
+      clone = card.cloneNode(true);
+      clone.style.cssText = `
+        position:fixed;left:${rect.left}px;top:${rect.top}px;
+        width:${rect.width}px;opacity:.85;pointer-events:none;
+        z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.6);
+        transform:rotate(1.5deg);transition:none;
+      `;
+      document.body.appendChild(clone);
+
+      // Insert ghost in place of card
+      parent.insertBefore(ghost, card);
+      card.style.display='none';
+      handle.style.cursor='grabbing';
+
+      const mm = ev2=>{
+        clone.style.left=(ev2.clientX - rect.width/2)+'px';
+        clone.style.top=(ev2.clientY - 30)+'px';
+        // Find drop position
+        const siblings = [...parent.children].filter(c=>c!==card&&c.classList.contains('card'));
+        let target=null, before=true;
+        for(const sib of siblings){
+          const sr = sib.getBoundingClientRect();
+          const midX = sr.left+sr.width/2;
+          const midY = sr.top+sr.height/2;
+          if(Math.abs(ev2.clientY-midY)<sr.height*0.6 && Math.abs(ev2.clientX-midX)<sr.width*0.6){
+            target=sib; before=ev2.clientX<midX; break;
+          }
+        }
+        if(target){
+          parent.removeChild(ghost);
+          if(before) parent.insertBefore(ghost,target);
+          else target.after(ghost);
+        }
+      };
+      const mu=()=>{
+        handle.style.cursor='grab';
+        clone.remove(); clone=null;
+        card.style.display='';
+        // Insert card where ghost is
+        parent.insertBefore(card,ghost);
+        ghost.remove(); ghost=null;
+        // Persist order
+        const d=load();
+        if(!d.orders) d.orders={};
+        const key=parent.id||parent.className;
+        d.orders[key]=[...parent.children].filter(c=>c.dataset.cardId).map(c=>c.dataset.cardId);
+        save(d);
+        document.removeEventListener('mousemove',mm);
+        document.removeEventListener('mouseup',mu);
+      };
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    });
+
+    // Restore saved width
+    const stored=load();
+    if(stored.widths?.[card.dataset.cardId]) card.style.width=stored.widths[card.dataset.cardId];
+  }
+
+  // Restore saved order for a container
+  function restoreOrder(container){
+    const stored=load();
+    const key=container.id||container.className;
+    const order=stored.orders?.[key];
+    if(!order) return;
+    order.forEach(cid=>{
+      const el=container.querySelector(`[data-card-id="${cid}"]`);
+      if(el) container.appendChild(el);
+    });
+  }
+
+  // Scan all cards in active view
+  function scan(){
+    const view=document.querySelector('.view.active');
+    if(!view) return;
+    view.querySelectorAll('.card').forEach(makeCardManageable);
+    // Restore order of each grid/container
+    view.querySelectorAll('[id]').forEach(restoreOrder);
+  }
+
+  document.getElementById('nav').addEventListener('click',()=>setTimeout(scan,150));
+  setTimeout(scan,450);
+})();
+
+/* ================================================================
+   COLUMN RESIZE — Tables
+   All <th> elements get a resize handle on right edge.
+   ================================================================ */
+(function initColResize(){
+  function makeTableResizable(table){
+    if(table.dataset.resizable) return;
+    table.dataset.resizable='1';
+    const ths = table.querySelectorAll('thead th');
+    ths.forEach(th=>{
+      if(th.dataset.resizable) return;
+      th.dataset.resizable='1';
+      th.style.position='relative';
+      const handle = document.createElement('div');
+      handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
+      handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
+      handle.onmouseleave=()=>handle.style.background='';
+      th.appendChild(handle);
+      let startX, startW;
+      handle.addEventListener('mousedown', ev=>{
+        ev.preventDefault(); ev.stopPropagation();
+        startX=ev.clientX; startW=th.offsetWidth;
+        const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
+        const mu=()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
+        document.addEventListener('mousemove',mm);
+        document.addEventListener('mouseup',mu);
+      });
+    });
+  }
+
+  // Scan tables periodically (after renders)
+  function scanTables(){
+    document.querySelectorAll('table').forEach(makeTableResizable);
+  }
+
+  // Observe DOM changes to catch newly rendered tables
+  const obs = new MutationObserver(()=>{ requestAnimationFrame(scanTables); });
+  obs.observe(document.body, {childList:true, subtree:true});
+  setTimeout(scanTables, 500);
+})();
+
+/* ---------------------------- INIT ---------------------------- */
+function renderAll(){
+  renderDashboard();
+  renderAccounts();
+  renderTransactions();
+  renderCategories();
+  renderCommitments();
+  renderVehicles();
+  renderBudgets();
+  renderReports();
+}
+annotatePartialFillNotes();
+renderAll();
+</script>
+</body>
+</html>

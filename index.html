@@ -1076,6 +1076,16 @@ function categoryVehicleInfo(categoryId){
   };
   return map[categoryId] || null;
 }
+// The single source of truth for computing liters from money spent: amount ÷ the global fuel
+// price on the Vehicles page. Always used at save time for fuel-type logs, regardless of what a
+// (possibly stale, possibly never-touched) Liters input field happens to contain in the DOM —
+// that field is now just a live preview, never the value actually persisted.
+function computeLitersFromAmount(amount){
+  const amt = Number(amount);
+  const price = Number(DB.fuelPricePerLiter) || 0;
+  if(!(amt > 0) || !(price > 0)) return null;
+  return +(amt / price).toFixed(2);
+}
 // <select> options listing every vehicle in the system (car + scooter), for the Transaction
 // modal. Each option is prefixed with its type icon so it's clear which is which — the user
 // picks freely rather than being restricted to the category's car/scooter split.
@@ -2756,8 +2766,8 @@ function openModal(kind, ctx={}){
           <div class="field-row" id="txn-odometer-row" style="display:none;">
             <div class="field"><label>Odometer (km)</label><input type="number" step="0.01" name="odometerKm" id="txn-odometer" placeholder="current reading"></div>
             <div class="field" id="txn-liters-field" style="display:none;">
-              <label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label>
-              <input type="number" step="0.01" name="litersFilled" id="txn-liters">
+              <label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L — not editable, change the price on the Vehicles page instead)</span></label>
+              <input type="number" step="0.01" name="litersFilled" id="txn-liters" readonly>
             </div>
           </div>
           <div class="field" id="txn-part-field" style="display:none;">
@@ -3048,7 +3058,7 @@ function openModal(kind, ctx={}){
         </div>
         <div class="field-row">
           <div class="field"><label>Odometer (km)</label><input type="number" step="0.01" name="odometerKm" id="vlog-odometer" value="${editing&&editing.odometerKm!=null?editing.odometerKm:''}"></div>
-          <div class="field" id="vlog-liters-field" style="${typeVal==='fuel'?'':'display:none;'}"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters" value="${editing&&editing.litersFilled!=null?editing.litersFilled:''}"></div>
+          <div class="field" id="vlog-liters-field" style="${typeVal==='fuel'?'':'display:none;'}"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L — not editable, change the price on the Vehicles page instead)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters" value="${editing&&editing.litersFilled!=null?editing.litersFilled:''}" readonly></div>
         </div>
         <div class="field"><label>Description (optional)</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانة دورية"></div>
         <div class="field" id="vlog-part-field" style="${typeVal==='maintenance'?'':'display:none;'}">
@@ -3222,12 +3232,13 @@ function openModal(kind, ctx={}){
     const backdrop = document.getElementById('modal-backdrop');
     const amountInput = backdrop.querySelector('input[name="amount"]');
     const litersInput = backdrop.querySelector('#vlog-liters');
-    amountInput.addEventListener('input', ()=>{
+    const recalc = ()=>{
       const activeType = backdrop.querySelector('#vlog-type-group .radio-opt.selected').dataset.val;
       if(activeType !== 'fuel') return;
-      const amt = Number(amountInput.value);
-      litersInput.value = amt > 0 ? (amt / DB.fuelPricePerLiter).toFixed(2) : '';
-    });
+      litersInput.value = computeLitersFromAmount(amountInput.value) ?? '';
+    };
+    amountInput.addEventListener('input', recalc);
+    recalc(); // show a correct preview immediately when editing an existing fuel entry
   }
   if(kind==='reconcile'){
     const backdrop = document.getElementById('modal-backdrop');
@@ -3337,13 +3348,12 @@ function wireModal(kind){
       partSelect.innerHTML = '<option value="">General maintenance (no specific part)</option>' +
         (vid ? vehiclePartsFor(vid).map(p=>`<option value="${p.id}">${p.name}</option>`).join('') : '');
     };
-    // Liters is never something the user has to type by hand: it's always derived from the
-    // amount and the global fuel price (set on the Vehicles page). Still editable in case the
-    // person actually knows the exact liters and wants to override the estimate.
+    // Liters is never something the user types by hand: it's always derived from the amount and
+    // the global fuel price (set on the Vehicles page) — this is only a live preview, the actual
+    // saved value is always recomputed fresh at submit time (see computeLitersFromAmount).
     const recalcLiters = ()=>{
       if(litersField.style.display==='none') return;
-      const amt = Number(amountInput.value);
-      litersInput.value = amt > 0 ? (amt / DB.fuelPricePerLiter).toFixed(2) : '';
+      litersInput.value = computeLitersFromAmount(amountInput.value) ?? '';
     };
     const updateVehicleFields = ()=>{
       const info = categoryVehicleInfo(catSelect.value);
@@ -3355,7 +3365,12 @@ function wireModal(kind){
       vehicleField.style.display='block'; odoRow.style.display='flex'; hint.style.display='block';
       litersField.style.display = info.logType==='fuel' ? 'block' : 'none';
       partField.style.display = info.logType==='maintenance' ? 'block' : 'none';
-      vehicleSelect.innerHTML = vehicleOptionsAll();
+      // Auto-pick the vehicle when there's exactly one of the matching type (car/scooter) — the
+      // category already tells us which type, so there's nothing left to ask when it's unambiguous.
+      // Still overridable, and left blank when there's more than one vehicle of that type.
+      const matching = DB.vehicles.filter(v=>v.type===info.vehicleType);
+      const autoId = matching.length===1 ? matching[0].id : undefined;
+      vehicleSelect.innerHTML = vehicleOptionsAll(autoId);
       updatePartOptions();
       recalcLiters();
     };
@@ -3486,7 +3501,7 @@ const submitHandlers = {
           DB.vehicleLogs.push({
             id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
             amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-            litersFilled: (info.logType==='fuel' && data.litersFilled) ? Number(data.litersFilled) : null,
+            litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
             partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
             note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
           });
@@ -3589,7 +3604,7 @@ const submitHandlers = {
       Object.assign(editing, {
         date: data.date, type: data.type, amount: Number(data.amount),
         odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-        litersFilled: (data.type==='fuel' && data.litersFilled) ? Number(data.litersFilled) : null,
+        litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
         partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
         note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
       });
@@ -3609,7 +3624,7 @@ const submitHandlers = {
     DB.vehicleLogs.push({
       id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type,
       amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-      litersFilled: (data.type==='fuel' && data.litersFilled) ? Number(data.litersFilled) : null,
+      litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
       partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
       note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
     });

@@ -3050,7 +3050,7 @@ function openModal(kind, ctx={}){
           <div class="field"><label>Odometer (km)</label><input type="number" step="0.01" name="odometerKm" id="vlog-odometer" value="${editing&&editing.odometerKm!=null?editing.odometerKm:''}"></div>
           <div class="field" id="vlog-liters-field" style="${typeVal==='fuel'?'':'display:none;'}"><label>Liters <span style="color:var(--text-faint);">(auto @ ${DB.fuelPricePerLiter} EGP/L)</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters" value="${editing&&editing.litersFilled!=null?editing.litersFilled:''}"></div>
         </div>
-        <div class="field"><label>Description</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانة دورية" required></div>
+        <div class="field"><label>Description (optional)</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="e.g. صيانة دورية"></div>
         <div class="field" id="vlog-part-field" style="${typeVal==='maintenance'?'':'display:none;'}">
           <label>Part (optional)</label>
           <select name="partId">
@@ -3326,6 +3326,8 @@ function wireModal(kind){
     const vehicleSelect = backdrop.querySelector('#txn-vehicle-select');
     const odoRow = backdrop.querySelector('#txn-odometer-row');
     const litersField = backdrop.querySelector('#txn-liters-field');
+    const litersInput = backdrop.querySelector('#txn-liters');
+    const amountInput = backdrop.querySelector('input[name="amount"]');
     const partField = backdrop.querySelector('#txn-part-field');
     const partSelect = backdrop.querySelector('#txn-part-select');
     const hint = backdrop.querySelector('#txn-vehicle-hint');
@@ -3334,6 +3336,14 @@ function wireModal(kind){
       const vid = vehicleSelect.value;
       partSelect.innerHTML = '<option value="">General maintenance (no specific part)</option>' +
         (vid ? vehiclePartsFor(vid).map(p=>`<option value="${p.id}">${p.name}</option>`).join('') : '');
+    };
+    // Liters is never something the user has to type by hand: it's always derived from the
+    // amount and the global fuel price (set on the Vehicles page). Still editable in case the
+    // person actually knows the exact liters and wants to override the estimate.
+    const recalcLiters = ()=>{
+      if(litersField.style.display==='none') return;
+      const amt = Number(amountInput.value);
+      litersInput.value = amt > 0 ? (amt / DB.fuelPricePerLiter).toFixed(2) : '';
     };
     const updateVehicleFields = ()=>{
       const info = categoryVehicleInfo(catSelect.value);
@@ -3347,9 +3357,11 @@ function wireModal(kind){
       partField.style.display = info.logType==='maintenance' ? 'block' : 'none';
       vehicleSelect.innerHTML = vehicleOptionsAll();
       updatePartOptions();
+      recalcLiters();
     };
     catSelect.addEventListener('change', updateVehicleFields);
     vehicleSelect.addEventListener('change', updatePartOptions);
+    amountInput?.addEventListener('input', recalcLiters);
     updateVehicleFields();
   }
 

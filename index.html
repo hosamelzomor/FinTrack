@@ -16,7 +16,7 @@
     --border:#232838;
     --text:#E8EAF0;
     --text-muted:#8890A6;
-    --text-faint:#565F78;
+    --text-faint:#7E88AE;
     --accent:#4C9A8E;
     --accent-bright:#63BFB0;
     --accent-soft:rgba(76,154,142,0.14);
@@ -37,7 +37,7 @@
     --border:#DDE0E7;
     --text:#1A1D26;
     --text-muted:#5B6178;
-    --text-faint:#9299AC;
+    --text-faint:#666C8A;
     --accent:#3D8377;
     --accent-bright:#2E6B60;
     --accent-soft:rgba(61,131,119,0.12);
@@ -118,7 +118,10 @@
   .btn.danger:hover{background:rgba(226,114,124,.1);}
   .btn.ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border);padding:6px 10px;font-size:12px;}
   .btn.ghost:hover{color:var(--text);}
-  .btn.sm{padding:6px 10px;font-size:12px;}
+  .btn.sm{padding:9px 12px;font-size:12px;min-height:34px;}
+  /* Breathing room between adjacent inline actions (e.g. Edit/Delete in a table row) so a slightly
+     off-target tap doesn't land on the wrong (often destructive) button next to it. */
+  td .btn + .btn{margin-left:8px;}
 
   .view{display:none;}
   .view.active{display:block;}
@@ -295,7 +298,7 @@
     }
     .nav button{
       flex-direction:column;gap:2px;align-items:center;justify-content:center;
-      flex:none;min-width:56px;padding:5px 3px;font-size:8.5px;text-align:center;
+      flex:none;min-width:58px;min-height:44px;padding:6px 3px;font-size:10.5px;text-align:center;
     }
     .nav button .ic{font-size:15px;}
     .nav button .lbl{line-height:1.1;}
@@ -1591,7 +1594,7 @@ function renderDashboard(){
       <td>${fmtDate(t.date)}</td>
       <td>${acc?acc.name:'—'}</td>
       <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td dir="auto" style="color:var(--text-muted);">${t.note||''}</td>
       <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
@@ -1641,6 +1644,8 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
   if(!id) return;
   const hasTxns = DB.transactions.some(t=>t.accountId===id);
   if(hasTxns){ toast('Cannot delete: account has transactions'); return; }
+  const acc = accountById(id);
+  if(!confirm(`Delete ${acc ? acc.name : 'this account'}? This can't be undone.`)) return;
   DB.accounts = DB.accounts.filter(a=>a.id!==id);
   saveDB(); renderAll(); toast('Account deleted');
 });
@@ -1726,7 +1731,7 @@ function renderTransactions(){
       <td>${fmtDate(t.date)}</td>
       <td>${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
       <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
-      <td style="color:var(--text-muted);">${t.note||''}</td>
+      <td dir="auto" style="color:var(--text-muted);">${t.note||''}</td>
       <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
       <td style="white-space:nowrap;">
         <button class="btn ghost sm" data-edit-txn="${t.id}">Edit</button>
@@ -1771,15 +1776,19 @@ document.getElementById('txn-reset').addEventListener('click', ()=>{
   if(_txnTreeCtrl) _txnTreeCtrl.reset();
   renderTransactions();
 });
-// Shared guard: if txnId is linked to a commitment payment or vehicle log,
-// confirm before letting the caller proceed. Returns true if it's safe to continue.
+// Shared guard: confirms before an irreversible transaction delete/edit. If the transaction is
+// also linked to a commitment payment or vehicle log, the message calls that out explicitly so
+// the person knows the linked record won't be touched and the two may go out of sync.
 function confirmIfLinked(txnId, action){
   const src = findLinkedSource(txnId);
-  if(!src) return true;
-  return confirm(
-    `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ` +
-    `${action==='edit'?'Editing':'Deleting'} it here won't update that record — the two may go out of sync. Continue?`
-  );
+  if(src){
+    return confirm(
+      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ` +
+      `${action==='edit'?'Editing':'Deleting'} it here won't update that record — the two may go out of sync. Continue?`
+    );
+  }
+  if(action==='delete') return confirm('Delete this transaction? This can\'t be undone.');
+  return true;
 }
 document.getElementById('view-transactions').addEventListener('click', e=>{
   const editId = e.target.dataset.editTxn;
@@ -1820,6 +1829,7 @@ document.getElementById('view-categories').addEventListener('click', e=>{
   const id = e.target.dataset.delCat; if(!id) return;
   const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
   if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
+  if(!confirm('Delete this category? This can\'t be undone.')) return;
   DB.categories = DB.categories.filter(c=>c.id!==id);
   saveDB(); renderAll(); toast('Category deleted');
 });
@@ -1882,6 +1892,12 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
   if(payoutId) return openModal('payout', {commitmentId: payoutId});
   if(editId) return openModal('commitment', {commitId: editId});
   if(delId){
+    const c = DB.commitments.find(x=>x.id===delId);
+    const paymentCount = DB.commitmentPayments.filter(p=>p.commitmentId===delId).length;
+    const warning = paymentCount
+      ? `Delete ${c ? c.name : 'this commitment'}? This also permanently deletes its ${paymentCount} recorded payment${paymentCount===1?'':'s'}. This can't be undone.`
+      : `Delete ${c ? c.name : 'this commitment'}? This can't be undone.`;
+    if(!confirm(warning)) return;
     DB.commitments = DB.commitments.filter(c=>c.id!==delId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.commitmentId!==delId);
     saveDB(); renderAll(); toast('Commitment deleted');
@@ -2410,7 +2426,7 @@ function renderVehicles(){
     return `<div class="commit-card">
       <div class="top">
         <div>
-          <div class="name">${v.name}</div>
+          <div class="name" dir="auto">${v.name}</div>
           <div class="meta">${v.type==='car'?'🚗 Car':'🛵 Scooter'}${v.plateNote?' · '+v.plateNote:''}</div>
         </div>
         <span class="tag">${logsCount} log${logsCount===1?'':'s'}</span>
@@ -2450,6 +2466,8 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
   if(delId){
     const hasLogs = DB.vehicleLogs.some(l=>l.vehicleId===delId);
     if(hasLogs){ toast('Cannot delete: vehicle has log entries'); return; }
+    const v = vehicleById(delId);
+    if(!confirm(`Delete ${v ? v.name : 'this vehicle'}? This can't be undone.`)) return;
     DB.vehicles = DB.vehicles.filter(v=>v.id!==delId);
     DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.vehicleId!==delId);
     saveDB(); renderAll(); toast('Vehicle deleted');
@@ -2506,7 +2524,7 @@ function renderVehicleLogsPanel(){
       <td class="amt">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
       <td class="amt">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
       <td class="amt">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
-      <td style="color:var(--text-muted);">${l.note||''}</td>
+      <td dir="auto" style="color:var(--text-muted);">${l.note||''}</td>
       <td style="white-space:nowrap;">
         <button class="btn ghost sm" data-edit-vlog="${l.id}">Edit</button>
         <button class="btn ghost sm" data-del-vlog="${l.id}">Delete</button>
@@ -3022,7 +3040,7 @@ function openModal(kind, ctx={}){
             ${rows.map(r=>`<tr>
               <td>${fmtDate(r.date)}</td>
               <td>${r.label}</td>
-              <td style="color:var(--text-muted);">${r.note||''}</td>
+              <td dir="auto" style="color:var(--text-muted);">${r.note||''}</td>
               <td class="amt ${isIncome?'pos':'neg'}">${r.currency} ${fmtMoney(r.amount)}</td>
             </tr>`).join('') || `<tr><td colspan="4" class="empty">No entries yet this month</td></tr>`}
           </tbody>
@@ -3312,6 +3330,7 @@ function openModal(kind, ctx={}){
       if(editId){ openModal('vehicle-doc', {vehicleId: ctx.vehicleId, docId: editId}); return; }
       const delId = e.target.dataset.delVdoc;
       if(delId){
+        if(!confirm('Delete this document? This can\'t be undone.')) return;
         DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.id!==delId);
         saveDB(); renderAll();
         openModal('vehicle-detail', {vehicleId: ctx.vehicleId});

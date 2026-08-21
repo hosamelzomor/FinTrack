@@ -269,7 +269,7 @@
 
   /* Dashboard responsive */
   @media(max-width:760px){
-    body{font-size:12.5px;}
+    body{font-size:13px;}
 
     .app{display:block;}
     .sidebar{display:contents;}
@@ -285,7 +285,7 @@
     .brand .sub{display:none;}
     .more-toggle{
       display:flex;align-items:center;justify-content:center;
-      width:30px;height:30px;border-radius:8px;background:var(--surface-2);
+      width:32px;height:32px;border-radius:8px;background:var(--surface-2);
       border:1px solid var(--border);color:var(--text-muted);font-size:15px;
     }
 
@@ -314,47 +314,119 @@
     .nav-footer.open{transform:translateY(0);opacity:1;pointer-events:auto;box-shadow:0 10px 24px rgba(0,0,0,.35);}
     .nav-footer button{margin-bottom:0;font-size:12px;}
 
-    .content{padding:62px 12px 76px 12px;}
+    .content{padding:62px 10px 80px 10px;box-sizing:border-box;width:100%;overflow-x:hidden;}
 
     .topbar{flex-direction:column;align-items:stretch;gap:9px;margin-bottom:16px;}
-    .topbar h1{font-size:16.5px;}
-    .topbar .today{font-size:10.5px;}
+    .topbar h1{font-size:17px;}
+    .topbar .today{font-size:11px;}
     .topbar > button.btn{width:100%;}
 
-    .section-title{font-size:13px;margin:22px 0 10px 0;}
+    .section-title{font-size:13px;margin:20px 0 10px 0;}
     .section-title .hint{font-size:10.5px;}
 
     .grid.cols-3,.grid.cols-2,.grid.cols-4{grid-template-columns:1fr;}
 
-    .card{padding:14px 15px;}
+    .card{padding:13px 14px;}
     .card h3{font-size:10.5px;}
-    .card .big{font-size:19px;}
+    .card .big{font-size:22px;}
     .card .delta{font-size:10.5px;}
-
-    table{font-size:11px;}
-    thead th{font-size:9.5px;padding:7px 9px;}
-    tbody td{padding:8px 9px;font-size:11.5px;}
 
     .modal h2{font-size:15px;}
     .field label{font-size:11px;}
-    .field input,.field select,.field textarea{padding:8px 9px;font-size:12.5px;}
+    .field input,.field select,.field textarea{padding:9px 10px;font-size:13px;}
     .help-text{font-size:10.5px;}
-    .btn{font-size:12px;padding:8px 14px;}
-    .btn.sm{font-size:10.5px;}
+    .btn{font-size:12.5px;padding:9px 14px;}
+    .btn.sm{font-size:11px;padding:7px 10px;min-height:32px;}
     .tag{font-size:9.5px;}
 
     .commit-card{padding:13px 14px;}
-    .commit-card .name{font-size:12.5px;}
-    .commit-card .meta{font-size:10px;}
+    .commit-card .name{font-size:13px;}
+    .commit-card .meta{font-size:10.5px;}
     .commit-card .stats{font-size:10.5px;}
 
-    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-    table{min-width:520px;}
-
-    .modal{width:94vw;padding:18px 16px;max-height:82vh;}
+    .modal{width:96vw;padding:18px 14px;max-height:88vh;}
     .field-row{flex-direction:column;gap:0;}
 
-    .card .big{font-size:22px;}
+    /* ============================================================
+       MOBILE TABLE → CARD LAYOUT
+       Every <table> inside a .table-wrap becomes a stack of cards.
+       thead is hidden; each <td> renders its column header as an
+       inline label via the data-label attribute, which the JS that
+       builds the table sets automatically. No horizontal scrolling.
+       ============================================================ */
+    .table-wrap{overflow:visible;}
+    .table-wrap table,
+    .table-wrap thead,
+    .table-wrap tbody,
+    .table-wrap th,
+    .table-wrap td,
+    .table-wrap tr { display:block; width:100%; box-sizing:border-box; }
+    .table-wrap thead { display:none; }
+    .table-wrap tbody tr {
+      background:var(--surface-2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      margin-bottom:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px 12px;
+    }
+    .table-wrap tbody td {
+      padding:2px 0;
+      border:none;
+      font-size:12.5px;
+      width:auto;
+      display:flex;
+      align-items:baseline;
+      gap:5px;
+      flex:0 0 auto;
+    }
+    /* Label prefix — shown only on mobile via data-label */
+    .table-wrap tbody td[data-label]::before {
+      content:attr(data-label) ":";
+      font-size:10px;
+      font-weight:600;
+      color:var(--text-faint);
+      text-transform:uppercase;
+      letter-spacing:.4px;
+      flex-shrink:0;
+    }
+    /* Full-width cells: date (anchor), note, action buttons row */
+    .table-wrap tbody td.td-date,
+    .table-wrap tbody td.td-note,
+    .table-wrap tbody td.td-actions {
+      flex:0 0 100%;
+      width:100%;
+    }
+    .table-wrap tbody td.td-date {
+      font-weight:700;font-size:13px;
+      border-bottom:1px solid var(--border);
+      margin-bottom:6px;padding-bottom:6px;
+      color:var(--text);
+    }
+    .table-wrap tbody td.td-note {
+      color:var(--text-muted);font-size:11.5px;
+      font-style:italic;
+    }
+    .table-wrap tbody td.td-note:empty{display:none;}
+    .table-wrap tbody td.td-actions {
+      margin-top:6px;padding-top:6px;
+      border-top:1px solid var(--border);
+      justify-content:flex-end;gap:8px;
+    }
+    /* Numeric cells: inline, right-aligned value */
+    .table-wrap tbody td.amt{
+      justify-content:flex-start;
+    }
+
+    /* All Logs panel extra controls */
+    #vlogs-filter-bar{flex-direction:column;gap:8px;}
+    #vlogs-filter-bar .field{min-width:0!important;flex:none;width:100%;}
+    #vlogs-filter-bar > div:last-child{width:100%;justify-content:stretch;gap:6px;}
+    #vlogs-filter-bar > div:last-child button{flex:1;}
+    #vlogs-summary-strip{flex-direction:column;gap:8px;}
+    #vlogs-summary-strip > div{flex:none!important;}
   }
 </style>
 </head>
@@ -543,12 +615,12 @@
       </div>
 
       <div id="veh-logs-panel" style="display:none;">
-        <div class="field-row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <div class="field" style="margin:0;min-width:170px;">
+        <div id="vlogs-filter-bar" class="field-row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div class="field" style="margin:0;min-width:160px;flex:1;">
             <label>Vehicle</label>
             <select id="vlogs-filter-vehicle"></select>
           </div>
-          <div class="field" style="margin:0;min-width:160px;">
+          <div class="field" style="margin:0;min-width:150px;flex:1;">
             <label>Type</label>
             <select id="vlogs-filter-type">
               <option value="all">All types</option>
@@ -558,16 +630,18 @@
               <option value="asset">💰 Asset</option>
             </select>
           </div>
-          <div class="field" style="margin:0;">
+          <div class="field" style="margin:0;flex:1;">
             <label>From</label>
             <input type="date" id="vlogs-filter-from">
           </div>
-          <div class="field" style="margin:0;">
+          <div class="field" style="margin:0;flex:1;">
             <label>To</label>
             <input type="date" id="vlogs-filter-to">
           </div>
-          <button type="button" class="btn ghost sm" id="vlogs-sort-toggle">Date: Newest first ↓</button>
-          <button type="button" class="btn secondary sm" id="vlogs-filter-reset">Reset</button>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button type="button" class="btn ghost sm" id="vlogs-sort-toggle">Date: Newest first ↓</button>
+            <button type="button" class="btn secondary sm" id="vlogs-filter-reset">Reset</button>
+          </div>
         </div>
 
         <div class="table-wrap" style="margin-bottom:18px;padding:18px 20px;">
@@ -1512,9 +1586,9 @@ function renderDashboard(){
   document.getElementById('dash-accounts-body').innerHTML = DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}</td>
-      <td><span class="tag">${a.type}</span></td>
-      <td class="amt ${bal<0?'neg':''}">${a.currency} ${fmtMoney(bal)}</td>
+      <td class="td-date" data-label="">${a.name}</td>
+      <td data-label="Type"><span class="tag">${a.type}</span></td>
+      <td class="amt ${bal<0?'neg':''}" data-label="Balance">${a.currency} ${fmtMoney(bal)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="3" class="empty">No accounts yet</td></tr>`;
 
@@ -1591,11 +1665,11 @@ function renderDashboard(){
     const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
     const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}</td>
-      <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
-      <td dir="auto" style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+      <td class="td-date" data-label="">${fmtDate(t.date)}</td>
+      <td data-label="Account">${acc?acc.name:'—'}</td>
+      <td data-label="Category">${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td class="td-note" dir="auto" data-label="Note">${t.note||''}</td>
+      <td class="amt ${cls}" data-label="Amount">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
 }
@@ -1605,12 +1679,12 @@ function renderAccounts(){
   document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td>${a.name}${a.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
-      <td><span class="tag">${a.type}</span></td>
-      <td>${a.currency}</td>
-      <td class="amt">${fmtMoney(a.openingBalance)}</td>
-      <td class="amt ${bal<0?'neg':''}">${fmtMoney(bal)}</td>
-      <td style="white-space:nowrap;">
+      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
+      <td data-label="Type"><span class="tag">${a.type}</span></td>
+      <td data-label="Currency">${a.currency}</td>
+      <td class="amt" data-label="Opening">${fmtMoney(a.openingBalance)}</td>
+      <td class="amt ${bal<0?'neg':''}" data-label="Balance">${fmtMoney(bal)}</td>
+      <td class="td-actions">
         <button class="btn ghost sm" data-edit-account="${a.id}">Edit</button>
         <button class="btn ghost sm" data-reconcile-account="${a.id}">Reconcile</button>
         <button class="btn ghost sm" data-del-account="${a.id}">Delete</button>
@@ -1728,12 +1802,12 @@ function renderTransactions(){
     const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
     const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td>${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
-      <td>${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
-      <td dir="auto" style="color:var(--text-muted);">${t.note||''}</td>
-      <td class="amt ${cls}">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
-      <td style="white-space:nowrap;">
+      <td class="td-date" data-label="">${fmtDate(t.date)}</td>
+      <td data-label="Account">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
+      <td data-label="Category">${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td class="td-note" dir="auto" data-label="Note">${t.note||''}</td>
+      <td class="amt ${cls}" data-label="Amount">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+      <td class="td-actions">
         <button class="btn ghost sm" data-edit-txn="${t.id}">Edit</button>
         <button class="btn ghost sm" data-del-txn="${t.id}">Delete</button>
       </td>
@@ -2517,19 +2591,18 @@ function renderVehicleLogsPanel(){
 
   // Table
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
-      <td>${fmtDate(l.date)}</td>
-      <td>${l.vehicleIcon} ${l.vehicleName}</td>
-      <td><span class="tag">${typeLabels[l.type]||l.type}</span></td>
-      <td class="amt neg">${fmtMoney(l.amount)}</td>
-      <td class="amt">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
-      <td class="amt">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
-      <td class="amt">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
-      <td dir="auto" style="color:var(--text-muted);">${l.note||''}</td>
-      <td style="white-space:nowrap;">
+      <td class="td-date" data-label="">${fmtDate(l.date)} · ${l.vehicleIcon} ${l.vehicleName}</td>
+      <td data-label="Type"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
+      <td class="amt neg" data-label="Amount">${fmtMoney(l.amount)}</td>
+      <td class="amt" data-label="KM">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
+      <td class="amt" data-label="Dist.">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
+      <td class="amt" data-label="km/L">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
+      <td class="td-note" dir="auto" data-label="Note">${l.note||''}</td>
+      <td class="td-actions">
         <button class="btn ghost sm" data-edit-vlog="${l.id}">Edit</button>
         <button class="btn ghost sm" data-del-vlog="${l.id}">Delete</button>
       </td>
-    </tr>`).join('') || `<tr><td colspan="9" class="empty">No log entries match these filters</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="8" class="empty">No log entries match these filters</td></tr>`;
 
   // Summary strip
   const totalSpend = logs.reduce((s,l)=>s+l.amount,0);

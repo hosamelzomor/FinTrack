@@ -427,7 +427,93 @@
     #vlogs-filter-bar > div:last-child button{flex:1;}
     #vlogs-summary-strip{flex-direction:column;gap:8px;}
     #vlogs-summary-strip > div{flex:none!important;}
+
+    /* Transaction filter bar on mobile: search full-width, then 2-col for selects */
+    #txn-filter-bar{flex-direction:column;gap:6px;}
+    #txn-filter-bar input[type="search"]{width:100%;min-width:0;flex:none;}
+    #txn-filter-bar select{flex:1;min-width:0;}
+    #txn-filter-bar > div{width:100%;min-width:0;}
+    #txn-filter-bar > div button{width:100%;}
+    #txn-filter-bar #txn-reset{align-self:flex-end;}
+    /* 2-column grid for the two selects */
+    #txn-month-filter,#txn-account-filter{flex:1;}
+
+    /* Reports filter bar */
+    #rep-filter-bar{flex-direction:column;gap:8px;}
+    #rep-filter-bar > *{width:100%;min-width:0;}
+
+    /* Kill any residual min-width on tables – the card layout handles it */
+    .table-wrap table{min-width:0;}
+    table{min-width:0;}
   }
+
+  /* ---- FOOTER ---- */
+  .app-footer{
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .app-footer .footer-logo{
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .app-footer .footer-logo img{
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(74,144,226,.35));
+  }
+  .app-footer .footer-logo .footer-name{
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .app-footer .footer-copy{
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-align: center;
+    flex: 1;
+  }
+  .app-footer .footer-copy strong{
+    color: var(--text);
+    font-weight: 600;
+  }
+  .app-footer .footer-email{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #4A90E2;
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity .15s;
+  }
+  .app-footer .footer-email:hover{ opacity: .75; }
+  .app-footer .footer-email .ic{ font-size: 13px; }
+
+  /* footer inside main (shifts with sidebar) */
+  .content{
+    display: flex;
+    flex-direction: column;
+  }
+  .content > .views-wrapper{
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  @media(max-width:600px){
+    .app-footer{ flex-direction: column; text-align: center; gap: 8px; padding: 12px 16px; }
+    .app-footer .footer-copy{ flex: none; }
+  }
+
 </style>
 </head>
 <body>
@@ -533,7 +619,7 @@
         <div><h1>Transactions</h1><div class="today" id="txn-count-label"></div></div>
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+      <div id="txn-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
         <input type="search" id="txn-search" placeholder="بحث بالنوت أو الكاتيجوري..." style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
         <select id="txn-month-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الشهور</option>
@@ -677,7 +763,7 @@
       </div>
       <!-- Filter bar -->
       <div class="card" style="margin-bottom:14px;padding:12px 14px;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div id="rep-filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
           <div>
             <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفترة</div>
             <select id="rep-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;min-width:130px;">
@@ -750,6 +836,19 @@
         </table>
       </div>
     </section>
+
+  <footer class="app-footer">
+    <div class="footer-logo">
+      <img src="data:image/png;base64,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" alt="Hossam Al-Zomor Logo">
+      <span class="footer-name">Hossam Al-Zomor</span>
+    </div>
+    <div class="footer-copy">
+      Copyright &copy; 2026 <strong>Hossam Al-Zomor</strong>. All Rights Reserved.
+    </div>
+    <a class="footer-email" href="mailto:hosam.elzomor@gmail.com">
+      <span class="ic">✉</span> hosam.elzomor@gmail.com
+    </a>
+  </footer>
 
   </main>
 </div>
@@ -1694,12 +1793,11 @@ function renderAccounts(){
 
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
-      <td>${r.currency}</td>
-      <td class="amt">
+      <td class="td-date" data-label="">${r.currency}${r.currency==='EGP' ? ' <span class="tag">base</span>' : ''}</td>
+      <td class="amt" data-label="Rate to EGP">
         <input type="number" step="0.0001" value="${r.rateToEGP}" data-fx="${r.currency}"
           style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
       </td>
-      <td>${r.currency==='EGP' ? '<span class="tag">base</span>' : ''}</td>
     </tr>`).join('');
 }
 
@@ -1887,10 +1985,14 @@ function renderCategories(){
       return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-weight:600;font-size:13.5px;">${p.name}</div>
-          <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn ghost sm" data-edit-cat="${p.id}">Edit</button>
+            <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
+          </div>
         </div>
         ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
           ${children.map(c=>`<span class="tag" style="display:flex;align-items:center;gap:6px;">${c.name}
+            <span data-edit-cat="${c.id}" style="cursor:pointer;opacity:.7;font-size:10px;" title="Edit">✎</span>
             <span data-del-cat="${c.id}" style="cursor:pointer;opacity:.6;">✕</span></span>`).join('')}
         </div>` : ''}
       </div>`;
@@ -1900,10 +2002,15 @@ function renderCategories(){
   document.getElementById('cat-income-list').innerHTML = listFor('income');
 }
 document.getElementById('view-categories').addEventListener('click', e=>{
+  const editId = e.target.dataset.editCat;
+  if(editId){ openModal('category-edit', {catId: editId}); return; }
   const id = e.target.dataset.delCat; if(!id) return;
-  const inUse = DB.transactions.some(t=>t.categoryId===id) || DB.categories.some(c=>c.parentId===id);
-  if(inUse){ toast('Cannot delete: category is in use or has sub-categories'); return; }
-  if(!confirm('Delete this category? This can\'t be undone.')) return;
+  const cat = DB.categories.find(c=>c.id===id);
+  const hasChildren = DB.categories.some(c=>c.parentId===id);
+  const inUse = DB.transactions.some(t=>t.categoryId===id);
+  if(hasChildren){ toast('Cannot delete: category has sub-categories — delete them first'); return; }
+  if(inUse){ toast('Cannot delete: category has transactions linked to it'); return; }
+  if(!confirm(`Delete "${cat?cat.name:'this category'}"? This can't be undone.`)) return;
   DB.categories = DB.categories.filter(c=>c.id!==id);
   saveDB(); renderAll(); toast('Category deleted');
 });
@@ -2425,12 +2532,12 @@ function _renderReportsInner(){
     const pTot=_expInRange(from,to,filtSet);
     const pMon=_expInRange(mKey,mKey,filtSet);
     if(pTot===0&&pMon===0) return '';
-    return `<tr><td style="font-weight:600;">${c.name}</td><td class="amt">${fmtMoney(pMon)}</td><td class="amt">${fmtMoney(pTot)}</td></tr>`
+    return `<tr><td class="td-date" data-label="" style="font-weight:600;">${c.name}</td><td class="amt" data-label="هذا الشهر">${fmtMoney(pMon)}</td><td class="amt" data-label="الكل">${fmtMoney(pTot)}</td></tr>`
       +ch.filter(x=>!useCat||selIds.has(x.id)).map(x=>{
         const ct=_expInRange(from,to,new Set([x.id]));
         const cm=_expInRange(mKey,mKey,new Set([x.id]));
         if(ct===0&&cm===0) return '';
-        return `<tr><td style="padding-left:22px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(cm)}</td><td class="amt" style="color:var(--text-muted);font-size:12.5px;">${fmtMoney(ct)}</td></tr>`;
+        return `<tr><td class="td-date" data-label="" style="padding-left:22px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" data-label="هذا الشهر" style="color:var(--text-muted);">${fmtMoney(cm)}</td><td class="amt" data-label="الكل" style="color:var(--text-muted);">${fmtMoney(ct)}</td></tr>`;
       }).join('');
   }).join('')||`<tr><td colspan="3" class="empty">لا توجد بيانات</td></tr>`;
 
@@ -2449,7 +2556,7 @@ function _renderReportsInner(){
   document.getElementById('reports-monthly-body').innerHTML=monthsDesc.map(mk=>{
     const amt=amounts[months.indexOf(mk)];
     if(!amt)return '';
-    return `<tr><td>${mk}</td><td class="amt">${fmtMoney(amt)}</td></tr>`;
+    return `<tr><td class="td-date" data-label="">${mk}</td><td class="amt" data-label="المبلغ">${fmtMoney(amt)}</td></tr>`;
   }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
 }
 
@@ -2523,6 +2630,7 @@ function renderVehicles(){
       ${docsCount? `<div class="meta" style="margin-top:8px;">${docsCount} document${docsCount===1?'':'s'} tracked</div>` : ''}
       <div class="actions">
         <button class="btn secondary sm" data-view-vehicle="${v.id}">View / Log Entry</button>
+        <button class="btn ghost sm" data-edit-vehicle="${v.id}">Edit</button>
         <button class="btn ghost sm" data-del-vehicle="${v.id}">Delete</button>
       </div>
     </div>`;
@@ -2535,8 +2643,10 @@ document.getElementById('fuel-price-input').addEventListener('change', e=>{
 });
 document.getElementById('view-vehicles').addEventListener('click', e=>{
   const viewId = e.target.dataset.viewVehicle;
+  const editVehId = e.target.dataset.editVehicle;
   const delId = e.target.dataset.delVehicle;
   if(viewId) return openModal('vehicle-detail', {vehicleId: viewId});
+  if(editVehId) return openModal('vehicle-edit', {vehicleId: editVehId});
   if(delId){
     const hasLogs = DB.vehicleLogs.some(l=>l.vehicleId===delId);
     if(hasLogs){ toast('Cannot delete: vehicle has log entries'); return; }
@@ -3001,6 +3111,38 @@ function openModal(kind, ctx={}){
     </div>`;
   }
 
+  if(kind==='category-edit'){
+    const cat = DB.categories.find(c=>c.id===ctx.catId);
+    if(!cat){ toast('Category not found'); return; }
+    const isChild = !!cat.parentId;
+    const parentCat = isChild ? DB.categories.find(c=>c.id===cat.parentId) : null;
+    // Build parent options for the same type, excluding the category itself and its own children
+    const parentOpts = DB.categories.filter(c=>c.type===cat.type && !c.parentId && c.id!==cat.id)
+      .map(c=>`<option value="${c.id}" ${c.id===cat.parentId?'selected':''}>${c.name}</option>`).join('');
+    html = `<div class="modal">
+      <h2>Edit Category</h2>
+      <form id="form-category-edit">
+        <input type="hidden" name="catId" value="${cat.id}">
+        <div class="field">
+          <label>Type</label>
+          <div style="font-size:13px;color:var(--text-muted);padding:6px 0;">${cat.type==='expense'?'Expense':'Income'} <span style="font-size:11px;">(type cannot be changed)</span></div>
+        </div>
+        <div class="field"><label>Name</label><input name="name" required value="${cat.name}" placeholder="e.g. كهرباء"></div>
+        <div class="field">
+          <label>Parent category (optional)</label>
+          <select name="parentId">
+            <option value="" ${!cat.parentId?'selected':''}>— None (top-level) —</option>
+            ${parentOpts}
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save Changes</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
   if(kind==='commitment'){
     const editing = ctx.commitId ? DB.commitments.find(c=>c.id===ctx.commitId) : null;
     html = `<div class="modal">
@@ -3111,10 +3253,10 @@ function openModal(kind, ctx={}){
           <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
           <tbody>
             ${rows.map(r=>`<tr>
-              <td>${fmtDate(r.date)}</td>
-              <td>${r.label}</td>
-              <td dir="auto" style="color:var(--text-muted);">${r.note||''}</td>
-              <td class="amt ${isIncome?'pos':'neg'}">${r.currency} ${fmtMoney(r.amount)}</td>
+              <td class="td-date" data-label="">${fmtDate(r.date)}</td>
+              <td data-label="Category">${r.label}</td>
+              <td class="td-note" dir="auto" data-label="Note">${r.note||''}</td>
+              <td class="amt td-actions ${isIncome?'pos':'neg'}" data-label="Amount">${r.currency} ${fmtMoney(r.amount)}</td>
             </tr>`).join('') || `<tr><td colspan="4" class="empty">No entries yet this month</td></tr>`}
           </tbody>
         </table>
@@ -3141,6 +3283,33 @@ function openModal(kind, ctx={}){
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>Cancel</button>
           <button type="submit" class="btn">Create Vehicle</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='vehicle-edit'){
+    const v = vehicleById(ctx.vehicleId);
+    if(!v){ toast('Vehicle not found'); return; }
+    html = `<div class="modal">
+      <h2>Edit Vehicle</h2>
+      <form id="form-vehicle-edit">
+        <input type="hidden" name="vehicleId" value="${v.id}">
+        <div class="field"><label>Name</label><input name="name" required value="${v.name}" placeholder="e.g. العربية or السكوتر"></div>
+        <div class="field">
+          <label>Type</label>
+          <div class="radio-group" id="vehicle-edit-type-group">
+            <div class="radio-opt ${v.type==='car'?'selected':''}" data-val="car">🚗 Car</div>
+            <div class="radio-opt ${v.type==='scooter'?'selected':''}" data-val="scooter">🛵 Scooter</div>
+          </div>
+          <input type="hidden" name="type" value="${v.type}">
+        </div>
+        <div class="field"><label>Plate / Note (optional)</label><input name="plateNote" value="${v.plateNote||''}" placeholder="e.g. plate number"></div>
+        <div class="field"><label>Oil change interval (km, optional)</label><input type="number" step="100" name="oilIntervalKm" value="${v.oilIntervalKm||''}" placeholder="e.g. 5000"></div>
+        <div class="field"><label>Tank range (km per full tank, optional)</label><input type="number" step="10" name="tankRangeKm" value="${v.tankRangeKm||''}" placeholder="e.g. 550"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Save Changes</button>
         </div>
       </form>
     </div>`;
@@ -3207,8 +3376,10 @@ function openModal(kind, ctx={}){
           <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th><th></th></tr></thead>
           <tbody>
             ${docs.map(d=>`<tr>
-              <td>${d.docType}</td><td>${fmtDate(d.renewalDate)}</td><td style="color:var(--text-muted);">${d.note||''}</td>
-              <td style="white-space:nowrap;">
+              <td class="td-date" data-label="">${d.docType}</td>
+              <td data-label="Renewal">${fmtDate(d.renewalDate)}</td>
+              <td class="td-note" dir="auto" data-label="Note">${d.note||''}</td>
+              <td class="td-actions">
                 <button class="btn ghost sm" data-edit-vdoc="${d.id}">Edit</button>
                 <button class="btn ghost sm" data-del-vdoc="${d.id}">Delete</button>
               </td>
@@ -3705,6 +3876,13 @@ const submitHandlers = {
     DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
     saveDB(); toast('Category created');
   },
+  'category-edit'(data){
+    const cat = DB.categories.find(c=>c.id===data.catId);
+    if(!cat) throw new Error('Category not found');
+    cat.name = data.name.trim();
+    cat.parentId = data.parentId || null;
+    saveDB(); toast('Category updated');
+  },
   commitment(data){
     if(data.commitId){
       const c = DB.commitments.find(x=>x.id===data.commitId);
@@ -3760,6 +3938,16 @@ const submitHandlers = {
       oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
     });
     saveDB(); toast('Vehicle created');
+  },
+  'vehicle-edit'(data){
+    const v = vehicleById(data.vehicleId);
+    if(!v) throw new Error('Vehicle not found');
+    v.name = data.name.trim();
+    v.type = data.type;
+    v.plateNote = data.plateNote || '';
+    v.oilIntervalKm = data.oilIntervalKm ? Number(data.oilIntervalKm) : null;
+    v.tankRangeKm = data.tankRangeKm ? Number(data.tankRangeKm) : null;
+    saveDB(); toast('Vehicle updated');
   },
   'vehicle-log'(data){
     const v = vehicleById(data.vehicleId);

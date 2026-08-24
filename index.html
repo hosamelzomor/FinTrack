@@ -6,7 +6,7 @@
 <title>FinTrack — Personal Wealth Management</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Cairo:wght@400;500;600;700;800&display=swap');
 
   :root{
     --bg:#0B0E14;
@@ -652,6 +652,31 @@
     .g-hero-title{font-size:16px;}
   }
 
+
+  /* ---- LANGUAGE SYSTEM ---- */
+  html[lang="ar"] body,
+  html[lang="ar"] button,
+  html[lang="ar"] input,
+  html[lang="ar"] select,
+  html[lang="ar"] textarea {
+    font-family: 'Cairo', sans-serif !important;
+    direction: rtl;
+  }
+  html[lang="ar"] .app { direction: rtl; }
+  html[lang="ar"] .sidebar {
+    border-right: none;
+    border-left: 1px solid var(--border);
+    order: 2;
+  }
+  html[lang="ar"] .content { order: 1; }
+  html[lang="ar"] .nav button { text-align: right; }
+  html[lang="ar"] .sidebar-toggle-btn { right: auto; left: -16px; }
+  html[lang="ar"] .sidebar-toggle-btn::before { content: '›'; }
+  html[lang="ar"] .app.sidebar-collapsed .sidebar-toggle-btn::before { content: '‹'; }
+  html[lang="ar"] th { text-align: right; }
+  html[lang="ar"] .topbar { flex-direction: row; }
+  html[lang="ar"] .g-table-wrap thead th { text-align: right; }
+
 </style>
 </head>
 <body>
@@ -687,6 +712,7 @@
       <button data-view="guide"><span class="ic">📖</span><span class="lbl">دليل الاستخدام</span></button>
     </nav>
     <div class="nav-footer" id="nav-footer">
+      <button id="btn-lang-toggle">🌐 عربي / English</button>
       <button id="btn-theme-toggle">☀ Light Mode</button>
       <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
       <button id="btn-connect-drive">🔗 Connect Google Drive</button>
@@ -759,7 +785,7 @@
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
       <div id="txn-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
-        <input type="search" id="txn-search" placeholder="بحث بالنوت أو الكاتيجوري..." style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
+        <input type="search" id="txn-search" placeholder="بحث بالنوت أو الكاتيجوري..." data-i18n-placeholder="txn_search_placeholder" style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
         <select id="txn-month-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الشهور</option>
         </select>
@@ -1311,6 +1337,552 @@
    Modules: Accounts, Transactions, Categories, Balance/Net Worth, Commitments
    Storage: browser localStorage (single-user, offline-first)
    ========================================================================= */
+
+
+/* ============================================================
+   LANGUAGE / i18n SYSTEM
+   Two complete translation sets — apply with applyLang(lang)
+   ============================================================ */
+const I18N = {
+  en: {
+    // Brand
+    brand_sub: 'Wealth Platform',
+    // Nav
+    nav_dashboard: 'Dashboard',
+    nav_transactions: 'Transactions',
+    nav_commitments: 'Commitments',
+    nav_reports: 'Reports',
+    nav_accounts: 'Accounts',
+    nav_vehicles: 'Vehicles',
+    nav_budgets: 'Budgets',
+    nav_categories: 'Categories',
+    nav_guide: 'User Guide',
+    // Sidebar footer
+    btn_lang: '🌐 العربية',
+    btn_theme_light: '☀ Light Mode',
+    btn_theme_dark: '🌙 Dark Mode',
+    btn_connect_drive: '🔗 Connect Google Drive',
+    btn_export: '⬇ Export backup (JSON)',
+    btn_import: '⬆ Import backup',
+    // Dashboard
+    page_dashboard: 'Dashboard',
+    page_dashboard_sub: '',
+    card_balance: 'Current Balance',
+    card_balance_sub: (n) => `cash + bank across ${n} account${n===1?'':'s'} · income − expenses since each account's opening balance`,
+    card_commitments: 'Outstanding Commitments',
+    card_commitments_sub: 'what you still owe — installments & rotating savings',
+    card_net: 'Net Position',
+    card_net_sub: 'balance minus outstanding commitments',
+    card_month_income: 'This Month — Income',
+    card_month_expense: 'This Month — Expenses',
+    card_month_tap: (key) => `${key} · tap for details`,
+    card_month_net: (n) => `Net: ${n>=0?'+':''}${fmtMoney(n)} EGP · tap for details`,
+    dash_account_balances: 'Account Balances',
+    dash_account_balances_hint: 'converted to EGP',
+    dash_due_soon: 'Due Soon',
+    dash_recent: 'Recent Transactions',
+    btn_reconcile_all: 'Reconcile with real balances',
+    btn_new_txn: '+ New Transaction',
+    empty_no_accounts: 'No accounts yet',
+    empty_no_txn: 'No transactions yet — add your first one',
+    empty_due_soon: 'Nothing due soon',
+    // Table headers
+    th_account: 'Account',
+    th_type: 'Type',
+    th_balance: 'Balance',
+    th_date: 'Date',
+    th_category: 'Category',
+    th_note: 'Note',
+    th_amount: 'Amount',
+    th_currency: 'Currency',
+    th_opening: 'Opening',
+    th_name: 'Name',
+    // Accounts page
+    page_accounts: 'Accounts',
+    page_accounts_sub: 'Cash, banks & wallets across all currencies',
+    all_accounts: 'All Accounts',
+    btn_new_account: '+ New Account',
+    exchange_rates: 'Exchange Rates',
+    exchange_rates_hint: 'used to convert balances to EGP',
+    th_rate_egp: 'Rate to EGP',
+    btn_edit: 'Edit',
+    btn_reconcile: 'Reconcile',
+    btn_delete: 'Delete',
+    empty_no_accounts_long: 'No accounts yet — add one to start tracking balances',
+    archived_tag: 'Archived',
+    // Transactions page
+    page_transactions: 'Transactions',
+    btn_new_txn2: '+ New Transaction',
+    txn_search_placeholder: 'Search by note or category...',
+    txn_all_months: 'All months',
+    txn_all_accounts: 'All accounts',
+    txn_all_categories: 'All categories',
+    txn_search_in_dropdown: 'Search...',
+    txn_filter_all: 'All',
+    txn_filter_income: 'Income',
+    txn_filter_expense: 'Expense',
+    txn_filter_transfer: 'Transfers',
+    txn_count: (n) => `${n} transaction${n===1?'':'s'}`,
+    txn_page_of: (cur, tot, total) => `Page ${cur} of ${tot} (${total})`,
+    txn_prev: '← Prev',
+    txn_next: 'Next →',
+    empty_no_txn_filter: 'No transactions match your filters',
+    transfer_tag: 'Transfer',
+    // Categories page
+    page_categories: 'Categories',
+    page_categories_sub: 'Income & expense categories, with optional sub-categories',
+    btn_new_category: '+ New Category',
+    expense_categories: 'Expense Categories',
+    income_categories: 'Income Categories',
+    empty_no_categories: (type) => `No ${type} categories yet`,
+    cannot_del_cat_children: 'Cannot delete: category has sub-categories — delete them first',
+    cannot_del_cat_txns: 'Cannot delete: category has transactions linked to it',
+    cat_deleted: 'Category deleted',
+    cat_updated: 'Category updated',
+    // Commitments page
+    page_commitments: 'Commitments',
+    page_commitments_sub: 'Installments & rotating savings — track what\'s left and when it ends',
+    btn_new_commitment: '+ New Commitment',
+    // Vehicles page
+    page_vehicles: 'Vehicles',
+    page_vehicles_sub: 'Fuel, maintenance, oil changes & mileage — per vehicle',
+    btn_new_vehicle: '+ New Vehicle',
+    fuel_price_label: '92 Fuel Price (EGP / liter)',
+    veh_tab_cards: 'Vehicles',
+    veh_tab_logs: 'All Logs',
+    veh_filter_vehicle: 'Vehicle',
+    veh_filter_type: 'Type',
+    veh_filter_from: 'From',
+    veh_filter_to: 'To',
+    veh_all_types: 'All types',
+    veh_sort_newest: 'Date: Newest first ↓',
+    veh_sort_oldest: 'Date: Oldest first ↑',
+    btn_reset: 'Reset',
+    th_km: 'KM',
+    th_dist: 'Dist.',
+    th_kmpl: 'km/L',
+    veh_view_log: 'View / Log Entry',
+    veh_btn_edit: 'Edit',
+    veh_btn_delete: 'Delete',
+    veh_deleted: 'Vehicle deleted',
+    veh_updated: 'Vehicle updated',
+    // Budgets
+    page_budgets: 'Budgets',
+    page_budgets_sub: 'Set a monthly limit per category — suggested from your real spending history',
+    // Reports
+    page_reports: 'Reports',
+    page_reports_sub: 'Detailed analysis of your income & expenses',
+    rep_period_all: 'All time',
+    rep_period_ytd: 'This year',
+    rep_period_6m: 'Last 6 months',
+    rep_period_3m: 'Last 3 months',
+    rep_period_1m: 'This month',
+    rep_period_custom: 'Custom...',
+    rep_period_label: 'PERIOD',
+    rep_from_label: 'FROM',
+    rep_to_label: 'TO',
+    rep_cat_label: 'CATEGORY (income + expense)',
+    rep_all_cats: 'All categories',
+    rep_chart_title: 'MONTHLY CHART',
+    rep_cat_col: 'Category',
+    rep_month_col: 'Month',
+    rep_total_col: 'Total',
+    rep_monthly_breakdown: 'Monthly Breakdown',
+    rep_month_th: 'Month',
+    rep_amount_th: 'Amount',
+    rep_empty_chart: 'Select a category and period to display the chart',
+    // Guide page
+    page_guide: '📖 User Guide',
+    page_guide_sub: 'Detailed guide for using the system and connecting Google Drive',
+    // Sync status
+    sync_not_connected: 'Google Drive: not connected',
+    sync_connected: syncTexts['connected'],
+    sync_syncing: syncTexts['syncing'],
+    sync_error: syncTexts['error'],
+    // Due soon
+    due_overdue: (d) => `${d}d overdue`,
+    due_days: (d) => `${d}d`,
+    // Toast
+    toast_account_deleted: 'Account deleted',
+    toast_cat_deleted: 'Category deleted',
+    toast_veh_deleted: 'Vehicle deleted',
+    // Footer
+    footer_copyright: '© 2026 Hossam Al-Zomor. All Rights Reserved.',
+  },
+
+  ar: {
+    // Brand
+    brand_sub: 'منصة إدارة الثروة',
+    // Nav
+    nav_dashboard: 'الرئيسية',
+    nav_transactions: 'المعاملات',
+    nav_commitments: 'الالتزامات',
+    nav_reports: 'التقارير',
+    nav_accounts: 'الحسابات',
+    nav_vehicles: 'المركبات',
+    nav_budgets: 'الميزانيات',
+    nav_categories: 'الكاتيجوريز',
+    nav_guide: 'دليل الاستخدام',
+    // Sidebar footer
+    btn_lang: '🌐 English',
+    btn_theme_light: '☀ الوضع الفاتح',
+    btn_theme_dark: '🌙 الوضع الداكن',
+    btn_connect_drive: '🔗 ربط Google Drive',
+    btn_export: '⬇ تصدير نسخة احتياطية',
+    btn_import: '⬆ استيراد نسخة احتياطية',
+    // Dashboard
+    page_dashboard: 'الرئيسية',
+    page_dashboard_sub: '',
+    card_balance: 'الرصيد الحالي',
+    card_balance_sub: (n) => `إجمالي ${n} حساب · دخل − مصاريف منذ الرصيد الافتتاحي`,
+    card_commitments: 'الالتزامات المتبقية',
+    card_commitments_sub: 'ما تبقى عليك — أقساط وجمعيات',
+    card_net: 'صافي الموقف المالي',
+    card_net_sub: 'الرصيد ناقص الالتزامات المتبقية',
+    card_month_income: 'هذا الشهر — الدخل',
+    card_month_expense: 'هذا الشهر — المصاريف',
+    card_month_tap: (key) => `${key} · اضغط للتفاصيل`,
+    card_month_net: (n) => `صافي: ${n>=0?'+':''}${fmtMoney(n)} ج.م · اضغط للتفاصيل`,
+    dash_account_balances: 'أرصدة الحسابات',
+    dash_account_balances_hint: 'محوّلة لجنيه مصري',
+    dash_due_soon: 'المواعيد القريبة',
+    dash_recent: 'آخر المعاملات',
+    btn_reconcile_all: 'مطابقة مع الأرصدة الفعلية',
+    btn_new_txn: '+ معاملة جديدة',
+    empty_no_accounts: 'لا يوجد حسابات بعد',
+    empty_no_txn: 'لا يوجد معاملات بعد — أضف أولى معاملاتك',
+    empty_due_soon: 'لا يوجد مواعيد قريبة',
+    // Table headers
+    th_account: 'الحساب',
+    th_type: 'النوع',
+    th_balance: 'الرصيد',
+    th_date: 'التاريخ',
+    th_category: 'الكاتيجوري',
+    th_note: 'ملاحظة',
+    th_amount: 'المبلغ',
+    th_currency: 'العملة',
+    th_opening: 'الافتتاحي',
+    th_name: 'الاسم',
+    // Accounts page
+    page_accounts: 'الحسابات',
+    page_accounts_sub: 'كاش، بنوك ومحافظ بكل العملات',
+    all_accounts: 'جميع الحسابات',
+    btn_new_account: '+ حساب جديد',
+    exchange_rates: 'أسعار الصرف',
+    exchange_rates_hint: 'تُستخدم لتحويل الأرصدة لجنيه مصري',
+    th_rate_egp: 'السعر للجنيه',
+    btn_edit: 'تعديل',
+    btn_reconcile: 'مطابقة',
+    btn_delete: 'حذف',
+    empty_no_accounts_long: 'لا يوجد حسابات بعد — أضف حساباً لبدء التتبع',
+    archived_tag: 'مؤرشف',
+    // Transactions page
+    page_transactions: 'المعاملات',
+    btn_new_txn2: '+ معاملة جديدة',
+    txn_search_placeholder: 'بحث بالنوت أو الكاتيجوري...',
+    txn_all_months: 'كل الشهور',
+    txn_all_accounts: 'كل الحسابات',
+    txn_all_categories: 'كل الكاتيجوريز',
+    txn_search_in_dropdown: 'ابحث...',
+    txn_filter_all: 'الكل',
+    txn_filter_income: 'دخل',
+    txn_filter_expense: 'مصاريف',
+    txn_filter_transfer: 'تحويلات',
+    txn_count: (n) => `${n} معاملة`,
+    txn_page_of: (cur, tot, total) => `صفحة ${cur} من ${tot} (${total})`,
+    txn_prev: '→ السابق',
+    txn_next: 'التالي ←',
+    empty_no_txn_filter: 'لا توجد معاملات تطابق الفلتر',
+    transfer_tag: 'تحويل',
+    // Categories page
+    page_categories: 'الكاتيجوريز',
+    page_categories_sub: 'تصنيفات الدخل والمصاريف، مع إمكانية إضافة تصنيفات فرعية',
+    btn_new_category: '+ كاتيجوري جديدة',
+    expense_categories: 'كاتيجوريز المصاريف',
+    income_categories: 'كاتيجوريز الدخل',
+    empty_no_categories: (type) => `لا يوجد كاتيجوريز ${type === 'expense' ? 'مصاريف' : 'دخل'} بعد`,
+    cannot_del_cat_children: 'لا يمكن الحذف: الكاتيجوري فيها تصنيفات فرعية — احذفها أولاً',
+    cannot_del_cat_txns: 'لا يمكن الحذف: الكاتيجوري عليها معاملات مسجّلة',
+    cat_deleted: 'تم حذف الكاتيجوري',
+    cat_updated: 'تم تحديث الكاتيجوري',
+    // Commitments page
+    page_commitments: 'الالتزامات',
+    page_commitments_sub: 'أقساط وجمعيات — تتبع ما تبقى ومتى تنتهي',
+    btn_new_commitment: '+ التزام جديد',
+    // Vehicles page
+    page_vehicles: 'المركبات',
+    page_vehicles_sub: 'وقود، صيانة، تغيير زيت والعداد — لكل مركبة',
+    btn_new_vehicle: '+ مركبة جديدة',
+    fuel_price_label: 'سعر البنزين 92 (جنيه / لتر)',
+    veh_tab_cards: 'المركبات',
+    veh_tab_logs: 'كل السجلات',
+    veh_filter_vehicle: 'المركبة',
+    veh_filter_type: 'النوع',
+    veh_filter_from: 'من',
+    veh_filter_to: 'إلى',
+    veh_all_types: 'كل الأنواع',
+    veh_sort_newest: 'التاريخ: الأحدث أولاً ↓',
+    veh_sort_oldest: 'التاريخ: الأقدم أولاً ↑',
+    btn_reset: 'إعادة',
+    th_km: 'كم',
+    th_dist: 'المسافة',
+    th_kmpl: 'كم/لتر',
+    veh_view_log: 'عرض / تسجيل',
+    veh_btn_edit: 'تعديل',
+    veh_btn_delete: 'حذف',
+    veh_deleted: 'تم حذف المركبة',
+    veh_updated: 'تم تحديث المركبة',
+    // Budgets
+    page_budgets: 'الميزانيات',
+    page_budgets_sub: 'حدد سقفاً شهرياً لكل كاتيجوري — مقترح من تاريخ صرفك الفعلي',
+    // Reports
+    page_reports: 'التقارير',
+    page_reports_sub: 'تحليل مصاريفك ودخلك بالتفصيل',
+    rep_period_all: 'كل الوقت',
+    rep_period_ytd: 'هذه السنة',
+    rep_period_6m: 'آخر 6 أشهر',
+    rep_period_3m: 'آخر 3 أشهر',
+    rep_period_1m: 'هذا الشهر',
+    rep_period_custom: 'تخصيص...',
+    rep_period_label: 'الفترة',
+    rep_from_label: 'من',
+    rep_to_label: 'إلى',
+    rep_cat_label: 'الكاتيجوري (دخل + مصاريف)',
+    rep_all_cats: 'كل الكاتيجوريز',
+    rep_chart_title: 'الرسم البياني الشهري',
+    rep_cat_col: 'الكاتيجوري',
+    rep_month_col: 'الشهر',
+    rep_total_col: 'الإجمالي',
+    rep_monthly_breakdown: 'التفصيل الشهري',
+    rep_month_th: 'الشهر',
+    rep_amount_th: 'المبلغ',
+    rep_empty_chart: 'اختر كاتيجوري وفترة لعرض الرسم البياني',
+    // Guide page
+    page_guide: '📖 دليل الاستخدام',
+    page_guide_sub: 'شرح تفصيلي للنظام وربط Google Drive',
+    // Sync status
+    sync_not_connected: 'Google Drive: غير متصل',
+    sync_connected: 'Google Drive: متزامن ✓',
+    sync_syncing: 'Google Drive: جاري المزامنة…',
+    sync_error: 'Google Drive: خطأ في المزامنة',
+    // Due soon
+    due_overdue: (d) => `متأخر ${d} يوم`,
+    due_days: (d) => `${d} يوم`,
+    // Toast
+    toast_account_deleted: 'تم حذف الحساب',
+    toast_cat_deleted: 'تم حذف الكاتيجوري',
+    toast_veh_deleted: 'تم حذف المركبة',
+    // Footer
+    footer_copyright: '© 2026 حسام الزمر. جميع الحقوق محفوظة.',
+  }
+};
+
+let LANG = localStorage.getItem('fintrack_lang') || 'ar';
+function t(key, ...args){
+  const dict = I18N[LANG] || I18N.ar;
+  const val = dict[key];
+  if(val === undefined) return I18N.en[key] || key;
+  if(typeof val === 'function') return val(...args);
+  return val;
+}
+
+function applyLang(lang){
+  LANG = lang;
+  try{ localStorage.setItem('fintrack_lang', lang); }catch(e){}
+
+  // html dir + lang attr
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  // Brand
+  const brandSub = document.querySelector('.brand .sub');
+  if(brandSub) brandSub.textContent = t('brand_sub');
+
+  // Nav labels
+  document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
+    const view = btn.dataset.view;
+    const lbl = btn.querySelector('.lbl');
+    if(!lbl) return;
+    const map = {
+      dashboard:'nav_dashboard', transactions:'nav_transactions', commitments:'nav_commitments',
+      reports:'nav_reports', accounts:'nav_accounts', vehicles:'nav_vehicles',
+      budgets:'nav_budgets', categories:'nav_categories', guide:'nav_guide'
+    };
+    if(map[view]) lbl.textContent = t(map[view]);
+  });
+
+  // Sidebar footer buttons
+  const btnLang = document.getElementById('btn-lang-toggle');
+  if(btnLang) btnLang.textContent = t('btn_lang');
+  updateThemeButtonLabel();
+  const btnDrive = document.getElementById('btn-connect-drive');
+  if(btnDrive) btnDrive.textContent = t('btn_connect_drive');
+  const btnExport = document.getElementById('btn-export');
+  if(btnExport) btnExport.textContent = t('btn_export');
+  const btnImport = document.getElementById('btn-import');
+  if(btnImport) btnImport.textContent = t('btn_import');
+
+  // Static HTML section texts (topbars, table headers)
+  // Dashboard
+  const dashH1 = document.querySelector('#view-dashboard h1');
+  if(dashH1) dashH1.textContent = t('page_dashboard');
+  document.querySelectorAll('#view-dashboard .section-title').forEach((el,i)=>{
+    if(i===0){ el.innerHTML = t('dash_account_balances')+'<span class="hint">'+t('dash_account_balances_hint')+'</span>'; }
+    else if(i===1){ el.textContent = t('dash_due_soon'); }
+    else if(i===2){ el.textContent = t('dash_recent'); }
+  });
+  const dashThead = document.querySelector('#view-dashboard thead');
+  if(dashThead) dashThead.innerHTML = `<tr><th>${t('th_date')}</th><th>${t('th_account')}</th><th>${t('th_category')}</th><th>${t('th_note')}</th><th class="amt">${t('th_amount')}</th></tr>`;
+
+  // Accounts
+  const accH1 = document.querySelector('#view-accounts h1');
+  if(accH1) accH1.textContent = t('page_accounts');
+  const accSub = document.querySelector('#view-accounts .today');
+  if(accSub) accSub.textContent = t('page_accounts_sub');
+  const accNewBtn = document.querySelector('#view-accounts .topbar .btn');
+  if(accNewBtn) accNewBtn.textContent = t('btn_new_account');
+  const accAllH3 = document.querySelector('#view-accounts .head-row h3');
+  if(accAllH3) accAllH3.textContent = t('all_accounts');
+  const accThead = document.querySelector('#view-accounts .table-wrap table thead');
+  if(accThead) accThead.innerHTML = `<tr><th>${t('th_name')}</th><th>${t('th_type')}</th><th>${t('th_currency')}</th><th class="amt">${t('th_opening')}</th><th class="amt">${t('th_balance')}</th><th></th></tr>`;
+  const accExTitle = document.querySelector('#view-accounts .section-title');
+  if(accExTitle) accExTitle.innerHTML = t('exchange_rates')+'<span class="hint">'+t('exchange_rates_hint')+'</span>';
+  const accFxThead = document.querySelectorAll('#view-accounts .table-wrap table thead')[1];
+  if(accFxThead) accFxThead.innerHTML = `<tr><th>${t('th_currency')}</th><th class="amt">${t('th_rate_egp')}</th><th></th></tr>`;
+
+  // Transactions
+  const txnH1 = document.querySelector('#view-transactions h1');
+  if(txnH1) txnH1.textContent = t('page_transactions');
+  const txnNewBtn = document.querySelector('#view-transactions .topbar .btn');
+  if(txnNewBtn) txnNewBtn.textContent = t('btn_new_txn2');
+  const txnSearch = document.getElementById('txn-search');
+  if(txnSearch) txnSearch.placeholder = t('txn_search_placeholder');
+  const txnThead = document.querySelector('#view-transactions thead');
+  if(txnThead) txnThead.innerHTML = `<tr><th>${t('th_date')}</th><th>${t('th_account')}</th><th>${t('th_category')}</th><th>${t('th_note')}</th><th class="amt">${t('th_amount')}</th><th></th></tr>`;
+
+  // Categories
+  const catH1 = document.querySelector('#view-categories h1');
+  if(catH1) catH1.textContent = t('page_categories');
+  const catSub = document.querySelector('#view-categories .today');
+  if(catSub) catSub.textContent = t('page_categories_sub');
+  const catNewBtn = document.querySelector('#view-categories .topbar .btn');
+  if(catNewBtn) catNewBtn.textContent = t('btn_new_category');
+  const catExpTitle = document.querySelectorAll('#view-categories .section-title')[0];
+  if(catExpTitle) catExpTitle.textContent = t('expense_categories');
+  const catIncTitle = document.querySelectorAll('#view-categories .section-title')[1];
+  if(catIncTitle) catIncTitle.textContent = t('income_categories');
+
+  // Commitments
+  const comH1 = document.querySelector('#view-commitments h1');
+  if(comH1) comH1.textContent = t('page_commitments');
+  const comSub = document.querySelector('#view-commitments .today');
+  if(comSub) comSub.textContent = t('page_commitments_sub');
+  const comNewBtn = document.querySelector('#view-commitments .topbar .btn');
+  if(comNewBtn) comNewBtn.textContent = t('btn_new_commitment');
+
+  // Vehicles
+  const vehH1 = document.querySelector('#view-vehicles h1');
+  if(vehH1) vehH1.textContent = t('page_vehicles');
+  const vehSub = document.querySelector('#view-vehicles .today');
+  if(vehSub) vehSub.textContent = t('page_vehicles_sub');
+  const vehNewBtn = document.querySelector('#view-vehicles .topbar .btn');
+  if(vehNewBtn) vehNewBtn.textContent = t('btn_new_vehicle');
+  const vehFuelLbl = document.querySelector('#view-vehicles .field label');
+  if(vehFuelLbl) vehFuelLbl.textContent = t('fuel_price_label');
+  const vlogsAllTypes = document.querySelector('#vlogs-filter-type option[value="all"]');
+  if(vlogsAllTypes) vlogsAllTypes.textContent = t('veh_all_types');
+  const vlogsFrom = document.querySelector('#vlogs-filter-bar label[for-vlogs-from]');
+  const vehFilterLabels = document.querySelectorAll('#vlogs-filter-bar .field label');
+  if(vehFilterLabels[0]) vehFilterLabels[0].textContent = t('veh_filter_vehicle');
+  if(vehFilterLabels[1]) vehFilterLabels[1].textContent = t('veh_filter_type');
+  if(vehFilterLabels[2]) vehFilterLabels[2].textContent = t('veh_filter_from');
+  if(vehFilterLabels[3]) vehFilterLabels[3].textContent = t('veh_filter_to');
+  const vlogsResetBtn = document.getElementById('vlogs-filter-reset');
+  if(vlogsResetBtn) vlogsResetBtn.textContent = t('btn_reset');
+  const vlogsThead = document.querySelector('#veh-logs-panel thead');
+  if(vlogsThead) vlogsThead.innerHTML = `<tr><th>${t('th_date')}</th><th>${t('page_vehicles')}</th><th>${t('th_type')}</th><th class="amt">${t('th_amount')}</th><th class="amt">${t('th_km')}</th><th class="amt">${t('th_dist')}</th><th class="amt">${t('th_kmpl')}</th><th>${t('th_note')}</th><th></th></tr>`;
+  // veh subtab
+  const vehSubtabOpts = document.querySelectorAll('#veh-subtab-group .radio-opt');
+  if(vehSubtabOpts[0]) vehSubtabOpts[0].textContent = t('veh_tab_cards');
+  if(vehSubtabOpts[1]) vehSubtabOpts[1].textContent = t('veh_tab_logs');
+
+  // Budgets
+  const budH1 = document.querySelector('#view-budgets h1');
+  if(budH1) budH1.textContent = t('page_budgets');
+  const budSub = document.querySelector('#view-budgets .today');
+  if(budSub) budSub.textContent = t('page_budgets_sub');
+
+  // Reports
+  const repH1 = document.querySelector('#view-reports h1');
+  if(repH1) repH1.textContent = t('page_reports');
+  const repSub = document.querySelector('#view-reports .today');
+  if(repSub) repSub.textContent = t('page_reports_sub');
+  const repPeriodSel = document.getElementById('rep-period-sel');
+  if(repPeriodSel){
+    const vals = ['all','ytd','6m','3m','1m','custom'];
+    const keys = ['rep_period_all','rep_period_ytd','rep_period_6m','rep_period_3m','rep_period_1m','rep_period_custom'];
+    repPeriodSel.querySelectorAll('option').forEach((opt,i)=>{ if(keys[i]) opt.textContent = t(keys[i]); });
+  }
+  const repCatLabel = document.getElementById('rep-cat-label');
+  if(repCatLabel && repCatLabel.textContent.trim() === I18N[lang==='ar'?'en':'ar'].rep_all_cats)
+    repCatLabel.textContent = t('rep_all_cats');
+  else if(repCatLabel && !repCatLabel.dataset.customLabel)
+    repCatLabel.textContent = t('rep_all_cats');
+  const repCatBtn2 = document.querySelector('#rep-cat-dropdown #rep-cat-all');
+  if(repCatBtn2) repCatBtn2.textContent = lang==='ar' ? 'الكل' : 'All';
+  const repCatNone = document.querySelector('#rep-cat-dropdown #rep-cat-none');
+  if(repCatNone) repCatNone.textContent = lang==='ar' ? 'إلغاء' : 'Clear';
+  const repCatSearch = document.getElementById('rep-cat-search');
+  if(repCatSearch) repCatSearch.placeholder = t('txn_search_in_dropdown');
+  const repFromLbl = document.querySelector('#rep-from-wrap > div');
+  if(repFromLbl) repFromLbl.textContent = t('rep_from_label');
+  const repToLbl = document.querySelector('#rep-to-wrap > div');
+  if(repToLbl) repToLbl.textContent = t('rep_to_label');
+  // Reports period label
+  const repPeriodLbl = document.querySelector('#rep-filter-bar > div:first-child > div:first-child');
+  if(repPeriodLbl) repPeriodLbl.textContent = t('rep_period_label');
+  const repCatLbl2 = document.querySelector('#rep-filter-bar > div[style*="position:relative"] > div:first-child');
+  if(repCatLbl2) repCatLbl2.textContent = t('rep_cat_label');
+  // Chart title
+  const repChartTitle = document.querySelector('#rep-main-grid .card > div > div');
+  if(repChartTitle && repChartTitle.style && repChartTitle.style.textTransform!==undefined)
+    repChartTitle.textContent = t('rep_chart_title');
+  const repChartEmpty = document.getElementById('rep-chart-empty');
+  if(repChartEmpty) repChartEmpty.textContent = t('rep_empty_chart');
+  // Reports table headers
+  const repTreeThead = document.querySelector('#rep-main-grid .table-wrap thead');
+  if(repTreeThead) repTreeThead.innerHTML = `<tr><th>${t('rep_cat_col')}</th><th class="amt">${t('rep_month_col')}</th><th class="amt" id="rep-period-hdr">${t('rep_total_col')}</th></tr>`;
+  const repMonthTitle = document.querySelector('#view-reports .section-title');
+  if(repMonthTitle) repMonthTitle.textContent = t('rep_monthly_breakdown');
+  const repMonthThead = document.querySelector('#view-reports .table-wrap:last-of-type thead');
+  if(repMonthThead) repMonthThead.innerHTML = `<tr><th>${t('rep_month_th')}</th><th class="amt" id="rep-monthly-hdr">${t('rep_amount_th')}</th></tr>`;
+
+  // Guide
+  const guideH1 = document.querySelector('#view-guide h1');
+  if(guideH1) guideH1.textContent = t('page_guide');
+  const guideSub = document.querySelector('#view-guide .today');
+  if(guideSub) guideSub.textContent = t('page_guide_sub');
+
+  // Footer copyright text
+  const footerCopy = document.querySelector('.footer-copy');
+  if(footerCopy){
+    footerCopy.innerHTML = lang === 'ar'
+      ? 'حقوق النشر &copy; 2026 <strong>حسام الزمر</strong>. جميع الحقوق محفوظة.'
+      : 'Copyright &copy; 2026 <strong>Hossam Al-Zomor</strong>. All Rights Reserved.';
+  }
+
+  // Re-render all dynamic content
+  renderAll();
+}
+
+/* ---- LANGUAGE TOGGLE BUTTON ---- */
+document.getElementById('btn-lang-toggle').addEventListener('click', ()=>{
+  applyLang(LANG === 'ar' ? 'en' : 'ar');
+});
+
+// Apply on load
+applyLang(LANG);
+
 
 /* ---------------------------- STORAGE LAYER ---------------------------- */
 const DB_KEY = 'fintrack_data_v1';
@@ -1932,7 +2504,7 @@ async function onTokenResponse(resp){
 function disconnectDrive(){
   driveAccessToken = null; driveFileId = null;
   updateSyncStatus('disconnected');
-  toast('Disconnected from Google Drive');
+  toast(LANG==='ar'?'تم قطع الاتصال بـ Google Drive':'Disconnected from Google Drive');
 }
 
 async function driveFindFile(){
@@ -2027,14 +2599,15 @@ function queueDrivePush(){
 }
 
 function updateSyncStatus(state){
+  const syncTexts = {connected:t('sync_connected'),syncing:t('sync_syncing'),error:t('sync_error'),disconnected:t('sync_not_connected')};
   const el = document.getElementById('sync-status');
   const text = document.getElementById('sync-status-text');
   if(!el || !text) return;
   el.className = 'sync-status' + (state==='connected' ? ' connected' : state==='syncing' ? ' syncing' : state==='error' ? ' error' : '');
   const labels = {
-    connected: 'Google Drive: synced',
-    syncing: 'Google Drive: syncing…',
-    error: 'Google Drive: sync error',
+    connected: syncTexts['connected'],
+    syncing: syncTexts['syncing'],
+    error: syncTexts['error'],
     disconnected: 'Google Drive: not connected'
   };
   text.textContent = labels[state] || labels.disconnected;
@@ -2059,7 +2632,7 @@ window.addEventListener('load', ()=>{
 function updateThemeButtonLabel(){
   const btn = document.getElementById('btn-theme-toggle');
   const isLight = document.body.classList.contains('light');
-  btn.textContent = isLight ? '🌙 Dark Mode' : '☀ Light Mode';
+  btn.textContent = isLight ? t('btn_theme_dark') : t('btn_theme_light');
 }
 document.getElementById('btn-theme-toggle').addEventListener('click', ()=>{
   document.body.classList.toggle('light');
@@ -2092,42 +2665,43 @@ function showView(name){
 
 /* ---------------------------- RENDER: DASHBOARD ---------------------------- */
 function renderDashboard(){
-  document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  document.getElementById('today-label').textContent = new Date().toLocaleDateString(LANG==='ar'?'ar-EG':'en-GB',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
 
   const nw = netWorthEGP();
   const liabilities = totalLiabilitiesEGP();
   const netPosition = nw - liabilities;
   const mt = monthTotals(thisMonthKey());
+  const nAccs = DB.accounts.filter(a=>!a.excludeFromNetWorth).length;
 
   document.getElementById('dash-cards').innerHTML = `
     <div class="card">
-      <h3>Current Balance</h3>
+      <h3>${t('card_balance')}</h3>
       <div class="big">EGP ${fmtMoney(nw)}</div>
-      <div class="delta">cash + bank across ${DB.accounts.filter(a=>!a.excludeFromNetWorth).length} account${DB.accounts.filter(a=>!a.excludeFromNetWorth).length===1?'':'s'} · income − expenses since each account's opening balance</div>
-      <button class="btn ghost sm" style="margin-top:10px;" data-open-modal="reconcile-all">Reconcile with real balances</button>
+      <div class="delta">${t('card_balance_sub',nAccs)}</div>
+      <button class="btn ghost sm" style="margin-top:10px;" data-open-modal="reconcile-all">${t('btn_reconcile_all')}</button>
     </div>
     <div class="card">
-      <h3>Outstanding Commitments</h3>
+      <h3>${t('card_commitments')}</h3>
       <div class="big" style="color:var(--warning)">EGP ${fmtMoney(liabilities)}</div>
-      <div class="delta">what you still owe — installments &amp; جمعية</div>
+      <div class="delta">${t('card_commitments_sub')}</div>
     </div>
     <div class="card">
-      <h3>Net Position</h3>
+      <h3>${t('card_net')}</h3>
       <div class="big" style="color:${netPosition>=0?'var(--positive)':'var(--negative)'}">EGP ${fmtMoney(netPosition)}</div>
-      <div class="delta">balance minus outstanding commitments</div>
+      <div class="delta">${t('card_net_sub')}</div>
     </div>
   `;
 
   document.getElementById('dash-month-cards').innerHTML = `
     <div class="card" data-open-modal="month-detail" data-month-detail-type="income" style="cursor:pointer;">
-      <h3>This Month — Income</h3>
+      <h3>${t('card_month_income')}</h3>
       <div class="big" style="color:var(--positive)">EGP ${fmtMoney(mt.income)}</div>
-      <div class="delta">${thisMonthKey()} · tap for details</div>
+      <div class="delta">${t('card_month_tap',thisMonthKey())}</div>
     </div>
     <div class="card" data-open-modal="month-detail" data-month-detail-type="expense" style="cursor:pointer;">
-      <h3>This Month — Expenses</h3>
+      <h3>${t('card_month_expense')}</h3>
       <div class="big" style="color:var(--negative)">EGP ${fmtMoney(mt.expense)}</div>
-      <div class="delta ${mt.net>=0?'up':'down'}">Net: ${mt.net>=0?'+':''}${fmtMoney(mt.net)} EGP · tap for details</div>
+      <div class="delta ${mt.net>=0?'up':'down'}">${t('card_month_net',mt.net)}</div>
     </div>
   `;
 
@@ -2135,10 +2709,10 @@ function renderDashboard(){
     const bal = accountBalance(a);
     return `<tr>
       <td class="td-date" data-label="">${a.name}</td>
-      <td data-label="Type"><span class="tag">${a.type}</span></td>
-      <td class="amt ${bal<0?'neg':''}" data-label="Balance">${a.currency} ${fmtMoney(bal)}</td>
+      <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
+      <td class="amt ${bal<0?'neg':''}" data-label="${t('th_balance')}">${a.currency} ${fmtMoney(bal)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="3" class="empty">No accounts yet</td></tr>`;
+  }).join('') || `<tr><td colspan="3" class="empty">${t('empty_no_accounts')}</td></tr>`;
 
   // Due soon: commitments with next payment due within 10 days, or جمعية payout due within 30 days
   const dueItems = [];
@@ -2149,16 +2723,16 @@ function renderDashboard(){
       if(paid >= c.totalInstallments) return;
       const nextDue = addMonths(c.startDate, paid);
       const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
-      if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
+      if(days <= 10) dueItems.push({label:LANG==='ar'?`${c.name} — قسط ${paid+1}/${c.totalInstallments}`:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
     } else if(c.type==='rotating_saving'){
       if(!c.payoutReceived && c.payoutDate){
         const days = Math.ceil((new Date(c.payoutDate) - new Date()) / 86400000);
-        if(days <= 30) dueItems.push({label:`${c.name} — payout expected`, date:c.payoutDate, days, kind:'payout'});
+        if(days <= 30) dueItems.push({label:LANG==='ar'?`${c.name} — موعد استلام الجمعية`:`${c.name} — payout expected`, date:c.payoutDate, days, kind:'payout'});
       }
       if(paid < c.totalInstallments){
         const nextDue = addMonths(c.startDate, paid);
         const days = Math.ceil((new Date(nextDue) - new Date()) / 86400000);
-        if(days <= 10) dueItems.push({label:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
+        if(days <= 10) dueItems.push({label:LANG==='ar'?`${c.name} — قسط ${paid+1}/${c.totalInstallments}`:`${c.name} — installment ${paid+1}/${c.totalInstallments}`, date: nextDue, days, kind:'installment'});
       }
     }
   });
@@ -2172,14 +2746,14 @@ function renderDashboard(){
     const oilStatus = vehicleOilDueStatus(v.id);
     if(oilStatus && oilStatus.remaining <= 500){
       dueItems.push({
-        label: `${v.name} — oil change ${oilStatus.overdue?'overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km':'in '+fmtMoney(oilStatus.remaining)+' km'}`,
+        label: LANG==='ar' ? `${v.name} — تغيير زيت ${oilStatus.overdue?'متأخر '+fmtMoney(Math.abs(oilStatus.remaining))+' كم':'بعد '+fmtMoney(oilStatus.remaining)+' كم'}` : `${v.name} — oil change ${oilStatus.overdue?'overdue by '+fmtMoney(Math.abs(oilStatus.remaining))+' km':'in '+fmtMoney(oilStatus.remaining)+' km'}`,
         date: null, days: oilStatus.overdue ? -1 : 5, kind:'oil'
       });
     }
     const fuelStatus = vehicleFuelDueStatus(v.id);
     if(fuelStatus && fuelStatus.remaining <= 100){
       dueItems.push({
-        label: `${v.name} — ⛽ ${fuelStatus.overdue?'likely out of fuel':'fuel low, ~'+fmtMoney(fuelStatus.remaining)+' km range left'}`,
+        label: LANG==='ar' ? `${v.name} — ⛽ ${fuelStatus.overdue?'الوقود قد ينفد':'الوقود منخفض، ~'+fmtMoney(fuelStatus.remaining)+' كم متبقية'}` : `${v.name} — ⛽ ${fuelStatus.overdue?'likely out of fuel':'fuel low, ~'+fmtMoney(fuelStatus.remaining)+' km range left'}`,
         date: null, days: fuelStatus.overdue ? -1 : 3, kind:'fuel'
       });
     }
@@ -2192,7 +2766,7 @@ function renderDashboard(){
       const veh = vehicleById(p.vehicleId);
       const unitLabel = st.unit==='km' ? 'km' : 'day'+(Math.abs(st.remaining)===1?'':'s');
       dueItems.push({
-        label: `${veh?veh.name:'Vehicle'} — ${p.name} ${st.overdue?'overdue by '+fmtMoney(Math.abs(st.remaining))+' '+unitLabel:'in '+fmtMoney(st.remaining)+' '+unitLabel}`,
+        label: LANG==='ar' ? `${veh?veh.name:'مركبة'} — ${p.name} ${st.overdue?'متأخر '+fmtMoney(Math.abs(st.remaining))+' '+unitLabel:'بعد '+fmtMoney(st.remaining)+' '+unitLabel}` : `${veh?veh.name:'Vehicle'} — ${p.name} ${st.overdue?'overdue by '+fmtMoney(Math.abs(st.remaining))+' '+unitLabel:'in '+fmtMoney(st.remaining)+' '+unitLabel}`,
         date: null, days: st.overdue ? -1 : 5, kind:'part'
       });
     }
@@ -2202,10 +2776,10 @@ function renderDashboard(){
     <div class="card" style="margin-bottom:10px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="font-size:13px;font-weight:500;">${d.label}</div>
-        <span class="tag ${d.days<0?'expense':'warning'}">${d.days<0? Math.abs(d.days)+'d overdue' : d.days+'d'}</span>
+        <span class="tag ${d.days<0?'expense':'warning'}">${d.days<0 ? t('due_overdue',Math.abs(d.days)) : t('due_days',d.days)}</span>
       </div>
       <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
-    </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">Nothing due soon</div>`;
+    </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">${t('empty_due_soon')}</div>`;
 
   const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
@@ -2215,11 +2789,11 @@ function renderDashboard(){
     return `<tr>
       <td class="td-date" data-label="">${fmtDate(t.date)}</td>
       <td data-label="Account">${acc?acc.name:'—'}</td>
-      <td data-label="Category">${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td data-label="Category">${t.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(t.categoryId)}</td>
       <td class="td-note" dir="auto" data-label="Note">${t.note||''}</td>
       <td class="amt ${cls}" data-label="Amount">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No transactions yet — add your first one</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_txn')}</td></tr>`;
 }
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
@@ -2227,18 +2801,18 @@ function renderAccounts(){
   document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
-      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
+      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="Type"><span class="tag">${a.type}</span></td>
       <td data-label="Currency">${a.currency}</td>
       <td class="amt" data-label="Opening">${fmtMoney(a.openingBalance)}</td>
       <td class="amt ${bal<0?'neg':''}" data-label="Balance">${fmtMoney(bal)}</td>
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-account="${a.id}">Edit</button>
-        <button class="btn ghost sm" data-reconcile-account="${a.id}">Reconcile</button>
-        <button class="btn ghost sm" data-del-account="${a.id}">Delete</button>
+        <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-reconcile-account="${a.id}">${t('btn_reconcile')}</button>
+        <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">No accounts yet — add one to start tracking balances</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
 
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
@@ -2264,11 +2838,11 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
   const id = e.target.dataset.delAccount;
   if(!id) return;
   const hasTxns = DB.transactions.some(t=>t.accountId===id);
-  if(hasTxns){ toast('Cannot delete: account has transactions'); return; }
+  if(hasTxns){ toast(LANG==='ar'?'لا يمكن الحذف: الحساب عليه معاملات':'Cannot delete: account has transactions'); return; }
   const acc = accountById(id);
   if(!confirm(`Delete ${acc ? acc.name : 'this account'}? This can't be undone.`)) return;
   DB.accounts = DB.accounts.filter(a=>a.id!==id);
-  saveDB(); renderAll(); toast('Account deleted');
+  saveDB(); renderAll(); toast(t('toast_account_deleted'));
 });
 
 /* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
@@ -2290,10 +2864,10 @@ function renderTransactions(){
   }
 
   const filters = [
-    {k:'all', label:'All'},
-    {k:'income', label:'Income'},
-    {k:'expense', label:'Expense'},
-    {k:'transfer', label:'Transfers'}
+    {k:'all', label:t('txn_filter_all')},
+    {k:'income', label:t('txn_filter_income')},
+    {k:'expense', label:t('txn_filter_expense')},
+    {k:'transfer', label:t('txn_filter_transfer')}
   ];
   document.getElementById('txn-filters').innerHTML = filters.map(f=>
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
@@ -2303,14 +2877,14 @@ function renderTransactions(){
   const monthSel = document.getElementById('txn-month-filter');
   const allMonths = [...new Set(DB.transactions.map(t=>monthKey(t.date)))].filter(Boolean).sort().reverse();
   if(!allMonths.includes(txnMonthFilterVal)) txnMonthFilterVal = '';
-  monthSel.innerHTML = `<option value="">كل الشهور</option>` +
+  monthSel.innerHTML = `<option value="">${t('txn_all_months')}</option>` +
     allMonths.map(m=>`<option value="${m}" ${m===txnMonthFilterVal?'selected':''}>${m}</option>`).join('');
 
   // Populate account filter options — ALL accounts (live + archived), archived ones labeled
   const acctSel = document.getElementById('txn-account-filter');
   if(!DB.accounts.some(a=>a.id===txnAccountFilterVal)) txnAccountFilterVal = '';
-  acctSel.innerHTML = `<option value="">كل الحسابات</option>` +
-    DB.accounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}${a.excludeFromNetWorth?' (Archived)':''}</option>`).join('');
+  acctSel.innerHTML = `<option value="">${t('txn_all_accounts')}</option>` +
+    DB.accounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}${a.excludeFromNetWorth?` (${t('archived_tag')})`:''}` + '</option>').join('');
 
   // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
   let list = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date));
@@ -2338,7 +2912,7 @@ function renderTransactions(){
     });
   }
 
-  document.getElementById('txn-count-label').textContent = `${list.length} transaction${list.length===1?'':'s'}`;
+  document.getElementById('txn-count-label').textContent = t('txn_count', list.length);
 
   const pages = Math.ceil(list.length/TXN_PG) || 1;
   if(txnPage >= pages) txnPage = pages - 1;
@@ -2351,25 +2925,25 @@ function renderTransactions(){
     return `<tr>
       <td class="td-date" data-label="">${fmtDate(t.date)}</td>
       <td data-label="Account">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
-      <td data-label="Category">${t.type.startsWith('transfer') ? '<span class="tag">Transfer</span>' : categoryLabel(t.categoryId)}</td>
+      <td data-label="Category">${t.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(t.categoryId)}</td>
       <td class="td-note" dir="auto" data-label="Note">${t.note||''}</td>
       <td class="amt ${cls}" data-label="Amount">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-txn="${t.id}">Edit</button>
-        <button class="btn ghost sm" data-del-txn="${t.id}">Delete</button>
+        <button class="btn ghost sm" data-edit-txn="${t.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-txn="${t.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">No transactions match your filters</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
 
   const pgEl = document.getElementById('txn-pagination');
   if(pgEl){
     if(pages<=1){ pgEl.innerHTML=''; }
     else {
-      let pg = `<span style="font-size:12px;color:var(--text-muted);">Page ${txnPage+1} of ${pages} (${list.length})</span>`;
-      if(txnPage>0) pg += `<button class="btn ghost sm" data-txnpage="${txnPage-1}">← Prev</button>`;
+      let pg = `<span style="font-size:12px;color:var(--text-muted);">${t('txn_page_of',txnPage+1,pages,list.length)}</span>`;
+      if(txnPage>0) pg += `<button class="btn ghost sm" data-txnpage="${txnPage-1}">${t('txn_prev')}</button>`;
       for(let i=Math.max(0,txnPage-2); i<=Math.min(pages-1,txnPage+2); i++)
         pg += `<button class="btn ghost sm${i===txnPage?' active':''}" data-txnpage="${i}" style="${i===txnPage?'border-color:var(--accent);color:var(--accent-bright);':''}">${i+1}</button>`;
-      if(txnPage<pages-1) pg += `<button class="btn ghost sm" data-txnpage="${txnPage+1}">Next →</button>`;
+      if(txnPage<pages-1) pg += `<button class="btn ghost sm" data-txnpage="${txnPage+1}">${t('txn_next')}</button>`;
       pgEl.innerHTML = pg;
     }
   }
@@ -2421,22 +2995,22 @@ document.getElementById('view-transactions').addEventListener('click', e=>{
   const id = e.target.dataset.delTxn; if(!id) return;
   if(!confirmIfLinked(id, 'delete')) return;
   DB.transactions = DB.transactions.filter(t=>t.id!==id);
-  saveDB(); renderAll(); toast('Transaction deleted');
+  saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف المعاملة':'Transaction deleted');
 });
 
 /* ---------------------------- RENDER: CATEGORIES ---------------------------- */
 function renderCategories(){
   function listFor(type){
     const parents = DB.categories.filter(c=>c.type===type && !c.parentId);
-    if(!parents.length) return `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">No ${type} categories yet</div>`;
+    if(!parents.length) return `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">${t('empty_no_categories',type)}</div>`;
     return parents.map(p=>{
       const children = DB.categories.filter(c=>c.parentId===p.id);
       return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-weight:600;font-size:13.5px;">${p.name}</div>
           <div style="display:flex;gap:6px;">
-            <button class="btn ghost sm" data-edit-cat="${p.id}">Edit</button>
-            <button class="btn ghost sm" data-del-cat="${p.id}">Delete</button>
+            <button class="btn ghost sm" data-edit-cat="${p.id}">${t('btn_edit')}</button>
+            <button class="btn ghost sm" data-del-cat="${p.id}">${t('btn_delete')}</button>
           </div>
         </div>
         ${children.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
@@ -2457,11 +3031,11 @@ document.getElementById('view-categories').addEventListener('click', e=>{
   const cat = DB.categories.find(c=>c.id===id);
   const hasChildren = DB.categories.some(c=>c.parentId===id);
   const inUse = DB.transactions.some(t=>t.categoryId===id);
-  if(hasChildren){ toast('Cannot delete: category has sub-categories — delete them first'); return; }
-  if(inUse){ toast('Cannot delete: category has transactions linked to it'); return; }
+  if(hasChildren){ toast(t('cannot_del_cat_children')); return; }
+  if(inUse){ toast(t('cannot_del_cat_txns')); return; }
   if(!confirm(`Delete "${cat?cat.name:'this category'}"? This can't be undone.`)) return;
   DB.categories = DB.categories.filter(c=>c.id!==id);
-  saveDB(); renderAll(); toast('Category deleted');
+  saveDB(); renderAll(); toast(t('cat_deleted'));
 });
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
@@ -2470,7 +3044,7 @@ function renderCommitments(){
     document.getElementById('commitments-grid').innerHTML = `
       <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
         <div class="big-ic">◷</div>
-        No commitments yet. Add installments (like a تابلت or ديب فريزر) or a جمعية to track what's paid and what's left.
+        ${LANG==='ar'?'لا يوجد التزامات بعد. أضف أقساط أو جمعية لتتبع ما دُفع وما تبقى.':'No commitments yet. Add installments or a جمعية to track what\'s paid and what\'s left.'}
       </div>`;
     return;
   }
@@ -2484,8 +3058,8 @@ function renderCommitments(){
     let extra = '';
     if(c.type==='rotating_saving'){
       extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
-        Payout: <span class="num" style="color:var(--text);">${fmtMoney(c.totalAmount)}</span>
-        ${c.payoutReceived ? '<span class="tag income" style="margin-left:6px;">Received</span>' : `expected ${fmtDate(c.payoutDate)}`}
+        ${LANG==='ar'?'استلام الجمعية':'Payout'}: <span class="num" style="color:var(--text);">${fmtMoney(c.totalAmount)}</span>
+        ${c.payoutReceived ? `<span class="tag income" style="margin-left:6px;">${LANG==='ar'?'تم الاستلام':'Received'}</span>` : `${LANG==='ar'?'متوقع':'expected'} ${fmtDate(c.payoutDate)}`}
       </div>`;
     }
 
@@ -2493,22 +3067,22 @@ function renderCommitments(){
       <div class="top">
         <div>
           <div class="name">${c.name}</div>
-          <div class="meta">${c.type==='rotating_saving' ? 'جمعية (Rotating Savings)' : 'Installment'} · started ${fmtDate(c.startDate)}</div>
+          <div class="meta">${c.type==='rotating_saving' ? (LANG==='ar'?'جمعية':'جمعية (Rotating Savings)') : (LANG==='ar'?'أقساط':'Installment')} · started ${fmtDate(c.startDate)}</div>
         </div>
-        <span class="tag ${isDone?'income':''}">${isDone?'Completed':'Active'}</span>
+        <span class="tag ${isDone?'income':''}">${isDone?(LANG==='ar'?'مكتمل':'Completed'):(LANG==='ar'?'نشط':'Active')}</span>
       </div>
       <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
       <div class="stats">
-        <span>${paid}/${c.totalInstallments} paid</span>
-        <span class="num">${remaining} left</span>
+        <span>${paid}/${c.totalInstallments} ${LANG==='ar'?'مدفوع':'paid'}</span>
+        <span class="num">${remaining} ${LANG==='ar'?'متبقي':'left'}</span>
       </div>
-      ${nextDue ? `<div class="meta" style="margin-top:6px;">Next due: ${fmtDate(nextDue)}</div>` : ''}
+      ${nextDue ? `<div class="meta" style="margin-top:6px;">${LANG==='ar'?'الموعد القادم':'Next due'}: ${fmtDate(nextDue)}</div>` : ''}
       ${extra}
       <div class="actions">
-        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">Record Payment</button>` : ''}
-        ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">Mark Payout Received</button>` : ''}
-        <button class="btn ghost sm" data-edit-commit="${c.id}">Edit</button>
-        <button class="btn ghost sm" data-del-commit="${c.id}">Delete</button>
+        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">${LANG==='ar'?'تسجيل دفعة':'Record Payment'}</button>` : ''}
+        ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">${LANG==='ar'?'تسجيل استلام الجمعية':'Mark Payout Received'}</button>` : ''}
+        <button class="btn ghost sm" data-edit-commit="${c.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-commit="${c.id}">${t('btn_delete')}</button>
       </div>
     </div>`;
   }).join('');
@@ -2530,7 +3104,7 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
     if(!confirm(warning)) return;
     DB.commitments = DB.commitments.filter(c=>c.id!==delId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.commitmentId!==delId);
-    saveDB(); renderAll(); toast('Commitment deleted');
+    saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف الالتزام':'Commitment deleted');
   }
 });
 
@@ -2591,7 +3165,7 @@ function _treeRender(containerEl, state, searchQ, allCats, onChangeImmediate){
       <div id="tch-${p.id}" style="display:${isExpanded&&visChildren.length?'block':'none'};">${chHtml}</div>
     </div>`;
   });
-  containerEl.innerHTML = html || `<div style="padding:14px 12px;font-size:12px;color:var(--text-faint);">لا توجد نتائج</div>`;
+  containerEl.innerHTML = html || `<div style="padding:14px 12px;font-size:12px;color:var(--text-faint);">${LANG==='ar'?'لا توجد نتائج':'No results'}</div>`;
   containerEl.querySelectorAll('[data-ind="1"]').forEach(cb=>{ cb.indeterminate=true; });
 
   // Toggle expand/collapse (no full re-render)
@@ -2955,7 +3529,7 @@ function _renderReportsInner(){
 
   // Period header
   const hdr=document.getElementById('rep-period-hdr');
-  if(hdr)hdr.textContent=_rPeriod==='all'?'كل الوقت':_rPeriod==='ytd'?'هذه السنة':_rPeriod==='1m'?'هذا الشهر':'الفترة';
+  if(hdr)hdr.textContent=_rPeriod==='all'?t('rep_period_all'):_rPeriod==='ytd'?t('rep_period_ytd'):_rPeriod==='1m'?t('rep_period_1m'):_rPeriod==='3m'?t('rep_period_3m'):_rPeriod==='6m'?t('rep_period_6m'):t('rep_total_col');
 
   // Summary strip
   const totInc=_incInRange(from,to,catIds);
@@ -2963,9 +3537,9 @@ function _renderReportsInner(){
   const net=totInc-totExp;
   const strip=document.getElementById('rep-summary-strip');
   if(strip) strip.innerHTML=[
-    {l:'إجمالي الدخل',   v:totInc, c:'var(--positive)', sign:'+'},
-    {l:'إجمالي المصاريف',v:totExp, c:'var(--negative)', sign:'-'},
-    {l:'الصافي',         v:net,    c:net>=0?'var(--positive)':'var(--negative)', sign:net>=0?'+':'-'}
+    {l:LANG==='ar'?'إجمالي الدخل':'Total Income',   v:totInc, c:'var(--positive)', sign:'+'},
+    {l:LANG==='ar'?'إجمالي المصاريف':'Total Expenses',v:totExp, c:'var(--negative)', sign:'-'},
+    {l:LANG==='ar'?'الصافي':'Net',         v:net,    c:net>=0?'var(--positive)':'var(--negative)', sign:net>=0?'+':'-'}
   ].map(s=>`<div class="card" style="padding:10px 14px;">
     <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
     <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">${s.sign}EGP ${fmtMoney(Math.abs(s.v))}</div>
@@ -3038,7 +3612,7 @@ function renderVehicles(){
     document.getElementById('vehicles-grid').innerHTML = `
       <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
         <div class="big-ic">🚗</div>
-        No vehicles yet. Add your car or scooter to start logging fuel, maintenance and mileage.
+        ${LANG==='ar'?'لا يوجد مركبات بعد. أضف عربيتك أو سكوترك لتتبع الوقود والصيانة والعداد.':'No vehicles yet. Add your car or scooter to start logging fuel, maintenance and mileage.'}
       </div>`;
     renderVehicleLogsPanel();
     return;
@@ -3057,30 +3631,30 @@ function renderVehicles(){
       <div class="top">
         <div>
           <div class="name" dir="auto">${v.name}</div>
-          <div class="meta">${v.type==='car'?'🚗 Car':'🛵 Scooter'}${v.plateNote?' · '+v.plateNote:''}</div>
+          <div class="meta">${v.type==='car'?(LANG==='ar'?'🚗 سيارة':'🚗 Car'):(LANG==='ar'?'🛵 سكوتر':'🛵 Scooter')}${v.plateNote?' · '+v.plateNote:''}</div>
         </div>
         <span class="tag">${logsCount} log${logsCount===1?'':'s'}</span>
       </div>
       <div class="stats" style="margin-top:8px;">
-        <span>Odometer</span><span class="num">${odo!=null? fmtMoney(odo)+' km' : '—'}</span>
+        <span>${LANG==='ar'?'العداد':'Odometer'}</span><span class="num">${odo!=null? fmtMoney(odo)+' km' : '—'}</span>
       </div>
       ${fuelStatus ? `<div class="stats" style="margin-top:4px;">
-        <span>⛽ Fuel range</span><span class="num" style="color:${fuelStatus.overdue?'var(--negative)':(fuelStatus.remaining<=100?'var(--warning)':'var(--positive)')}">${fuelStatus.overdue?'Likely empty':fmtMoney(fuelStatus.remaining)+' km left'}</span>
+        <span>${LANG==='ar'?'⛽ مدى الوقود':'⛽ Fuel range'}</span><span class="num" style="color:${fuelStatus.overdue?'var(--negative)':(fuelStatus.remaining<=100?'var(--warning)':'var(--positive)')}">${fuelStatus.overdue?(LANG==='ar'?'الوقود قد نفد':'Likely empty'):(fmtMoney(fuelStatus.remaining)+(LANG==='ar'?' كم متبقية':' km left'))}</span>
       </div>` : ''}
       <div class="stats" style="margin-top:4px;">
-        <span>Since oil change</span><span class="num">${sinceOil!=null? fmtMoney(sinceOil)+' km' : '—'}</span>
+        <span>${LANG==='ar'?'منذ تغيير الزيت':'Since oil change'}</span><span class="num">${sinceOil!=null? fmtMoney(sinceOil)+' km' : '—'}</span>
       </div>
       ${oilStatus ? `<div class="stats" style="margin-top:4px;">
-        <span>Oil change</span><span class="num" style="color:${oilStatus.overdue?'var(--negative)':(oilStatus.remaining<=500?'var(--warning)':'var(--positive)')}">${oilStatus.overdue?'Overdue '+fmtMoney(Math.abs(oilStatus.remaining))+' km':fmtMoney(oilStatus.remaining)+' km left'}</span>
+        <span>${LANG==='ar'?'تغيير الزيت':'Oil change'}</span><span class="num" style="color:${oilStatus.overdue?'var(--negative)':(oilStatus.remaining<=500?'var(--warning)':'var(--positive)')}">${oilStatus.overdue?(LANG==='ar'?'متأخر '+fmtMoney(Math.abs(oilStatus.remaining))+' كم':'Overdue '+fmtMoney(Math.abs(oilStatus.remaining))+' km'):(fmtMoney(oilStatus.remaining)+(LANG==='ar'?' كم متبقية':' km left'))}</span>
       </div>` : ''}
       <div class="stats" style="margin-top:4px;">
-        <span>This month cost</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
+        <span>${LANG==='ar'?'تكلفة الشهر':'This month cost'}</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
       </div>
       ${docsCount? `<div class="meta" style="margin-top:8px;">${docsCount} document${docsCount===1?'':'s'} tracked</div>` : ''}
       <div class="actions">
-        <button class="btn secondary sm" data-view-vehicle="${v.id}">View / Log Entry</button>
-        <button class="btn ghost sm" data-edit-vehicle="${v.id}">Edit</button>
-        <button class="btn ghost sm" data-del-vehicle="${v.id}">Delete</button>
+        <button class="btn secondary sm" data-view-vehicle="${v.id}">${t('veh_view_log')}</button>
+        <button class="btn ghost sm" data-edit-vehicle="${v.id}">${t('veh_btn_edit')}</button>
+        <button class="btn ghost sm" data-del-vehicle="${v.id}">${t('veh_btn_delete')}</button>
       </div>
     </div>`;
   }).join('');
@@ -3088,7 +3662,7 @@ function renderVehicles(){
 }
 document.getElementById('fuel-price-input').addEventListener('change', e=>{
   const val = Number(e.target.value);
-  if(val > 0){ DB.fuelPricePerLiter = val; saveDB(); toast('Fuel price updated'); renderAll(); }
+  if(val > 0){ DB.fuelPricePerLiter = val; saveDB(); toast(LANG==='ar'?'تم تحديث سعر الوقود':'Fuel price updated'); renderAll(); }
 });
 document.getElementById('view-vehicles').addEventListener('click', e=>{
   const viewId = e.target.dataset.viewVehicle;
@@ -3098,12 +3672,12 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
   if(editVehId) return openModal('vehicle-edit', {vehicleId: editVehId});
   if(delId){
     const hasLogs = DB.vehicleLogs.some(l=>l.vehicleId===delId);
-    if(hasLogs){ toast('Cannot delete: vehicle has log entries'); return; }
+    if(hasLogs){ toast(LANG==='ar'?'لا يمكن الحذف: المركبة عليها سجلات':'Cannot delete: vehicle has log entries'); return; }
     const v = vehicleById(delId);
     if(!confirm(`Delete ${v ? v.name : 'this vehicle'}? This can't be undone.`)) return;
     DB.vehicles = DB.vehicles.filter(v=>v.id!==delId);
     DB.vehicleDocs = DB.vehicleDocs.filter(d=>d.vehicleId!==delId);
-    saveDB(); renderAll(); toast('Vehicle deleted');
+    saveDB(); renderAll(); toast(t('veh_deleted'));
     return;
   }
   const editLogId = e.target.dataset.editVlog;
@@ -3120,7 +3694,7 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
     if(hasLinkedTxn) DB.transactions = DB.transactions.filter(t=>t.id!==log.linkedTransactionId);
     DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==delLogId);
     saveDB(); renderAll();
-    toast('Log entry deleted');
+    toast(LANG==='ar'?'تم حذف السجل':'Log entry deleted');
   }
 });
 
@@ -3130,7 +3704,7 @@ function renderVehicleLogsPanel(){
   if(!vehSel) return; // shell not in DOM yet (shouldn't happen, but stay safe)
 
   // Keep the vehicle <select> in sync with the vehicle list without clobbering the user's choice.
-  const vehOptionsHtml = '<option value="all">All vehicles</option>' + DB.vehicles.map(v=>
+  const vehOptionsHtml = `<option value="all">${LANG==='ar'?'كل المركبات':'All vehicles'}</option>` + DB.vehicles.map(v=>
     `<option value="${v.id}">${v.type==='scooter'?'🛵':'🚗'} ${v.name}</option>`).join('');
   if(vehSel.innerHTML !== vehOptionsHtml) vehSel.innerHTML = vehOptionsHtml;
   if(_vlVehicle!=='all' && !DB.vehicles.some(v=>v.id===_vlVehicle)) _vlVehicle = 'all';
@@ -3138,9 +3712,9 @@ function renderVehicleLogsPanel(){
   document.getElementById('vlogs-filter-type').value = _vlType;
   document.getElementById('vlogs-filter-from').value = _vlFrom;
   document.getElementById('vlogs-filter-to').value = _vlTo;
-  document.getElementById('vlogs-sort-toggle').textContent = 'Date: ' + (_vlSort==='asc' ? 'Oldest first ↑' : 'Newest first ↓');
+  document.getElementById('vlogs-sort-toggle').textContent = LANG==='ar' ? ('التاريخ: ' + (_vlSort==='asc' ? 'الأقدم أولاً ↑' : 'الأحدث أولاً ↓')) : ('Date: ' + (_vlSort==='asc' ? 'Oldest first ↑' : 'Newest first ↓'));
 
-  const typeLabels = {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
+  const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
     .filter(l => _vlType==='all' || l.type===_vlType)
@@ -3158,19 +3732,19 @@ function renderVehicleLogsPanel(){
       <td class="amt" data-label="km/L">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
       <td class="td-note" dir="auto" data-label="Note">${l.note||''}</td>
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-vlog="${l.id}">Edit</button>
-        <button class="btn ghost sm" data-del-vlog="${l.id}">Delete</button>
+        <button class="btn ghost sm" data-edit-vlog="${l.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-vlog="${l.id}">${t('btn_delete')}</button>
       </td>
-    </tr>`).join('') || `<tr><td colspan="8" class="empty">No log entries match these filters</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="8" class="empty">${LANG==='ar'?'لا توجد سجلات تطابق الفلتر':'No log entries match these filters'}</td></tr>`;
 
   // Summary strip
   const totalSpend = logs.reduce((s,l)=>s+l.amount,0);
   const fuelLogsWithEff = logs.filter(l=>l.type==='fuel' && l.kmPerLiter!=null);
   const avgKmL = fuelLogsWithEff.length ? fuelLogsWithEff.reduce((s,l)=>s+l.kmPerLiter,0)/fuelLogsWithEff.length : null;
   const summaryCards = [
-    {l:'Entries', v: logs.length},
-    {l:'Total Spend', v: 'EGP '+fmtMoney(totalSpend)},
-    {l:'Avg km/L', v: avgKmL!=null ? avgKmL.toFixed(2) : '—'}
+    {l:LANG==='ar'?'السجلات':'Entries', v: logs.length},
+    {l:LANG==='ar'?'إجمالي الإنفاق':'Total Spend', v: 'EGP '+fmtMoney(totalSpend)},
+    {l:LANG==='ar'?'متوسط كم/لتر':'Avg km/L', v: avgKmL!=null ? avgKmL.toFixed(2) : '—'}
   ];
   document.getElementById('vlogs-summary-strip').innerHTML = summaryCards.map(s=>`
     <div class="card" style="padding:10px 14px;flex:1;min-width:120px;">
@@ -3188,10 +3762,10 @@ function renderVehicleLogsPanel(){
       .filter(l => !_vlFrom || l.date>=_vlFrom)
       .filter(l => !_vlTo || l.date<=_vlTo)
       .sort((a,b)=>a.date.localeCompare(b.date));
-    chartHeader.innerHTML = `<div style="font-weight:700;font-size:14px;">Fuel Efficiency — ${v?v.name:''}</div>
-      <div class="help-text" style="margin:2px 0 0 0;">km/L per fill-up, measured since the previous fuel entry for this vehicle</div>`;
+    chartHeader.innerHTML = `<div style="font-weight:700;font-size:14px;">${LANG==='ar'?'كفاءة الوقود':'Fuel Efficiency'} — ${v?v.name:''}</div>
+      <div class="help-text" style="margin:2px 0 0 0;">${LANG==='ar'?'كم/لتر لكل تعبئة، محسوبة منذ آخر تعبئة وقود لهذه المركبة':'km/L per fill-up, measured since the previous fuel entry for this vehicle'}</div>`;
     _drawVehicleLogsChart('line', series.map(l=>fmtDate(l.date)), series.map(l=>l.kmPerLiter), {
-      showAverage: true, emptyText: 'Log at least 2 fuel fill-ups with odometer readings for this vehicle to see a trend'
+      showAverage: true, emptyText: LANG==='ar'?'سجّل تعبئتين وقود على الأقل مع قراءة العداد لرؤية الترند':'Log at least 2 fuel fill-ups with odometer readings for this vehicle to see a trend'
     });
   } else {
     const byVehicle = DB.vehicles.map(v=>({
@@ -3203,10 +3777,10 @@ function renderVehicleLogsPanel(){
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
     })).filter(x=>x.total>0);
-    chartHeader.innerHTML = `<div style="font-weight:700;font-size:14px;">Total Spend by Vehicle</div>
+    chartHeader.innerHTML = `<div style="font-weight:700;font-size:14px;">${LANG==='ar'?'إجمالي الإنفاق لكل مركبة':'Total Spend by Vehicle'}</div>
       <div class="help-text" style="margin:2px 0 0 0;">pick a single vehicle above to see its fuel-efficiency trend instead</div>`;
     _drawVehicleLogsChart('bar', byVehicle.map(x=>x.name), byVehicle.map(x=>x.total), {
-      color:'#4C9A8E', formatValue: v=>fmtMoney(v), emptyText: 'No spend in this date range yet'
+      color:'#4C9A8E', formatValue: v=>fmtMoney(v), emptyText: LANG==='ar'?'لا يوجد إنفاق في هذا النطاق الزمني بعد':'No spend in this date range yet'
     });
   }
 }
@@ -3250,20 +3824,20 @@ function budgetCardHTML(c, mKey, nested){
   const expanded = expandedBudgetCats.has(c.id);
   return `<div class="${nested?'card':'commit-card'}" style="${nested?'padding:12px 14px;':''}">
     <div class="top">
-      <div><div class="name" style="${nested?'font-size:13px;':''}">${c.name}</div><div class="meta">this month so far: EGP ${fmtMoney(spent)}</div></div>
+      <div><div class="name" style="${nested?'font-size:13px;':''}">${c.name}</div><div class="meta">${LANG==='ar'?'هذا الشهر حتى الآن':'this month so far'}: EGP ${fmtMoney(spent)}</div></div>
       <div style="display:flex;align-items:center;gap:8px;">
-        ${over ? '<span class="tag expense">Over</span>' : (limit>0?'<span class="tag income">On track</span>':'')}
-        ${!nested && children.length ? `<button class="btn ghost sm" data-toggle-budget-cat="${c.id}">${expanded?'▲ Hide sub-categories':'▼ Sub-categories ('+children.length+')'}</button>` : ''}
+        ${over ? (LANG==='ar'?'<span class="tag expense">تجاوز</span>':'<span class="tag expense">Over</span>') : (limit>0?(LANG==='ar'?'<span class="tag income">ضمن الحد</span>':'<span class="tag income">On track</span>'):'')}
+        ${!nested && children.length ? `<button class="btn ghost sm" data-toggle-budget-cat="${c.id}">${expanded?LANG==='ar'?'▲ إخفاء التصنيفات الفرعية':'▲ Hide sub-categories':'▼ Sub-categories ('+children.length+')'}</button>` : ''}
       </div>
     </div>
     ${limit>0 ? `<div class="progress-bar"><div class="fill ${over?'over':''}" style="width:${pct}%;"></div></div>
-    <div class="stats"><span>${pct}% used</span><span class="num">${fmtMoney(Math.max(0,limit-spent))} left</span></div>` : ''}
+    <div class="stats"><span>${pct}% ${LANG==='ar'?'مستخدم':'used'}</span><span class="num">${fmtMoney(Math.max(0,limit-spent))} ${LANG==='ar'?'متبقي':'left'}</span></div>` : ''}
     <div class="field" style="margin-top:12px;margin-bottom:6px;">
-      <label>Monthly Limit (EGP)</label>
-      <input type="number" step="10" data-budget-input="${c.id}" value="${limit||''}" placeholder="no limit set">
+      <label>${LANG==='ar'?'الحد الشهري (جنيه)':'Monthly Limit (EGP)'}</label>
+      <input type="number" step="10" data-budget-input="${c.id}" value="${limit||''}" placeholder="${LANG==='ar'?'بدون حد محدد':'no limit set'}">
     </div>
-    <div class="meta" style="margin-bottom:8px;">Avg. last 3 months: EGP ${fmtMoney(avg3)}</div>
-    <button class="btn ghost sm" data-suggest-budget="${c.id}" data-suggest-value="${Math.round(avg3)}">Use average as limit</button>
+    <div class="meta" style="margin-bottom:8px;">${LANG==='ar'?'متوسط آخر 3 شهور':'Avg. last 3 months'}: EGP ${fmtMoney(avg3)}</div>
+    <button class="btn ghost sm" data-suggest-budget="${c.id}" data-suggest-value="${Math.round(avg3)}">${LANG==='ar'?'استخدم المتوسط كحد':'Use average as limit'}</button>
     ${!nested && children.length && expanded ? `<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
       ${children.map(child=>budgetCardHTML(child, mKey, true)).join('')}
     </div>` : ''}
@@ -3273,7 +3847,7 @@ function renderBudgets(){
   const topExpenseCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
   const mKey = thisMonthKey();
   if(!topExpenseCats.length){
-    document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">No expense categories yet</div>`;
+    document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">${LANG==='ar'?'لا يوجد كاتيجوريز مصاريف بعد':'No expense categories yet'}</div>`;
     return;
   }
   document.getElementById('budgets-grid').innerHTML = topExpenseCats.map(c=>budgetCardHTML(c, mKey, false)).join('');
@@ -4330,7 +4904,7 @@ const submitHandlers = {
     if(!cat) throw new Error('Category not found');
     cat.name = data.name.trim();
     cat.parentId = data.parentId || null;
-    saveDB(); toast('Category updated');
+    saveDB(); toast(t('cat_updated'));
   },
   commitment(data){
     if(data.commitId){

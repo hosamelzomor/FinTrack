@@ -1871,8 +1871,8 @@ function applyLang(lang){
       : 'Copyright &copy; 2026 <strong>Hossam Al-Zomor</strong>. All Rights Reserved.';
   }
 
-  // Re-render all dynamic content
-  renderAll();
+  // Re-render all dynamic content (guard: may be called before functions are defined on first load)
+  if(typeof renderAll === 'function') renderAll();
 }
 
 /* ---- LANGUAGE TOGGLE BUTTON ---- */
@@ -1880,9 +1880,7 @@ document.getElementById('btn-lang-toggle').addEventListener('click', ()=>{
   applyLang(LANG === 'ar' ? 'en' : 'ar');
 });
 
-// Apply on load
-applyLang(LANG);
-
+// applyLang() is called after all functions are defined — see end of script
 
 /* ---------------------------- STORAGE LAYER ---------------------------- */
 const DB_KEY = 'fintrack_data_v1';
@@ -2482,14 +2480,14 @@ function initGoogleAuth(){
 function connectDrive(){
   const clientId = getClientId();
   if(!clientId){ openModal('drive-setup'); return; }
-  if(typeof google === 'undefined' || !google.accounts){ toast('Google Sign-In failed to load — check your internet connection'); return; }
+  if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
   const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
   tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
 }
 
 async function onTokenResponse(resp){
-  if(resp.error){ toast('Google sign-in failed: ' + resp.error); updateSyncStatus('error'); return; }
+  if(resp.error){ toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + resp.error); updateSyncStatus('error'); return; }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
   updateSyncStatus('syncing');
@@ -2497,7 +2495,7 @@ async function onTokenResponse(resp){
     await driveInitialSync();
     updateSyncStatus('connected');
   }catch(e){
-    console.error(e); toast('Drive sync error: ' + e.message); updateSyncStatus('error');
+    console.error(e); toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + e.message); updateSyncStatus('error');
   }
 }
 
@@ -2561,10 +2559,10 @@ async function driveInitialSync(){
     DB = migrateDB(remote);
     saveLocalOnly();
     renderAll();
-    toast('Pulled latest data from Google Drive');
+    toast(LANG==='ar'?'تم جلب البيانات من Google Drive':'Pulled latest data from Google Drive');
   } else {
     driveFileId = await driveCreate(DB);
-    toast('Connected — created FinTrack data file in Google Drive');
+    toast(LANG==='ar'?'تم الاتصال — تم إنشاء ملف البيانات في Google Drive':'Connected — created FinTrack data file in Drive');
   }
 }
 
@@ -2577,14 +2575,14 @@ async function drivePullOverwriteLocal(){
   DB = migrateDB(remote);
   saveLocalOnly();
   renderAll();
-  toast('Pulled from Google Drive');
+  toast(LANG==='ar'?'تم جلب البيانات من Drive':'Pulled from Google Drive');
 }
 
 async function drivePushNow(){
   if(!driveAccessToken) throw new Error('Not connected');
   if(!driveFileId){ driveFileId = await driveCreate(DB); }
   else{ await driveUpdate(driveFileId, DB); }
-  toast('Pushed to Google Drive');
+  toast(LANG==='ar'?'تم رفع البيانات على Drive':'Pushed to Google Drive');
 }
 
 // Debounced background push, called from saveDB() on every local change.
@@ -2608,7 +2606,7 @@ function updateSyncStatus(state){
     connected: syncTexts['connected'],
     syncing: syncTexts['syncing'],
     error: syncTexts['error'],
-    disconnected: 'Google Drive: not connected'
+    disconnected: syncTexts['disconnected']
   };
   text.textContent = labels[state] || labels.disconnected;
 }
@@ -4523,20 +4521,44 @@ function openModal(kind, ctx={}){
   }
 
   if(kind==='drive-setup'){
+    const isHttps = location.protocol === 'https:';
+    const isLocalFile = location.protocol === 'file:';
+    const httpsWarn = isLocalFile
+      ? `<div style="background:rgba(226,114,124,.12);border:1px solid rgba(226,114,124,.3);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--negative);">
+          <strong>⚠ تحذير مهم / Important:</strong><br>
+          ${LANG==='ar'
+            ? 'الملف مفتوح كـ file:// — Google OAuth لا يعمل مع البروتوكول ده. لازم ترفع الملف على HTTPS (GitHub Pages, Netlify, Vercel) عشان الاتصال يشتغل.'
+            : 'File is open as file:// — Google OAuth does NOT work with this protocol. You must host the file on HTTPS (GitHub Pages, Netlify, Vercel) for Drive to connect.'
+          }
+        </div>`
+      : (!isHttps
+          ? `<div style="background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.3);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--warning);">
+              ⚠ ${LANG==='ar'?'الصفحة تعمل على HTTP — Google تطلب HTTPS للـ OAuth. قد يفشل الاتصال.':'Page is on HTTP — Google requires HTTPS for OAuth. Connection may fail.'}
+            </div>`
+          : '');
     html = `<div class="modal">
-      <h2>Connect Google Drive</h2>
-      <div class="help-text">
-        One-time setup: create a free OAuth Client ID in Google Cloud Console, then paste it below.
-        Full step-by-step instructions were provided alongside this file. The app only ever accesses
-        the single data file it creates itself (never your other Drive files).
+      <h2>${LANG==='ar'?'ربط Google Drive':'Connect Google Drive'}</h2>
+      ${httpsWarn}
+      <div class="help-text" style="margin-bottom:14px;">
+        ${LANG==='ar'
+          ? 'إعداد لمرة واحدة: أنشئ OAuth Client ID مجاني في Google Cloud Console والصقه أدناه. النظام يصل فقط للملف اللي أنشأه هو، مش أي ملفات تانية في Drive بتاعك.'
+          : 'One-time setup: create a free OAuth Client ID in Google Cloud Console, then paste it below. The app only accesses the single file it creates itself — never your other Drive files.'
+        }
       </div>
       <form id="form-drive-setup">
-        <div class="field"><label>OAuth Client ID</label>
-          <input name="clientId" required placeholder="xxxxxxxx.apps.googleusercontent.com" value="${getClientId()}">
+        <div class="field">
+          <label>OAuth Client ID</label>
+          <input name="clientId" required placeholder="xxxxxxxx.apps.googleusercontent.com" value="${getClientId()}" style="font-family:var(--font-mono);font-size:12px;">
+        </div>
+        <div class="help-text" style="margin-top:-8px;margin-bottom:12px;font-size:11.5px;">
+          ${LANG==='ar'
+            ? 'شكله: 123456789-xxxxxxxxxxxxxxxx.apps.googleusercontent.com'
+            : 'Format: 123456789-xxxxxxxxxxxxxxxx.apps.googleusercontent.com'
+          }
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn secondary" data-close>Cancel</button>
-          <button type="submit" class="btn">Save &amp; Connect</button>
+          <button type="button" class="btn secondary" data-close>${LANG==='ar'?'إلغاء':'Cancel'}</button>
+          <button type="submit" class="btn">${LANG==='ar'?'حفظ والاتصال':'Save &amp; Connect'}</button>
         </div>
       </form>
     </div>`;
@@ -4544,15 +4566,15 @@ function openModal(kind, ctx={}){
 
   if(kind==='drive-manage'){
     html = `<div class="modal">
-      <h2>Google Drive Sync</h2>
-      <div class="help-text">Connected. Data file: <strong>${DRIVE_FILE_NAME}</strong> in your Drive.</div>
+      <h2>${LANG==='ar'?'مزامنة Google Drive':'Google Drive Sync'}</h2>
+      <div class="help-text">${LANG==='ar'?'متصل. ملف البيانات:':'Connected. Data file:'} <strong>${DRIVE_FILE_NAME}</strong> ${LANG==='ar'?'في Drive بتاعك.':'in your Drive.'}</div>
       <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
-        <button type="button" class="btn secondary sm" id="btn-force-pull">⬇ Force Pull from Drive</button>
-        <button type="button" class="btn secondary sm" id="btn-force-push">⬆ Force Push to Drive</button>
-        <button type="button" class="btn danger sm" id="btn-disconnect-drive">Disconnect</button>
+        <button type="button" class="btn secondary sm" id="btn-force-pull">⬇ ${LANG==='ar'?'جلب من Drive':'Force Pull from Drive'}</button>
+        <button type="button" class="btn secondary sm" id="btn-force-push">⬆ ${LANG==='ar'?'رفع على Drive':'Force Push to Drive'}</button>
+        <button type="button" class="btn danger sm" id="btn-disconnect-drive">${LANG==='ar'?'قطع الاتصال':'Disconnect'}</button>
       </div>
-      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
-    </div>`;
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>${LANG==='ar'?'إغلاق':'Close'}</button></div>
+    </div>\`;
   }
 
   root.innerHTML = `<div class="modal-backdrop" id="modal-backdrop">${html}</div>`;
@@ -5063,10 +5085,23 @@ const submitHandlers = {
     saveDB(); toast('Document saved');
   },
   'drive-setup'(data){
-    setClientId(data.clientId.trim());
+    const clientId = data.clientId.trim();
+    if(!clientId.includes('.apps.googleusercontent.com')){
+      toast(LANG==='ar'?'Client ID غير صحيح — يجب أن ينتهي بـ .apps.googleusercontent.com':'Invalid Client ID — must end with .apps.googleusercontent.com');
+      return;
+    }
+    setClientId(clientId);
+    if(typeof google === 'undefined' || !google.accounts){
+      toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — تحقق من الاتصال بالإنترنت وأعد المحاولة':'Google Sign-In library not loaded — check your internet connection and try again');
+      return;
+    }
     initGoogleAuth();
-    if(tokenClient) tokenClient.requestAccessToken({prompt:'consent'});
-    else toast('Google Sign-In library still loading — try again in a moment');
+    if(tokenClient){
+      localStorage.removeItem('fintrack_drive_consented');
+      tokenClient.requestAccessToken({prompt:'consent'});
+    } else {
+      toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
+    }
   }
 };
 
@@ -5351,6 +5386,7 @@ function renderAll(){
 }
 annotatePartialFillNotes();
 renderAll();
+applyLang(LANG); // called here — after ALL functions defined
 
 /* ---- GUIDE TAB SWITCHING ---- */
 document.getElementById('guide-tabs')?.addEventListener('click', e => {

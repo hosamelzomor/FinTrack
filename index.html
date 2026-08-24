@@ -1964,20 +1964,51 @@ function disconnectDrive(){
   toast(LANG==='ar'?'تم قطع الاتصال بـ Google Drive':'Disconnected from Google Drive');
 }
 
+// Silently requests a fresh access token from Google using the existing
+// tokenClient (no popup/consent screen — just a token refresh). Resolves
+// with the new token, or rejects if a silent refresh isn't possible
+// (e.g. the user needs to reconnect manually).
+function silentRefreshToken(){
+  return new Promise((resolve, reject)=>{
+    if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
+    if(!tokenClient) initGoogleAuth();
+    if(!tokenClient){ reject(new Error('No client ID configured')); return; }
+    const prevCallback = tokenClient.callback;
+    tokenClient.callback = (resp)=>{
+      tokenClient.callback = prevCallback;
+      if(resp.error){ reject(new Error(resp.error)); return; }
+      driveAccessToken = resp.access_token;
+      resolve(resp.access_token);
+    };
+    tokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+// Wraps fetch() with the current Drive access token, and — if the token
+// has expired (401) — does ONE silent refresh + retry before giving up.
+// This is what fixes the "sync error" that used to appear silently: an
+// expired token now recovers on its own instead of failing outright.
+async function driveApiFetch(url, options, _retried){
+  options = options || {};
+  options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + driveAccessToken });
+  const res = await fetch(url, options);
+  if(res.status === 401 && !_retried){
+    await silentRefreshToken();
+    return driveApiFetch(url, options, true);
+  }
+  return res;
+}
+
 async function driveFindFile(){
   const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`, {
-    headers:{ Authorization: 'Bearer ' + driveAccessToken }
-  });
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`);
   if(!res.ok) throw new Error('Drive list failed (' + res.status + ')');
   const data = await res.json();
   return (data.files && data.files[0]) ? data.files[0] : null;
 }
 
 async function driveDownload(fileId){
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-    headers:{ Authorization: 'Bearer ' + driveAccessToken }
-  });
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
   if(!res.ok) throw new Error('Drive download failed (' + res.status + ')');
   return res.json();
 }
@@ -1989,9 +2020,9 @@ async function driveCreate(content){
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
     `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(content)}\r\n` +
     `--${boundary}--`;
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+  const res = await driveApiFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
     method:'POST',
-    headers:{ Authorization:'Bearer ' + driveAccessToken, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    headers:{ 'Content-Type': `multipart/related; boundary=${boundary}` },
     body
   });
   if(!res.ok) throw new Error('Drive create failed (' + res.status + ')');
@@ -2000,9 +2031,9 @@ async function driveCreate(content){
 }
 
 async function driveUpdate(fileId, content){
-  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+  const res = await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
     method:'PATCH',
-    headers:{ Authorization:'Bearer ' + driveAccessToken, 'Content-Type':'application/json' },
+    headers:{ 'Content-Type':'application/json' },
     body: JSON.stringify(content)
   });
   if(!res.ok) throw new Error('Drive update failed (' + res.status + ')');
@@ -2051,7 +2082,11 @@ function queueDrivePush(){
   clearTimeout(pushTimer);
   pushTimer = setTimeout(async ()=>{
     try{ await driveUpdate(driveFileId, DB); updateSyncStatus('connected'); }
-    catch(e){ console.error(e); updateSyncStatus('error'); }
+    catch(e){
+      console.error(e);
+      toast(LANG==='ar' ? 'تعذّرت مزامنة Drive — قد تحتاج لإعادة الاتصال من إعدادات Drive' : 'Drive sync failed — you may need to reconnect via Drive settings');
+      updateSyncStatus('error');
+    }
   }, 1500);
 }
 

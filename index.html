@@ -1332,555 +1332,14 @@
 <div id="toast-root"></div>
 
 <script>
+let LANG = (function(){ try{ return localStorage.getItem('fintrack_lang')||'ar'; }catch(e){ return 'ar'; } })();
+
 /* =========================================================================
    FinTrack — Milestone 1
    Modules: Accounts, Transactions, Categories, Balance/Net Worth, Commitments
    Storage: browser localStorage (single-user, offline-first)
    ========================================================================= */
 
-
-/* ============================================================
-   LANGUAGE / i18n SYSTEM
-   Two complete translation sets — apply with applyLang(lang)
-   ============================================================ */
-const I18N = {
-  en: {
-    // Brand
-    brand_sub: 'Wealth Platform',
-    // Nav
-    nav_dashboard: 'Dashboard',
-    nav_transactions: 'Transactions',
-    nav_commitments: 'Commitments',
-    nav_reports: 'Reports',
-    nav_accounts: 'Accounts',
-    nav_vehicles: 'Vehicles',
-    nav_budgets: 'Budgets',
-    nav_categories: 'Categories',
-    nav_guide: 'User Guide',
-    // Sidebar footer
-    btn_lang: '🌐 العربية',
-    btn_theme_light: '☀ Light Mode',
-    btn_theme_dark: '🌙 Dark Mode',
-    btn_connect_drive: '🔗 Connect Google Drive',
-    btn_export: '⬇ Export backup (JSON)',
-    btn_import: '⬆ Import backup',
-    // Dashboard
-    page_dashboard: 'Dashboard',
-    page_dashboard_sub: '',
-    card_balance: 'Current Balance',
-    card_balance_sub: (n) => `cash + bank across ${n} account${n===1?'':'s'} · income − expenses since each account's opening balance`,
-    card_commitments: 'Outstanding Commitments',
-    card_commitments_sub: 'what you still owe — installments & rotating savings',
-    card_net: 'Net Position',
-    card_net_sub: 'balance minus outstanding commitments',
-    card_month_income: 'This Month — Income',
-    card_month_expense: 'This Month — Expenses',
-    card_month_tap: (key) => `${key} · tap for details`,
-    card_month_net: (n) => `Net: ${n>=0?'+':''}${fmtMoney(n)} EGP · tap for details`,
-    dash_account_balances: 'Account Balances',
-    dash_account_balances_hint: 'converted to EGP',
-    dash_due_soon: 'Due Soon',
-    dash_recent: 'Recent Transactions',
-    btn_reconcile_all: 'Reconcile with real balances',
-    btn_new_txn: '+ New Transaction',
-    empty_no_accounts: 'No accounts yet',
-    empty_no_txn: 'No transactions yet — add your first one',
-    empty_due_soon: 'Nothing due soon',
-    // Table headers
-    th_account: 'Account',
-    th_type: 'Type',
-    th_balance: 'Balance',
-    th_date: 'Date',
-    th_category: 'Category',
-    th_note: 'Note',
-    th_amount: 'Amount',
-    th_currency: 'Currency',
-    th_opening: 'Opening',
-    th_name: 'Name',
-    // Accounts page
-    page_accounts: 'Accounts',
-    page_accounts_sub: 'Cash, banks & wallets across all currencies',
-    all_accounts: 'All Accounts',
-    btn_new_account: '+ New Account',
-    exchange_rates: 'Exchange Rates',
-    exchange_rates_hint: 'used to convert balances to EGP',
-    th_rate_egp: 'Rate to EGP',
-    btn_edit: 'Edit',
-    btn_reconcile: 'Reconcile',
-    btn_delete: 'Delete',
-    empty_no_accounts_long: 'No accounts yet — add one to start tracking balances',
-    archived_tag: 'Archived',
-    // Transactions page
-    page_transactions: 'Transactions',
-    btn_new_txn2: '+ New Transaction',
-    txn_search_placeholder: 'Search by note or category...',
-    txn_all_months: 'All months',
-    txn_all_accounts: 'All accounts',
-    txn_all_categories: 'All categories',
-    txn_search_in_dropdown: 'Search...',
-    txn_filter_all: 'All',
-    txn_filter_income: 'Income',
-    txn_filter_expense: 'Expense',
-    txn_filter_transfer: 'Transfers',
-    txn_count: (n) => `${n} transaction${n===1?'':'s'}`,
-    txn_page_of: (cur, tot, total) => `Page ${cur} of ${tot} (${total})`,
-    txn_prev: '← Prev',
-    txn_next: 'Next →',
-    empty_no_txn_filter: 'No transactions match your filters',
-    transfer_tag: 'Transfer',
-    // Categories page
-    page_categories: 'Categories',
-    page_categories_sub: 'Income & expense categories, with optional sub-categories',
-    btn_new_category: '+ New Category',
-    expense_categories: 'Expense Categories',
-    income_categories: 'Income Categories',
-    empty_no_categories: (type) => `No ${type} categories yet`,
-    cannot_del_cat_children: 'Cannot delete: category has sub-categories — delete them first',
-    cannot_del_cat_txns: 'Cannot delete: category has transactions linked to it',
-    cat_deleted: 'Category deleted',
-    cat_updated: 'Category updated',
-    // Commitments page
-    page_commitments: 'Commitments',
-    page_commitments_sub: 'Installments & rotating savings — track what\'s left and when it ends',
-    btn_new_commitment: '+ New Commitment',
-    // Vehicles page
-    page_vehicles: 'Vehicles',
-    page_vehicles_sub: 'Fuel, maintenance, oil changes & mileage — per vehicle',
-    btn_new_vehicle: '+ New Vehicle',
-    fuel_price_label: '92 Fuel Price (EGP / liter)',
-    veh_tab_cards: 'Vehicles',
-    veh_tab_logs: 'All Logs',
-    veh_filter_vehicle: 'Vehicle',
-    veh_filter_type: 'Type',
-    veh_filter_from: 'From',
-    veh_filter_to: 'To',
-    veh_all_types: 'All types',
-    veh_sort_newest: 'Date: Newest first ↓',
-    veh_sort_oldest: 'Date: Oldest first ↑',
-    btn_reset: 'Reset',
-    th_km: 'KM',
-    th_dist: 'Dist.',
-    th_kmpl: 'km/L',
-    veh_view_log: 'View / Log Entry',
-    veh_btn_edit: 'Edit',
-    veh_btn_delete: 'Delete',
-    veh_deleted: 'Vehicle deleted',
-    veh_updated: 'Vehicle updated',
-    // Budgets
-    page_budgets: 'Budgets',
-    page_budgets_sub: 'Set a monthly limit per category — suggested from your real spending history',
-    // Reports
-    page_reports: 'Reports',
-    page_reports_sub: 'Detailed analysis of your income & expenses',
-    rep_period_all: 'All time',
-    rep_period_ytd: 'This year',
-    rep_period_6m: 'Last 6 months',
-    rep_period_3m: 'Last 3 months',
-    rep_period_1m: 'This month',
-    rep_period_custom: 'Custom...',
-    rep_period_label: 'PERIOD',
-    rep_from_label: 'FROM',
-    rep_to_label: 'TO',
-    rep_cat_label: 'CATEGORY (income + expense)',
-    rep_all_cats: 'All categories',
-    rep_chart_title: 'MONTHLY CHART',
-    rep_cat_col: 'Category',
-    rep_month_col: 'Month',
-    rep_total_col: 'Total',
-    rep_monthly_breakdown: 'Monthly Breakdown',
-    rep_month_th: 'Month',
-    rep_amount_th: 'Amount',
-    rep_empty_chart: 'Select a category and period to display the chart',
-    // Guide page
-    page_guide: '📖 User Guide',
-    page_guide_sub: 'Detailed guide for using the system and connecting Google Drive',
-    // Sync status
-    sync_not_connected: 'Google Drive: not connected',
-    sync_connected: syncTexts['connected'],
-    sync_syncing: syncTexts['syncing'],
-    sync_error: syncTexts['error'],
-    // Due soon
-    due_overdue: (d) => `${d}d overdue`,
-    due_days: (d) => `${d}d`,
-    // Toast
-    toast_account_deleted: 'Account deleted',
-    toast_cat_deleted: 'Category deleted',
-    toast_veh_deleted: 'Vehicle deleted',
-    // Footer
-    footer_copyright: '© 2026 Hossam Al-Zomor. All Rights Reserved.',
-  },
-
-  ar: {
-    // Brand
-    brand_sub: 'منصة إدارة الثروة',
-    // Nav
-    nav_dashboard: 'الرئيسية',
-    nav_transactions: 'المعاملات',
-    nav_commitments: 'الالتزامات',
-    nav_reports: 'التقارير',
-    nav_accounts: 'الحسابات',
-    nav_vehicles: 'المركبات',
-    nav_budgets: 'الميزانيات',
-    nav_categories: 'الكاتيجوريز',
-    nav_guide: 'دليل الاستخدام',
-    // Sidebar footer
-    btn_lang: '🌐 English',
-    btn_theme_light: '☀ الوضع الفاتح',
-    btn_theme_dark: '🌙 الوضع الداكن',
-    btn_connect_drive: '🔗 ربط Google Drive',
-    btn_export: '⬇ تصدير نسخة احتياطية',
-    btn_import: '⬆ استيراد نسخة احتياطية',
-    // Dashboard
-    page_dashboard: 'الرئيسية',
-    page_dashboard_sub: '',
-    card_balance: 'الرصيد الحالي',
-    card_balance_sub: (n) => `إجمالي ${n} حساب · دخل − مصاريف منذ الرصيد الافتتاحي`,
-    card_commitments: 'الالتزامات المتبقية',
-    card_commitments_sub: 'ما تبقى عليك — أقساط وجمعيات',
-    card_net: 'صافي الموقف المالي',
-    card_net_sub: 'الرصيد ناقص الالتزامات المتبقية',
-    card_month_income: 'هذا الشهر — الدخل',
-    card_month_expense: 'هذا الشهر — المصاريف',
-    card_month_tap: (key) => `${key} · اضغط للتفاصيل`,
-    card_month_net: (n) => `صافي: ${n>=0?'+':''}${fmtMoney(n)} ج.م · اضغط للتفاصيل`,
-    dash_account_balances: 'أرصدة الحسابات',
-    dash_account_balances_hint: 'محوّلة لجنيه مصري',
-    dash_due_soon: 'المواعيد القريبة',
-    dash_recent: 'آخر المعاملات',
-    btn_reconcile_all: 'مطابقة مع الأرصدة الفعلية',
-    btn_new_txn: '+ معاملة جديدة',
-    empty_no_accounts: 'لا يوجد حسابات بعد',
-    empty_no_txn: 'لا يوجد معاملات بعد — أضف أولى معاملاتك',
-    empty_due_soon: 'لا يوجد مواعيد قريبة',
-    // Table headers
-    th_account: 'الحساب',
-    th_type: 'النوع',
-    th_balance: 'الرصيد',
-    th_date: 'التاريخ',
-    th_category: 'الكاتيجوري',
-    th_note: 'ملاحظة',
-    th_amount: 'المبلغ',
-    th_currency: 'العملة',
-    th_opening: 'الافتتاحي',
-    th_name: 'الاسم',
-    // Accounts page
-    page_accounts: 'الحسابات',
-    page_accounts_sub: 'كاش، بنوك ومحافظ بكل العملات',
-    all_accounts: 'جميع الحسابات',
-    btn_new_account: '+ حساب جديد',
-    exchange_rates: 'أسعار الصرف',
-    exchange_rates_hint: 'تُستخدم لتحويل الأرصدة لجنيه مصري',
-    th_rate_egp: 'السعر للجنيه',
-    btn_edit: 'تعديل',
-    btn_reconcile: 'مطابقة',
-    btn_delete: 'حذف',
-    empty_no_accounts_long: 'لا يوجد حسابات بعد — أضف حساباً لبدء التتبع',
-    archived_tag: 'مؤرشف',
-    // Transactions page
-    page_transactions: 'المعاملات',
-    btn_new_txn2: '+ معاملة جديدة',
-    txn_search_placeholder: 'بحث بالنوت أو الكاتيجوري...',
-    txn_all_months: 'كل الشهور',
-    txn_all_accounts: 'كل الحسابات',
-    txn_all_categories: 'كل الكاتيجوريز',
-    txn_search_in_dropdown: 'ابحث...',
-    txn_filter_all: 'الكل',
-    txn_filter_income: 'دخل',
-    txn_filter_expense: 'مصاريف',
-    txn_filter_transfer: 'تحويلات',
-    txn_count: (n) => `${n} معاملة`,
-    txn_page_of: (cur, tot, total) => `صفحة ${cur} من ${tot} (${total})`,
-    txn_prev: '→ السابق',
-    txn_next: 'التالي ←',
-    empty_no_txn_filter: 'لا توجد معاملات تطابق الفلتر',
-    transfer_tag: 'تحويل',
-    // Categories page
-    page_categories: 'الكاتيجوريز',
-    page_categories_sub: 'تصنيفات الدخل والمصاريف، مع إمكانية إضافة تصنيفات فرعية',
-    btn_new_category: '+ كاتيجوري جديدة',
-    expense_categories: 'كاتيجوريز المصاريف',
-    income_categories: 'كاتيجوريز الدخل',
-    empty_no_categories: (type) => `لا يوجد كاتيجوريز ${type === 'expense' ? 'مصاريف' : 'دخل'} بعد`,
-    cannot_del_cat_children: 'لا يمكن الحذف: الكاتيجوري فيها تصنيفات فرعية — احذفها أولاً',
-    cannot_del_cat_txns: 'لا يمكن الحذف: الكاتيجوري عليها معاملات مسجّلة',
-    cat_deleted: 'تم حذف الكاتيجوري',
-    cat_updated: 'تم تحديث الكاتيجوري',
-    // Commitments page
-    page_commitments: 'الالتزامات',
-    page_commitments_sub: 'أقساط وجمعيات — تتبع ما تبقى ومتى تنتهي',
-    btn_new_commitment: '+ التزام جديد',
-    // Vehicles page
-    page_vehicles: 'المركبات',
-    page_vehicles_sub: 'وقود، صيانة، تغيير زيت والعداد — لكل مركبة',
-    btn_new_vehicle: '+ مركبة جديدة',
-    fuel_price_label: 'سعر البنزين 92 (جنيه / لتر)',
-    veh_tab_cards: 'المركبات',
-    veh_tab_logs: 'كل السجلات',
-    veh_filter_vehicle: 'المركبة',
-    veh_filter_type: 'النوع',
-    veh_filter_from: 'من',
-    veh_filter_to: 'إلى',
-    veh_all_types: 'كل الأنواع',
-    veh_sort_newest: 'التاريخ: الأحدث أولاً ↓',
-    veh_sort_oldest: 'التاريخ: الأقدم أولاً ↑',
-    btn_reset: 'إعادة',
-    th_km: 'كم',
-    th_dist: 'المسافة',
-    th_kmpl: 'كم/لتر',
-    veh_view_log: 'عرض / تسجيل',
-    veh_btn_edit: 'تعديل',
-    veh_btn_delete: 'حذف',
-    veh_deleted: 'تم حذف المركبة',
-    veh_updated: 'تم تحديث المركبة',
-    // Budgets
-    page_budgets: 'الميزانيات',
-    page_budgets_sub: 'حدد سقفاً شهرياً لكل كاتيجوري — مقترح من تاريخ صرفك الفعلي',
-    // Reports
-    page_reports: 'التقارير',
-    page_reports_sub: 'تحليل مصاريفك ودخلك بالتفصيل',
-    rep_period_all: 'كل الوقت',
-    rep_period_ytd: 'هذه السنة',
-    rep_period_6m: 'آخر 6 أشهر',
-    rep_period_3m: 'آخر 3 أشهر',
-    rep_period_1m: 'هذا الشهر',
-    rep_period_custom: 'تخصيص...',
-    rep_period_label: 'الفترة',
-    rep_from_label: 'من',
-    rep_to_label: 'إلى',
-    rep_cat_label: 'الكاتيجوري (دخل + مصاريف)',
-    rep_all_cats: 'كل الكاتيجوريز',
-    rep_chart_title: 'الرسم البياني الشهري',
-    rep_cat_col: 'الكاتيجوري',
-    rep_month_col: 'الشهر',
-    rep_total_col: 'الإجمالي',
-    rep_monthly_breakdown: 'التفصيل الشهري',
-    rep_month_th: 'الشهر',
-    rep_amount_th: 'المبلغ',
-    rep_empty_chart: 'اختر كاتيجوري وفترة لعرض الرسم البياني',
-    // Guide page
-    page_guide: '📖 دليل الاستخدام',
-    page_guide_sub: 'شرح تفصيلي للنظام وربط Google Drive',
-    // Sync status
-    sync_not_connected: 'Google Drive: غير متصل',
-    sync_connected: 'Google Drive: متزامن ✓',
-    sync_syncing: 'Google Drive: جاري المزامنة…',
-    sync_error: 'Google Drive: خطأ في المزامنة',
-    // Due soon
-    due_overdue: (d) => `متأخر ${d} يوم`,
-    due_days: (d) => `${d} يوم`,
-    // Toast
-    toast_account_deleted: 'تم حذف الحساب',
-    toast_cat_deleted: 'تم حذف الكاتيجوري',
-    toast_veh_deleted: 'تم حذف المركبة',
-    // Footer
-    footer_copyright: '© 2026 حسام الزمر. جميع الحقوق محفوظة.',
-  }
-};
-
-let LANG = localStorage.getItem('fintrack_lang') || 'ar';
-function t(key, ...args){
-  const dict = I18N[LANG] || I18N.ar;
-  const val = dict[key];
-  if(val === undefined) return I18N.en[key] || key;
-  if(typeof val === 'function') return val(...args);
-  return val;
-}
-
-function applyLang(lang){
-  LANG = lang;
-  try{ localStorage.setItem('fintrack_lang', lang); }catch(e){}
-
-  // html dir + lang attr
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-
-  // Brand
-  const brandSub = document.querySelector('.brand .sub');
-  if(brandSub) brandSub.textContent = t('brand_sub');
-
-  // Nav labels
-  document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
-    const view = btn.dataset.view;
-    const lbl = btn.querySelector('.lbl');
-    if(!lbl) return;
-    const map = {
-      dashboard:'nav_dashboard', transactions:'nav_transactions', commitments:'nav_commitments',
-      reports:'nav_reports', accounts:'nav_accounts', vehicles:'nav_vehicles',
-      budgets:'nav_budgets', categories:'nav_categories', guide:'nav_guide'
-    };
-    if(map[view]) lbl.textContent = t(map[view]);
-  });
-
-  // Sidebar footer buttons
-  const btnLang = document.getElementById('btn-lang-toggle');
-  if(btnLang) btnLang.textContent = t('btn_lang');
-  updateThemeButtonLabel();
-  const btnDrive = document.getElementById('btn-connect-drive');
-  if(btnDrive) btnDrive.textContent = t('btn_connect_drive');
-  const btnExport = document.getElementById('btn-export');
-  if(btnExport) btnExport.textContent = t('btn_export');
-  const btnImport = document.getElementById('btn-import');
-  if(btnImport) btnImport.textContent = t('btn_import');
-
-  // Static HTML section texts (topbars, table headers)
-  // Dashboard
-  const dashH1 = document.querySelector('#view-dashboard h1');
-  if(dashH1) dashH1.textContent = t('page_dashboard');
-  document.querySelectorAll('#view-dashboard .section-title').forEach((el,i)=>{
-    if(i===0){ el.innerHTML = t('dash_account_balances')+'<span class="hint">'+t('dash_account_balances_hint')+'</span>'; }
-    else if(i===1){ el.textContent = t('dash_due_soon'); }
-    else if(i===2){ el.textContent = t('dash_recent'); }
-  });
-  const dashThead = document.querySelector('#view-dashboard thead');
-  if(dashThead) dashThead.innerHTML = `<tr><th>${t('th_date')}</th><th>${t('th_account')}</th><th>${t('th_category')}</th><th>${t('th_note')}</th><th class="amt">${t('th_amount')}</th></tr>`;
-
-  // Accounts
-  const accH1 = document.querySelector('#view-accounts h1');
-  if(accH1) accH1.textContent = t('page_accounts');
-  const accSub = document.querySelector('#view-accounts .today');
-  if(accSub) accSub.textContent = t('page_accounts_sub');
-  const accNewBtn = document.querySelector('#view-accounts .topbar .btn');
-  if(accNewBtn) accNewBtn.textContent = t('btn_new_account');
-  const accAllH3 = document.querySelector('#view-accounts .head-row h3');
-  if(accAllH3) accAllH3.textContent = t('all_accounts');
-  const accThead = document.querySelector('#view-accounts .table-wrap table thead');
-  if(accThead) accThead.innerHTML = `<tr><th>${t('th_name')}</th><th>${t('th_type')}</th><th>${t('th_currency')}</th><th class="amt">${t('th_opening')}</th><th class="amt">${t('th_balance')}</th><th></th></tr>`;
-  const accExTitle = document.querySelector('#view-accounts .section-title');
-  if(accExTitle) accExTitle.innerHTML = t('exchange_rates')+'<span class="hint">'+t('exchange_rates_hint')+'</span>';
-  const accFxThead = document.querySelectorAll('#view-accounts .table-wrap table thead')[1];
-  if(accFxThead) accFxThead.innerHTML = `<tr><th>${t('th_currency')}</th><th class="amt">${t('th_rate_egp')}</th><th></th></tr>`;
-
-  // Transactions
-  const txnH1 = document.querySelector('#view-transactions h1');
-  if(txnH1) txnH1.textContent = t('page_transactions');
-  const txnNewBtn = document.querySelector('#view-transactions .topbar .btn');
-  if(txnNewBtn) txnNewBtn.textContent = t('btn_new_txn2');
-  const txnSearch = document.getElementById('txn-search');
-  if(txnSearch) txnSearch.placeholder = t('txn_search_placeholder');
-  const txnThead = document.querySelector('#view-transactions thead');
-  if(txnThead) txnThead.innerHTML = `<tr><th>${t('th_date')}</th><th>${t('th_account')}</th><th>${t('th_category')}</th><th>${t('th_note')}</th><th class="amt">${t('th_amount')}</th><th></th></tr>`;
-
-  // Categories
-  const catH1 = document.querySelector('#view-categories h1');
-  if(catH1) catH1.textContent = t('page_categories');
-  const catSub = document.querySelector('#view-categories .today');
-  if(catSub) catSub.textContent = t('page_categories_sub');
-  const catNewBtn = document.querySelector('#view-categories .topbar .btn');
-  if(catNewBtn) catNewBtn.textContent = t('btn_new_category');
-  const catExpTitle = document.querySelectorAll('#view-categories .section-title')[0];
-  if(catExpTitle) catExpTitle.textContent = t('expense_categories');
-  const catIncTitle = document.querySelectorAll('#view-categories .section-title')[1];
-  if(catIncTitle) catIncTitle.textContent = t('income_categories');
-
-  // Commitments
-  const comH1 = document.querySelector('#view-commitments h1');
-  if(comH1) comH1.textContent = t('page_commitments');
-  const comSub = document.querySelector('#view-commitments .today');
-  if(comSub) comSub.textContent = t('page_commitments_sub');
-  const comNewBtn = document.querySelector('#view-commitments .topbar .btn');
-  if(comNewBtn) comNewBtn.textContent = t('btn_new_commitment');
-
-  // Vehicles
-  const vehH1 = document.querySelector('#view-vehicles h1');
-  if(vehH1) vehH1.textContent = t('page_vehicles');
-  const vehSub = document.querySelector('#view-vehicles .today');
-  if(vehSub) vehSub.textContent = t('page_vehicles_sub');
-  const vehNewBtn = document.querySelector('#view-vehicles .topbar .btn');
-  if(vehNewBtn) vehNewBtn.textContent = t('btn_new_vehicle');
-  const vehFuelLbl = document.querySelector('#view-vehicles .field label');
-  if(vehFuelLbl) vehFuelLbl.textContent = t('fuel_price_label');
-  const vlogsAllTypes = document.querySelector('#vlogs-filter-type option[value="all"]');
-  if(vlogsAllTypes) vlogsAllTypes.textContent = t('veh_all_types');
-  const vlogsFrom = document.querySelector('#vlogs-filter-bar label[for-vlogs-from]');
-  const vehFilterLabels = document.querySelectorAll('#vlogs-filter-bar .field label');
-  if(vehFilterLabels[0]) vehFilterLabels[0].textContent = t('veh_filter_vehicle');
-  if(vehFilterLabels[1]) vehFilterLabels[1].textContent = t('veh_filter_type');
-  if(vehFilterLabels[2]) vehFilterLabels[2].textContent = t('veh_filter_from');
-  if(vehFilterLabels[3]) vehFilterLabels[3].textContent = t('veh_filter_to');
-  const vlogsResetBtn = document.getElementById('vlogs-filter-reset');
-  if(vlogsResetBtn) vlogsResetBtn.textContent = t('btn_reset');
-  const vlogsThead = document.querySelector('#veh-logs-panel thead');
-  if(vlogsThead) vlogsThead.innerHTML = `<tr><th>${t('th_date')}</th><th>${t('page_vehicles')}</th><th>${t('th_type')}</th><th class="amt">${t('th_amount')}</th><th class="amt">${t('th_km')}</th><th class="amt">${t('th_dist')}</th><th class="amt">${t('th_kmpl')}</th><th>${t('th_note')}</th><th></th></tr>`;
-  // veh subtab
-  const vehSubtabOpts = document.querySelectorAll('#veh-subtab-group .radio-opt');
-  if(vehSubtabOpts[0]) vehSubtabOpts[0].textContent = t('veh_tab_cards');
-  if(vehSubtabOpts[1]) vehSubtabOpts[1].textContent = t('veh_tab_logs');
-
-  // Budgets
-  const budH1 = document.querySelector('#view-budgets h1');
-  if(budH1) budH1.textContent = t('page_budgets');
-  const budSub = document.querySelector('#view-budgets .today');
-  if(budSub) budSub.textContent = t('page_budgets_sub');
-
-  // Reports
-  const repH1 = document.querySelector('#view-reports h1');
-  if(repH1) repH1.textContent = t('page_reports');
-  const repSub = document.querySelector('#view-reports .today');
-  if(repSub) repSub.textContent = t('page_reports_sub');
-  const repPeriodSel = document.getElementById('rep-period-sel');
-  if(repPeriodSel){
-    const vals = ['all','ytd','6m','3m','1m','custom'];
-    const keys = ['rep_period_all','rep_period_ytd','rep_period_6m','rep_period_3m','rep_period_1m','rep_period_custom'];
-    repPeriodSel.querySelectorAll('option').forEach((opt,i)=>{ if(keys[i]) opt.textContent = t(keys[i]); });
-  }
-  const repCatLabel = document.getElementById('rep-cat-label');
-  if(repCatLabel && repCatLabel.textContent.trim() === I18N[lang==='ar'?'en':'ar'].rep_all_cats)
-    repCatLabel.textContent = t('rep_all_cats');
-  else if(repCatLabel && !repCatLabel.dataset.customLabel)
-    repCatLabel.textContent = t('rep_all_cats');
-  const repCatBtn2 = document.querySelector('#rep-cat-dropdown #rep-cat-all');
-  if(repCatBtn2) repCatBtn2.textContent = lang==='ar' ? 'الكل' : 'All';
-  const repCatNone = document.querySelector('#rep-cat-dropdown #rep-cat-none');
-  if(repCatNone) repCatNone.textContent = lang==='ar' ? 'إلغاء' : 'Clear';
-  const repCatSearch = document.getElementById('rep-cat-search');
-  if(repCatSearch) repCatSearch.placeholder = t('txn_search_in_dropdown');
-  const repFromLbl = document.querySelector('#rep-from-wrap > div');
-  if(repFromLbl) repFromLbl.textContent = t('rep_from_label');
-  const repToLbl = document.querySelector('#rep-to-wrap > div');
-  if(repToLbl) repToLbl.textContent = t('rep_to_label');
-  // Reports period label
-  const repPeriodLbl = document.querySelector('#rep-filter-bar > div:first-child > div:first-child');
-  if(repPeriodLbl) repPeriodLbl.textContent = t('rep_period_label');
-  const repCatLbl2 = document.querySelector('#rep-filter-bar > div[style*="position:relative"] > div:first-child');
-  if(repCatLbl2) repCatLbl2.textContent = t('rep_cat_label');
-  // Chart title
-  const repChartTitle = document.querySelector('#rep-main-grid .card > div > div');
-  if(repChartTitle && repChartTitle.style && repChartTitle.style.textTransform!==undefined)
-    repChartTitle.textContent = t('rep_chart_title');
-  const repChartEmpty = document.getElementById('rep-chart-empty');
-  if(repChartEmpty) repChartEmpty.textContent = t('rep_empty_chart');
-  // Reports table headers
-  const repTreeThead = document.querySelector('#rep-main-grid .table-wrap thead');
-  if(repTreeThead) repTreeThead.innerHTML = `<tr><th>${t('rep_cat_col')}</th><th class="amt">${t('rep_month_col')}</th><th class="amt" id="rep-period-hdr">${t('rep_total_col')}</th></tr>`;
-  const repMonthTitle = document.querySelector('#view-reports .section-title');
-  if(repMonthTitle) repMonthTitle.textContent = t('rep_monthly_breakdown');
-  const repMonthThead = document.querySelector('#view-reports .table-wrap:last-of-type thead');
-  if(repMonthThead) repMonthThead.innerHTML = `<tr><th>${t('rep_month_th')}</th><th class="amt" id="rep-monthly-hdr">${t('rep_amount_th')}</th></tr>`;
-
-  // Guide
-  const guideH1 = document.querySelector('#view-guide h1');
-  if(guideH1) guideH1.textContent = t('page_guide');
-  const guideSub = document.querySelector('#view-guide .today');
-  if(guideSub) guideSub.textContent = t('page_guide_sub');
-
-  // Footer copyright text
-  const footerCopy = document.querySelector('.footer-copy');
-  if(footerCopy){
-    footerCopy.innerHTML = lang === 'ar'
-      ? 'حقوق النشر &copy; 2026 <strong>حسام الزمر</strong>. جميع الحقوق محفوظة.'
-      : 'Copyright &copy; 2026 <strong>Hossam Al-Zomor</strong>. All Rights Reserved.';
-  }
-
-  // Re-render all dynamic content (guard: may be called before functions are defined on first load)
-  if(typeof renderAll === 'function') renderAll();
-}
-
-/* ---- LANGUAGE TOGGLE BUTTON ---- */
-document.getElementById('btn-lang-toggle').addEventListener('click', ()=>{
-  applyLang(LANG === 'ar' ? 'en' : 'ar');
-});
-
-// applyLang() is called after all functions are defined — see end of script
 
 /* ---------------------------- STORAGE LAYER ---------------------------- */
 const DB_KEY = 'fintrack_data_v1';
@@ -2629,8 +2088,11 @@ window.addEventListener('load', ()=>{
 /* ---------------------------- NAVIGATION ---------------------------- */
 function updateThemeButtonLabel(){
   const btn = document.getElementById('btn-theme-toggle');
+  if(!btn) return;
   const isLight = document.body.classList.contains('light');
-  btn.textContent = isLight ? t('btn_theme_dark') : t('btn_theme_light');
+  btn.textContent = isLight
+    ? (typeof t==='function' ? t('btn_theme_dark')  : '🌙 Dark Mode')
+    : (typeof t==='function' ? t('btn_theme_light') : '☀ Light Mode');
 }
 document.getElementById('btn-theme-toggle').addEventListener('click', ()=>{
   document.body.classList.toggle('light');
@@ -2638,7 +2100,6 @@ document.getElementById('btn-theme-toggle').addEventListener('click', ()=>{
   try{ localStorage.setItem('fintrack_theme', isLight ? 'light' : 'dark'); }catch(e){}
   updateThemeButtonLabel();
 });
-updateThemeButtonLabel();
 document.getElementById('btn-sidebar-toggle').addEventListener('click', ()=>{
   const collapsed = document.querySelector('.app').classList.toggle('sidebar-collapsed');
   document.getElementById('btn-sidebar-toggle').textContent = collapsed ? '›' : '‹';
@@ -4574,7 +4035,7 @@ function openModal(kind, ctx={}){
         <button type="button" class="btn danger sm" id="btn-disconnect-drive">${LANG==='ar'?'قطع الاتصال':'Disconnect'}</button>
       </div>
       <div class="modal-actions"><button type="button" class="btn secondary" data-close>${LANG==='ar'?'إغلاق':'Close'}</button></div>
-    </div>\`;
+    </div>`;
   }
 
   root.innerHTML = `<div class="modal-backdrop" id="modal-backdrop">${html}</div>`;
@@ -5385,8 +4846,234 @@ function renderAll(){
   renderReports();
 }
 annotatePartialFillNotes();
-renderAll();
-applyLang(LANG); // called here — after ALL functions defined
+
+/* ============================================================
+   LANGUAGE SYSTEM — defined here so ALL other functions exist
+   ============================================================ */
+const I18N = {
+  en: {
+    brand_sub:'Wealth Platform',
+    nav_dashboard:'Dashboard', nav_transactions:'Transactions',
+    nav_commitments:'Commitments', nav_reports:'Reports',
+    nav_accounts:'Accounts', nav_vehicles:'Vehicles',
+    nav_budgets:'Budgets', nav_categories:'Categories', nav_guide:'User Guide',
+    btn_lang:'\ud83c\udf10 \u0627\u0644\u0639\u0631\u0628\u064a\u0629',
+    btn_theme_light:'\u2600 Light Mode', btn_theme_dark:'\ud83c\udf19 Dark Mode',
+    btn_connect_drive:'\ud83d\udd17 Connect Google Drive',
+    btn_export:'\u2b07 Export backup (JSON)', btn_import:'\u2b06 Import backup',
+    card_balance:'Current Balance',
+    card_balance_sub:function(n){ return 'cash + bank across '+n+' account'+(n===1?'':'s')+' \u00b7 income \u2212 expenses since opening balance'; },
+    card_commitments:'Outstanding Commitments',
+    card_commitments_sub:'what you still owe \u2014 installments & rotating savings',
+    card_net:'Net Position', card_net_sub:'balance minus outstanding commitments',
+    card_month_income:'This Month \u2014 Income', card_month_expense:'This Month \u2014 Expenses',
+    card_month_tap:function(k){ return k+' \u00b7 tap for details'; },
+    card_month_net:function(n){ return 'Net: '+(n>=0?'+':'')+fmtMoney(n)+' EGP \u00b7 tap for details'; },
+    dash_account_balances:'Account Balances', dash_account_balances_hint:'converted to EGP',
+    dash_due_soon:'Due Soon', dash_recent:'Recent Transactions',
+    btn_reconcile_all:'Reconcile with real balances', btn_new_txn:'+ New Transaction',
+    empty_no_accounts:'No accounts yet',
+    empty_no_txn:'No transactions yet \u2014 add your first one',
+    empty_due_soon:'Nothing due soon',
+    th_account:'Account', th_type:'Type', th_balance:'Balance', th_date:'Date',
+    th_category:'Category', th_note:'Note', th_amount:'Amount',
+    th_currency:'Currency', th_opening:'Opening', th_name:'Name',
+    page_accounts:'Accounts', page_accounts_sub:'Cash, banks & wallets',
+    all_accounts:'All Accounts', btn_new_account:'+ New Account',
+    exchange_rates:'Exchange Rates', exchange_rates_hint:'used to convert balances to EGP',
+    th_rate_egp:'Rate to EGP', btn_edit:'Edit', btn_reconcile:'Reconcile', btn_delete:'Delete',
+    empty_no_accounts_long:'No accounts yet \u2014 add one to start tracking',
+    archived_tag:'Archived',
+    page_transactions:'Transactions', btn_new_txn2:'+ New Transaction',
+    txn_search_placeholder:'Search by note or category...',
+    txn_all_months:'All months', txn_all_accounts:'All accounts', txn_all_categories:'All categories',
+    txn_filter_all:'All', txn_filter_income:'Income', txn_filter_expense:'Expense', txn_filter_transfer:'Transfers',
+    txn_count:function(n){ return n+' transaction'+(n===1?'':'s'); },
+    txn_page_of:function(c,tot,all){ return 'Page '+c+' of '+tot+' ('+all+')'; },
+    txn_prev:'\u2190 Prev', txn_next:'Next \u2192',
+    empty_no_txn_filter:'No transactions match your filters', transfer_tag:'Transfer',
+    page_categories:'Categories', page_categories_sub:'Income & expense categories with sub-categories',
+    btn_new_category:'+ New Category',
+    expense_categories:'Expense Categories', income_categories:'Income Categories',
+    empty_no_categories:function(type){ return 'No '+type+' categories yet'; },
+    cannot_del_cat_children:'Cannot delete: has sub-categories \u2014 delete them first',
+    cannot_del_cat_txns:'Cannot delete: has linked transactions',
+    cat_deleted:'Category deleted', cat_updated:'Category updated',
+    page_commitments:'Commitments', page_commitments_sub:"Installments & rotating savings",
+    btn_new_commitment:'+ New Commitment',
+    page_vehicles:'Vehicles', page_vehicles_sub:'Fuel, maintenance & mileage per vehicle',
+    btn_new_vehicle:'+ New Vehicle', fuel_price_label:'92 Fuel Price (EGP / liter)',
+    veh_tab_cards:'Vehicles', veh_tab_logs:'All Logs', veh_all_types:'All types', btn_reset:'Reset',
+    th_km:'KM', th_dist:'Dist.', th_kmpl:'km/L',
+    veh_view_log:'View / Log Entry', veh_btn_edit:'Edit', veh_btn_delete:'Delete',
+    veh_deleted:'Vehicle deleted', veh_updated:'Vehicle updated',
+    page_budgets:'Budgets', page_budgets_sub:'Set a monthly limit per category',
+    page_reports:'Reports', page_reports_sub:'Detailed analysis of income & expenses',
+    rep_period_all:'All time', rep_period_ytd:'This year', rep_period_6m:'Last 6 months',
+    rep_period_3m:'Last 3 months', rep_period_1m:'This month', rep_period_custom:'Custom...',
+    rep_all_cats:'All categories', rep_chart_title:'MONTHLY CHART',
+    rep_cat_col:'Category', rep_total_col:'Total', rep_monthly_breakdown:'Monthly Breakdown',
+    rep_month_th:'Month', rep_amount_th:'Amount',
+    rep_empty_chart:'Select a category and period to display the chart',
+    page_guide:'\ud83d\udcd6 User Guide', page_guide_sub:'Detailed guide and Google Drive setup',
+    sync_not_connected:'Google Drive: not connected', sync_connected:'Google Drive: synced \u2713',
+    sync_syncing:'Google Drive: syncing\u2026', sync_error:'Google Drive: sync error',
+    due_overdue:function(d){ return d+'d overdue'; }, due_days:function(d){ return d+'d'; }
+  },
+  ar: {
+    brand_sub:'\u0645\u0646\u0635\u0629 \u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u062b\u0631\u0648\u0629',
+    nav_dashboard:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629', nav_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
+    nav_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', nav_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631',
+    nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a',
+    nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
+    btn_lang:'\ud83c\udf10 English',
+    btn_theme_light:'\u2600 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d', btn_theme_dark:'\ud83c\udf19 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
+    btn_connect_drive:'\ud83d\udd17 \u0631\u0628\u0637 Google Drive',
+    btn_export:'\u2b07 \u062a\u0635\u062f\u064a\u0631 \u0646\u0633\u062e\u0629 \u0627\u062d\u062a\u064a\u0627\u0637\u064a\u0629', btn_import:'\u2b06 \u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0646\u0633\u062e\u0629 \u0627\u062d\u062a\u064a\u0627\u0637\u064a\u0629',
+    card_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a',
+    card_balance_sub:function(n){ return '\u0625\u062c\u0645\u0627\u0644\u064a '+n+' \u062d\u0633\u0627\u0628 \u00b7 \u062f\u062e\u0644 \u2212 \u0645\u0635\u0627\u0631\u064a\u0641 \u0645\u0646\u0630 \u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a'; },
+    card_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a \u0627\u0644\u0645\u062a\u0628\u0642\u064a\u0629',
+    card_commitments_sub:'\u0645\u0627 \u062a\u0628\u0642\u0649 \u0639\u0644\u064a\u0643 \u2014 \u0623\u0642\u0633\u0627\u0637 \u0648\u062c\u0645\u0639\u064a\u0627\u062a',
+    card_net:'\u0635\u0627\u0641\u064a \u0627\u0644\u0645\u0648\u0642\u0641 \u0627\u0644\u0645\u0627\u0644\u064a', card_net_sub:'\u0627\u0644\u0631\u0635\u064a\u062f \u0646\u0627\u0642\u0635 \u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a \u0627\u0644\u0645\u062a\u0628\u0642\u064a\u0629',
+    card_month_income:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631 \u2014 \u0627\u0644\u062f\u062e\u0644', card_month_expense:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631 \u2014 \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641',
+    card_month_tap:function(k){ return k+' \u00b7 \u0627\u0636\u063a\u0637 \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644'; },
+    card_month_net:function(n){ return '\u0635\u0627\u0641\u064a: '+(n>=0?'+':'')+fmtMoney(n)+' \u062c.\u0645 \u00b7 \u0627\u0636\u063a\u0637 \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644'; },
+    dash_account_balances:'\u0623\u0631\u0635\u062f\u0629 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', dash_account_balances_hint:'\u0645\u062d\u0648\u0651\u0644\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
+    dash_due_soon:'\u0627\u0644\u0645\u0648\u0627\u0639\u064a\u062f \u0627\u0644\u0642\u0631\u064a\u0628\u0629', dash_recent:'\u0622\u062e\u0631 \u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
+    btn_reconcile_all:'\u0645\u0637\u0627\u0628\u0642\u0629 \u0645\u0639 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0627\u0644\u0641\u0639\u0644\u064a\u0629', btn_new_txn:'+ \u0645\u0639\u0627\u0645\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
+    empty_no_accounts:'\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0639\u062f',
+    empty_no_txn:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u0623\u0648\u0644\u0649 \u0645\u0639\u0627\u0645\u0644\u0627\u062a\u0643',
+    empty_due_soon:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0648\u0627\u0639\u064a\u062f \u0642\u0631\u064a\u0628\u0629',
+    th_account:'\u0627\u0644\u062d\u0633\u0627\u0628', th_type:'\u0627\u0644\u0646\u0648\u0639', th_balance:'\u0627\u0644\u0631\u0635\u064a\u062f', th_date:'\u0627\u0644\u062a\u0627\u0631\u064a\u062e',
+    th_category:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a',
+    th_currency:'\u0627\u0644\u0639\u0645\u0644\u0629', th_opening:'\u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a', th_name:'\u0627\u0644\u0627\u0633\u0645',
+    page_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', page_accounts_sub:'\u0643\u0627\u0634\u060c \u0628\u0646\u0648\u0643 \u0648\u0645\u062d\u0627\u0641\u0638 \u0628\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u062a',
+    all_accounts:'\u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', btn_new_account:'+ \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f',
+    exchange_rates:'\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0635\u0631\u0641', exchange_rates_hint:'\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0644\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
+    th_rate_egp:'\u0627\u0644\u0633\u0639\u0631 \u0644\u0644\u062c\u0646\u064a\u0647', btn_edit:'\u062a\u0639\u062f\u064a\u0644', btn_reconcile:'\u0645\u0637\u0627\u0628\u0642\u0629', btn_delete:'\u062d\u0630\u0641',
+    empty_no_accounts_long:'\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u062d\u0633\u0627\u0628\u0627\u064b \u0644\u0628\u062f\u0621 \u0627\u0644\u062a\u062a\u0628\u0639',
+    archived_tag:'\u0645\u0624\u0631\u0634\u0641',
+    page_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a', btn_new_txn2:'+ \u0645\u0639\u0627\u0645\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
+    txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a...',
+    txn_all_months:'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631', txn_all_accounts:'\u0643\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', txn_all_categories:'\u0643\u0644 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632',
+    txn_filter_all:'\u0627\u0644\u0643\u0644', txn_filter_income:'\u062f\u062e\u0644', txn_filter_expense:'\u0645\u0635\u0627\u0631\u064a\u0641', txn_filter_transfer:'\u062a\u062d\u0648\u064a\u0644\u0627\u062a',
+    txn_count:function(n){ return n+' \u0645\u0639\u0627\u0645\u0644\u0629'; },
+    txn_page_of:function(c,tot,all){ return '\u0635\u0641\u062d\u0629 '+c+' \u0645\u0646 '+tot+' ('+all+')'; },
+    txn_prev:'\u2192 \u0627\u0644\u0633\u0627\u0628\u0642', txn_next:'\u0627\u0644\u062a\u0627\u0644\u064a \u2190',
+    empty_no_txn_filter:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u062a\u0637\u0627\u0628\u0642 \u0627\u0644\u0641\u0644\u062a\u0631', transfer_tag:'\u062a\u062d\u0648\u064a\u0644',
+    page_categories:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632', page_categories_sub:'\u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0627\u0644\u062f\u062e\u0644 \u0648\u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641 \u0645\u0639 \u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0641\u0631\u0639\u064a\u0629',
+    btn_new_category:'+ \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a \u062c\u062f\u064a\u062f\u0629',
+    expense_categories:'\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632 \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641', income_categories:'\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632 \u0627\u0644\u062f\u062e\u0644',
+    empty_no_categories:function(type){ return '\u0644\u0627 \u064a\u0648\u062c\u062f \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632 '+(type==='expense'?'\u0645\u0635\u0627\u0631\u064a\u0641':'\u062f\u062e\u0644')+' \u0628\u0639\u062f'; },
+    cannot_del_cat_children:'\u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062d\u0630\u0641: \u0641\u064a\u0647\u0627 \u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0641\u0631\u0639\u064a\u0629 \u2014 \u0627\u062d\u0630\u0641\u0647\u0627 \u0623\u0648\u0644\u0627\u064b',
+    cannot_del_cat_txns:'\u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062d\u0630\u0641: \u0639\u0644\u064a\u0647\u0627 \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0645\u0633\u062c\u0651\u0644\u0629',
+    cat_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', cat_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a',
+    page_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', page_commitments_sub:'\u0623\u0642\u0633\u0627\u0637 \u0648\u062c\u0645\u0639\u064a\u0627\u062a \u2014 \u062a\u062a\u0628\u0639 \u0645\u0627 \u062a\u0628\u0642\u0649',
+    btn_new_commitment:'+ \u0627\u0644\u062a\u0632\u0627\u0645 \u062c\u062f\u064a\u062f',
+    page_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', page_vehicles_sub:'\u0648\u0642\u0648\u062f\u060c \u0635\u064a\u0627\u0646\u0629\u060c \u062a\u063a\u064a\u064a\u0631 \u0632\u064a\u062a \u0648\u0627\u0644\u0639\u062f\u0627\u062f \u2014 \u0644\u0643\u0644 \u0645\u0631\u0643\u0628\u0629',
+    btn_new_vehicle:'+ \u0645\u0631\u0643\u0628\u0629 \u062c\u062f\u064a\u062f\u0629', fuel_price_label:'\u0633\u0639\u0631 \u0627\u0644\u0628\u0646\u0632\u064a\u0646 92 (\u062c\u0646\u064a\u0647 / \u0644\u062a\u0631)',
+    veh_tab_cards:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', veh_tab_logs:'\u0643\u0644 \u0627\u0644\u0633\u062c\u0644\u0627\u062a', veh_all_types:'\u0643\u0644 \u0627\u0644\u0623\u0646\u0648\u0627\u0639', btn_reset:'\u0625\u0639\u0627\u062f\u0629',
+    th_km:'\u0643\u0645', th_dist:'\u0627\u0644\u0645\u0633\u0627\u0641\u0629', th_kmpl:'\u0643\u0645/\u0644\u062a\u0631',
+    veh_view_log:'\u0639\u0631\u0636 / \u062a\u0633\u062c\u064a\u0644', veh_btn_edit:'\u062a\u0639\u062f\u064a\u0644', veh_btn_delete:'\u062d\u0630\u0641',
+    veh_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0645\u0631\u0643\u0628\u0629', veh_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u0631\u0643\u0628\u0629',
+    page_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', page_budgets_sub:'\u062d\u062f\u062f \u0633\u0642\u0641\u0627\u064b \u0634\u0647\u0631\u064a\u0627\u064b \u0644\u0643\u0644 \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a',
+    page_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631', page_reports_sub:'\u062a\u062d\u0644\u064a\u0644 \u0645\u0635\u0627\u0631\u064a\u0641\u0643 \u0648\u062f\u062e\u0644\u0643 \u0628\u0627\u0644\u062a\u0641\u0635\u064a\u0644',
+    rep_period_all:'\u0643\u0644 \u0627\u0644\u0648\u0642\u062a', rep_period_ytd:'\u0647\u0630\u0647 \u0627\u0644\u0633\u0646\u0629', rep_period_6m:'\u0622\u062e\u0631 6 \u0623\u0634\u0647\u0631',
+    rep_period_3m:'\u0622\u062e\u0631 3 \u0623\u0634\u0647\u0631', rep_period_1m:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_period_custom:'\u062a\u062e\u0635\u064a\u0635...',
+    rep_all_cats:'\u0643\u0644 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632', rep_chart_title:'\u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a \u0627\u0644\u0634\u0647\u0631\u064a',
+    rep_cat_col:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', rep_total_col:'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a', rep_monthly_breakdown:'\u0627\u0644\u062a\u0641\u0635\u064a\u0644 \u0627\u0644\u0634\u0647\u0631\u064a',
+    rep_month_th:'\u0627\u0644\u0634\u0647\u0631', rep_amount_th:'\u0627\u0644\u0645\u0628\u0644\u063a',
+    rep_empty_chart:'\u0627\u062e\u062a\u0631 \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a \u0648\u0641\u062a\u0631\u0629 \u0644\u0639\u0631\u0636 \u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a',
+    page_guide:'\ud83d\udcd6 \u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645', page_guide_sub:'\u0634\u0631\u062d \u062a\u0641\u0635\u064a\u0644\u064a \u0644\u0644\u0646\u0638\u0627\u0645 \u0648\u0631\u0628\u0637 Google Drive',
+    sync_not_connected:'Google Drive: \u063a\u064a\u0631 \u0645\u062a\u0635\u0644', sync_connected:'Google Drive: \u0645\u062a\u0632\u0627\u0645\u0646 \u2713',
+    sync_syncing:'Google Drive: \u062c\u0627\u0631\u064a \u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629\u2026', sync_error:'Google Drive: \u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629',
+    due_overdue:function(d){ return '\u0645\u062a\u0623\u062e\u0631 '+d+' \u064a\u0648\u0645'; },
+    due_days:function(d){ return d+' \u064a\u0648\u0645'; }
+  }
+};
+
+function t(key){
+  var args = Array.prototype.slice.call(arguments,1);
+  var dict = I18N[LANG] || I18N.ar;
+  var val = dict[key];
+  if(val===undefined) val = I18N.en[key];
+  if(val===undefined) return key;
+  return typeof val==='function' ? val.apply(null,args) : val;
+}
+
+function applyLang(lang){
+  LANG = lang;
+  try{ localStorage.setItem('fintrack_lang', lang); }catch(e){}
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang==='ar' ? 'rtl' : 'ltr';
+
+  // Brand
+  var bs = document.querySelector('.brand .sub');
+  if(bs) bs.textContent = t('brand_sub');
+
+  // Nav labels
+  var navMap = {dashboard:'nav_dashboard',transactions:'nav_transactions',
+    commitments:'nav_commitments',reports:'nav_reports',accounts:'nav_accounts',
+    vehicles:'nav_vehicles',budgets:'nav_budgets',categories:'nav_categories',guide:'nav_guide'};
+  document.querySelectorAll('.nav button[data-view]').forEach(function(btn){
+    var lbl = btn.querySelector('.lbl');
+    if(lbl && navMap[btn.dataset.view]) lbl.textContent = t(navMap[btn.dataset.view]);
+  });
+
+  // Sidebar buttons
+  var bl = document.getElementById('btn-lang-toggle'); if(bl) bl.textContent = t('btn_lang');
+  var bt = document.getElementById('btn-theme-toggle');
+  if(bt) bt.textContent = document.body.classList.contains('light') ? t('btn_theme_dark') : t('btn_theme_light');
+  var bd = document.getElementById('btn-connect-drive'); if(bd) bd.textContent = t('btn_connect_drive');
+  var bx = document.getElementById('btn-export'); if(bx) bx.textContent = t('btn_export');
+  var bi = document.getElementById('btn-import'); if(bi) bi.textContent = t('btn_import');
+
+  // Static page texts
+  [['#view-accounts h1','page_accounts'],['#view-accounts .today','page_accounts_sub'],
+   ['#view-transactions h1','page_transactions'],['#view-categories h1','page_categories'],
+   ['#view-categories .today','page_categories_sub'],['#view-commitments h1','page_commitments'],
+   ['#view-commitments .today','page_commitments_sub'],['#view-vehicles h1','page_vehicles'],
+   ['#view-vehicles .today','page_vehicles_sub'],['#view-budgets h1','page_budgets'],
+   ['#view-budgets .today','page_budgets_sub'],['#view-reports h1','page_reports'],
+   ['#view-reports .today','page_reports_sub'],['#view-guide h1','page_guide'],
+   ['#view-guide .today','page_guide_sub']
+  ].forEach(function(pair){
+    var el = document.querySelector(pair[0]); if(el) el.textContent = t(pair[1]);
+  });
+
+  // Topbar action buttons
+  var ab = document.querySelector('#view-accounts .topbar .btn'); if(ab) ab.textContent = t('btn_new_account');
+  var tb = document.querySelector('#view-transactions .topbar .btn'); if(tb) tb.textContent = t('btn_new_txn2');
+  var cb = document.querySelector('#view-categories .topbar .btn'); if(cb) cb.textContent = t('btn_new_category');
+  var ob = document.querySelector('#view-commitments .topbar .btn'); if(ob) ob.textContent = t('btn_new_commitment');
+  var vb = document.querySelector('#view-vehicles .topbar .btn'); if(vb) vb.textContent = t('btn_new_vehicle');
+
+  // Search placeholder
+  var ts = document.getElementById('txn-search'); if(ts) ts.placeholder = t('txn_search_placeholder');
+
+  // Reports period select
+  var rs = document.getElementById('rep-period-sel');
+  if(rs){
+    var pm = {all:'rep_period_all',ytd:'rep_period_ytd','6m':'rep_period_6m','3m':'rep_period_3m','1m':'rep_period_1m',custom:'rep_period_custom'};
+    rs.querySelectorAll('option').forEach(function(o){ if(pm[o.value]) o.textContent=t(pm[o.value]); });
+  }
+
+  // Footer
+  var fc = document.querySelector('.footer-copy');
+  if(fc) fc.innerHTML = lang==='ar'
+    ? '\u062d\u0642\u0648\u0642 \u0627\u0644\u0646\u0634\u0631 &copy; 2026 <strong>\u062d\u0633\u0627\u0645 \u0627\u0644\u0632\u0645\u0631</strong>. \u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0642\u0648\u0642 \u0645\u062d\u0641\u0648\u0638\u0629.'
+    : 'Copyright &copy; 2026 <strong>Hossam Al-Zomor</strong>. All Rights Reserved.';
+
+  renderAll();
+}
+
+document.getElementById('btn-lang-toggle').addEventListener('click', function(){
+  applyLang(LANG==='ar'?'en':'ar');
+});
+
+// Apply AFTER all functions defined
+applyLang(LANG);
+updateThemeButtonLabel();
 
 /* ---- GUIDE TAB SWITCHING ---- */
 document.getElementById('guide-tabs')?.addEventListener('click', e => {

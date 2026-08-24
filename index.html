@@ -2276,16 +2276,16 @@ function renderDashboard(){
     </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">${t('empty_due_soon')}</div>`;
 
   const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
-  document.getElementById('dash-recent-body').innerHTML = recent.map(t=>{
-    const acc = accountById(t.accountId);
-    const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
-    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
+  document.getElementById('dash-recent-body').innerHTML = recent.map(tx=>{
+    const acc = accountById(tx.accountId);
+    const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
+    const cls = tx.type==='income'||tx.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
-      <td class="td-date" data-label="">${fmtDate(t.date)}</td>
+      <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="Account">${acc?acc.name:'—'}</td>
-      <td data-label="Category">${t.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(t.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="Note">${t.note||''}</td>
-      <td class="amt ${cls}" data-label="Amount">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+      <td data-label="Category">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
+      <td class="td-note" dir="auto" data-label="Note">${tx.note||''}</td>
+      <td class="amt ${cls}" data-label="Amount">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_txn')}</td></tr>`;
 }
@@ -2412,19 +2412,19 @@ function renderTransactions(){
   if(txnPage >= pages) txnPage = pages - 1;
   const pageSlice = list.slice(txnPage*TXN_PG, (txnPage+1)*TXN_PG);
 
-  document.getElementById('txn-body').innerHTML = pageSlice.map(t=>{
-    const acc = accountById(t.accountId);
-    const sign = t.type==='income'||t.type==='transfer_in' ? '+' : '-';
-    const cls = t.type==='income'||t.type==='transfer_in' ? 'pos':'neg';
+  document.getElementById('txn-body').innerHTML = pageSlice.map(tx=>{
+    const acc = accountById(tx.accountId);
+    const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
+    const cls = tx.type==='income'||tx.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
-      <td class="td-date" data-label="">${fmtDate(t.date)}</td>
+      <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="Account">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
-      <td data-label="Category">${t.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(t.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="Note">${t.note||''}</td>
-      <td class="amt ${cls}" data-label="Amount">${sign}${t.currency} ${fmtMoney(t.amount)}</td>
+      <td data-label="Category">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
+      <td class="td-note" dir="auto" data-label="Note">${tx.note||''}</td>
+      <td class="amt ${cls}" data-label="Amount">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-txn="${t.id}">${t('btn_edit')}</button>
-        <button class="btn ghost sm" data-del-txn="${t.id}">${t('btn_delete')}</button>
+        <button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;

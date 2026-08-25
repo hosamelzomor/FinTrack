@@ -677,7 +677,81 @@
   html[lang="ar"] .topbar { flex-direction: row; }
   html[lang="ar"] .g-table-wrap thead th { text-align: right; }
 
+  /* Guide page: two full-content blocks per tab, one per language.
+     Only the block matching the current <html lang> is shown. */
+  [data-glang] { display: none !important; }
+  html[lang="ar"] [data-glang="ar"] { display: block !important; }
+  html[lang="en"] [data-glang="en"] { display: block !important; }
+  html[lang="en"] [data-glang="en"] .g-hero { display: flex !important; }
+  html[lang="ar"] [data-glang="ar"] .g-hero { display: flex !important; }
+  html[lang="en"] [data-glang="en"] .g-pills,
+  html[lang="ar"] [data-glang="ar"] .g-pills { display: flex !important; }
+  html[lang="en"] [data-glang="en"] .g-faq,
+  html[lang="ar"] [data-glang="ar"] .g-faq { display: flex !important; }
+
 </style>
+<script>
+  // Match guide-tab button labels (icon + text) to the current language.
+  var GUIDE_TAB_LABELS = {
+    en: {overview:'🧭 Overview', accounts:'🏦 Accounts', transactions:'💸 Transactions',
+      categories:'🏷️ Categories', commitments:'🔄 Commitments', vehicles:'🚗 Vehicles',
+      budgets:'🎯 Budgets', reports:'📈 Reports', drive:'☁️ Google Drive'},
+    ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', transactions:'💸 المعاملات',
+      categories:'🏷️ الكاتيجوريز', commitments:'🔄 الالتزامات', vehicles:'🚗 المركبات',
+      budgets:'🎯 الميزانيات', reports:'📈 التقارير', drive:'☁️ Google Drive'}
+  };
+
+  // Full bilingual guide content, keyed by tab. Each entry maps DOM ids to
+  // localized HTML for that language, applied in applyLang().
+  var GUIDE_CONTENT = {
+    overview: {
+      ar: {
+        'guide-ov-hero-sub': 'نظام إدارة مالية شخصي — بواسطة Hossam Al-Zomor',
+        'guide-ov-desc': 'FinTrack نظام مالي شخصي متكامل يعمل في المتصفح مباشرةً — بدون سيرفرات خارجية أو اشتراكات. بياناتك عندك أنت فقط.',
+        'guide-ov-pills': '<span class="g-pill">💾 يعمل offline بالكامل</span><span class="g-pill">🌐 مزامنة Google Drive اختيارية</span><span class="g-pill">🔒 بياناتك عندك أنت فقط</span><span class="g-pill">📱 يعمل على الموبايل والكمبيوتر</span>',
+        'guide-ov-rest': '<div class="g-section-title">هيكل النظام</div><div class="g-table-wrap"><table><thead><tr><th>القسم</th><th>وظيفته</th><th>الأهمية</th></tr></thead><tbody><tr><td><strong>الحسابات</strong></td><td>محافظك وحساباتك البنكية</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>المعاملات</strong></td><td>تسجيل دخل ومصروف وتحويل</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الكاتيجوريز</strong></td><td>تصنيف المصاريف والدخل</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الالتزامات</strong></td><td>أقساط وجمعيات</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>المركبات</strong></td><td>تتبع مصاريف العربية والسكوتر</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>الميزانيات</strong></td><td>تحديد حد شهري لكل كاتيجوري</td><td><span class="g-badge">اختياري</span></td></tr><tr><td><strong>التقارير</strong></td><td>تحليل مصاريفك بالتفصيل</td><td><span class="g-badge">اختياري</span></td></tr></tbody></table></div><div class="g-section-title">الترتيب الموصى به للبداية</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أضف حساباتك</div><div class="g-step-desc">روح صفحة <strong>Accounts</strong> واضغط <strong>Add Account</strong>. أضف كل وعاء مالي عندك مع الرصيد الافتتاحي الصحيح.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الكاتيجوريز</div><div class="g-step-desc">روح صفحة <strong>Categories</strong> وعدّل التصنيفات اللي تناسبك.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف مركباتك (لو عندك)</div><div class="g-step-desc">روح صفحة <strong>Vehicles</strong> وأضف عربيتك أو سكوترك مع بيانات الزيت والوقود.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">اضغط <strong>+ New Transaction</strong> من أي صفحة وسجّل مصاريفك ودخلك يومياً.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">اربط Google Drive (اختياري)</div><div class="g-step-desc">من الـ sidebar اضغط <strong>🔗 Connect Google Drive</strong> — هيخلي بياناتك محفوظة ومتزامنة تلقائياً.</div></div></div></div>'
+      },
+      en: {
+        'guide-ov-hero-sub': 'Personal finance management system — by Hossam Al-Zomor',
+        'guide-ov-desc': 'FinTrack is a complete personal finance system that runs right in your browser — no external servers, no subscriptions. Your data stays with you.',
+        'guide-ov-pills': '<span class="g-pill">💾 Works fully offline</span><span class="g-pill">🌐 Optional Google Drive sync</span><span class="g-pill">🔒 Your data stays with you</span><span class="g-pill">📱 Works on mobile and desktop</span>',
+        'guide-ov-rest': '<div class="g-section-title">System Layout</div><div class="g-table-wrap"><table><thead><tr><th>Section</th><th>What it does</th><th>Importance</th></tr></thead><tbody><tr><td><strong>Accounts</strong></td><td>Your wallets and bank accounts</td><td><span class="g-badge green">Essential</span></td></tr><tr><td><strong>Transactions</strong></td><td>Record income, expenses and transfers</td><td><span class="g-badge green">Essential</span></td></tr><tr><td><strong>Categories</strong></td><td>Classify your expenses and income</td><td><span class="g-badge green">Essential</span></td></tr><tr><td><strong>Commitments</strong></td><td>Installments and rotating savings (جمعية)</td><td><span class="g-badge blue">Important</span></td></tr><tr><td><strong>Vehicles</strong></td><td>Track car / scooter expenses</td><td><span class="g-badge blue">Important</span></td></tr><tr><td><strong>Budgets</strong></td><td>Set a monthly limit per category</td><td><span class="g-badge">Optional</span></td></tr><tr><td><strong>Reports</strong></td><td>Detailed breakdown of your spending</td><td><span class="g-badge">Optional</span></td></tr></tbody></table></div><div class="g-section-title">Recommended Order to Get Started</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Add your accounts</div><div class="g-step-desc">Go to the <strong>Accounts</strong> page and click <strong>Add Account</strong>. Add every financial "bucket" you have, with the correct opening balance.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Review the categories</div><div class="g-step-desc">Go to the <strong>Categories</strong> page and adjust the classifications to fit you.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Add your vehicles (if any)</div><div class="g-step-desc">Go to the <strong>Vehicles</strong> page and add your car or scooter, with oil and fuel details.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">Start logging transactions</div><div class="g-step-desc">Click <strong>+ New Transaction</strong> from any page and log your income/expenses daily.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">Connect Google Drive (optional)</div><div class="g-step-desc">From the sidebar, click <strong>🔗 Connect Google Drive</strong> — this keeps your data saved and synced automatically.</div></div></div></div>'
+      }
+    },
+    accounts: {
+      ar: {'guide-content-accounts': '<div class="g-section-title">🏦 الحسابات (Accounts)</div><p class="g-p">الحسابات هي الأساس اللي بتقوم عليه كل حاجة. كل معاملة لازم تكون مربوطة بحساب معين.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash — كاش</div><div class="g-card-body">الفلوس اللي معاك في إيدك أو في الدرج. مثال: "محفظتي"، "كاش البيت".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank — بنك</div><div class="g-card-body">حساباتك البنكية. تقدر تضيف أكثر من حساب لو عندك أكثر من بنك.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">محافظ إلكترونية زي فودافون كاش، اورنج موني، إنستاباي.</div></div></div><div class="g-section-title">إضافة حساب جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">افتح صفحة Accounts</div><div class="g-step-desc">من القائمة الجانبية اضغط على <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">اضغط Add Account</div><div class="g-step-desc">هيفتح نموذج — اكتب اسم الحساب وحدد نوعه وعملته.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">حدد الرصيد الافتتاحي</div><div class="g-step-desc">أدخل الرصيد الفعلي الموجود دلوقتي في الحساب. ده المبلغ اللي بيبدأ منه النظام الحساب.</div></div></div></div><div class="g-callout warning">⚠️ <strong>مهم جداً:</strong> الرصيد الافتتاحي لازم يكون دقيق. لو غلطت فيه، كل أرصدتك هتبقى غلط. استخدم زر <strong>Reconcile</strong> بعد كده عشان تصحح أي فرق.</div><div class="g-section-title">Reconcile — مطابقة الأرصدة</div><p class="g-p">لو لاحظت فرق بين رصيد النظام والرصيد الحقيقي، استخدم زر <strong>Reconcile</strong> بجانب كل حساب. النظام هيسألك عن الرصيد الحقيقي ويسجّل معاملة تعديل تلقائياً.</p><div class="g-section-title">أسعار الصرف</div><p class="g-p">لو عندك حسابات بعملات مختلفة (دولار، ريال..)، ضبط أسعار الصرف من نفس الصفحة. النظام بيحوّل كل حاجة لـ EGP في التقارير والداشبورد.</p>'},
+      en: {'guide-content-accounts': '<div class="g-section-title">🏦 Accounts</div><p class="g-p">Accounts are the foundation everything else builds on. Every transaction must be linked to a specific account.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash</div><div class="g-card-body">Money in your hand or at home. Example: "My wallet", "Cash at home".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank</div><div class="g-card-body">Your bank accounts. You can add more than one if you bank with several banks.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">E-wallets like Vodafone Cash, Orange Money, InstaPay.</div></div></div><div class="g-section-title">Adding a New Account</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open the Accounts page</div><div class="g-step-desc">From the sidebar, click <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Click Add Account</div><div class="g-step-desc">A form opens — enter the account name and choose its type and currency.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Set the opening balance</div><div class="g-step-desc">Enter the actual balance currently in the account. This is the starting point the system calculates from.</div></div></div></div><div class="g-callout warning">⚠️ <strong>Very important:</strong> The opening balance needs to be accurate. Get it wrong and every balance downstream will be wrong too. Use the <strong>Reconcile</strong> button afterward to fix any discrepancy.</div><div class="g-section-title">Reconcile — Matching Balances</div><p class="g-p">If you notice a difference between the system balance and the real one, use the <strong>Reconcile</strong> button next to that account. The system will ask for the real balance and automatically log an adjustment transaction.</p><div class="g-section-title">Exchange Rates</div><p class="g-p">If you have accounts in different currencies (USD, SAR...), set the exchange rates on the same page. The system converts everything to EGP in reports and the dashboard.</p>'}
+    },
+    transactions: {
+      ar: {'guide-content-transactions': '<div class="g-section-title">💸 المعاملات (Transactions)</div><p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span> مصروف</div><div class="g-card-body">أي حاجة بتصرفها: أكل، مواصلات، فواتير، إيجار. بتخصم من رصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span> دخل</div><div class="g-card-body">أي حاجة بتدخل: مرتب، فلوس من حد، أرباح. بتضيف لرصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span> تحويل</div><div class="g-card-body">نقل فلوس من حساب لحساب تاني عندك. مش مصروف ولا دخل — بس إعادة توزيع.</div></div></div><div class="g-section-title">حقول المعاملة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense / Income / Transfer</td><td>لازم يتحدد أول حاجة</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr><tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr><tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr><tr><td><strong>الكاتيجوري</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr><tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت كاتيجوري مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div><div class="g-section-title">البحث والفلترة</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>النوع:</strong> All / Income / Expense / Transfers<br><strong>الشهر:</strong> اعرض معاملات شهر معين<br><strong>الحساب:</strong> معاملات حساب معين<br><strong>الكاتيجوري:</strong> من القائمة المنسدلة الشجرية<br><strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ</div></div>'},
+      en: {'guide-content-transactions': '<div class="g-section-title">💸 Transactions</div><p class="g-p">Transactions are the backbone of the system. Every income, expense, or transfer between accounts needs to be logged here.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span></div><div class="g-card-body">Anything you spend: food, transport, bills, rent. Deducted from the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span></div><div class="g-card-body">Anything coming in: salary, money from someone, profits. Added to the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span></div><div class="g-card-body">Moving money between two of your own accounts. Not an expense or income — just redistribution.</div></div></div><div class="g-section-title">Transaction Fields</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th><th>Note</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense / Income / Transfer</td><td>Must be chosen first</td></tr><tr><td><strong>Date</strong></td><td>Date of the transaction</td><td>Doesn\'t have to be today</td></tr><tr><td><strong>Amount</strong></td><td>Value in the account\'s currency</td><td>—</td></tr><tr><td><strong>Account</strong></td><td>Which account it came from</td><td>—</td></tr><tr><td><strong>Category</strong></td><td>Classification of the expense or income</td><td>Not present for transfers</td></tr><tr><td><strong>Note</strong></td><td>Optional description</td><td>Helps when searching later</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>Vehicle integration:</strong> If you pick a vehicle-related category (fuel, maintenance, oil), extra fields appear for the vehicle and odometer — letting the system calculate fuel efficiency and track oil changes automatically.</div><div class="g-section-title">Search &amp; Filter</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>Type:</strong> All / Income / Expense / Transfers<br><strong>Month:</strong> Show a specific month\'s transactions<br><strong>Account:</strong> A specific account\'s transactions<br><strong>Category:</strong> From the tree dropdown<br><strong>Search:</strong> Search text in the Note or Amount</div></div>'}
+    },
+    categories: {
+      ar: {'guide-content-categories': '<div class="g-section-title">🏷️ الكاتيجوريز (Categories)</div><p class="g-p">الكاتيجوريز هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p><div class="g-section-title">هيكل الكاتيجوريز — مستويين</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category (كاتيجوري رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>📂 <strong>Sub-Category (تحت-كاتيجوري):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت كاتيجوري رئيسية<br><br><em>التقارير والميزانيات بتشتغل على المستويين — المجاميع بترتفع للـ parent تلقائياً.</em></div></div><div class="g-section-title">إضافة كاتيجوري جديدة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense (مصروف) أو Income (دخل)</td></tr><tr><td><strong>الاسم</strong></td><td>اسم التصنيف — تقدر تكتب عربي وإنجليزي مع بعض</td></tr><tr><td><strong>Parent</strong></td><td>لو عايزها sub-category اختار الـ parent. لو None هتبقى رئيسية.</td></tr></tbody></table></div><div class="g-section-title">تعديل وحذف</div><p class="g-p">اضغط <strong>Edit</strong> بجانب أي كاتيجوري رئيسية، أو أيقونة <strong>✎</strong> بجانب أي sub-category لتغيير الاسم أو الـ parent.</p><div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف كاتيجوري عليها معاملات مسجّلة.</div>'},
+      en: {'guide-content-categories': '<div class="g-section-title">🏷️ Categories</div><p class="g-p">Categories are how you classify your expenses and income. The system ships with many ready-made categories, and you can add, edit, or delete freely.</p><div class="g-section-title">Category Structure — Two Levels</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category:</strong> like "Home Expenses" or "Vehicle Expenses"<br><br>📂 <strong>Sub-Category:</strong> like "Fuel" or "Maintenance" nested under a parent category<br><br><em>Reports and budgets work on both levels — totals automatically roll up to the parent.</em></div></div><div class="g-section-title">Adding a New Category</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense or Income</td></tr><tr><td><strong>Name</strong></td><td>The category name — you can write it in Arabic and English together</td></tr><tr><td><strong>Parent</strong></td><td>Pick a parent if it should be a sub-category. Leave as None to make it a parent.</td></tr></tbody></table></div><div class="g-section-title">Editing &amp; Deleting</div><p class="g-p">Click <strong>Edit</strong> next to any parent category, or the <strong>✎</strong> icon next to any sub-category, to change its name or parent.</p><div class="g-callout warning">⚠️ You can\'t delete a parent category while it still has sub-categories — delete those first. You also can\'t delete a category that has transactions logged against it.</div>'}
+    },
+    commitments: {
+      ar: {'guide-content-commitments': '<div class="g-section-title">🔄 الالتزامات والأقساط (Commitments)</div><p class="g-p">الـ Commitments قسم مخصص لتتبع الأقساط والجمعيات — اللي ليها جدول دفعات منتظم.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment — قسط</div><div class="g-card-body">لو اشتريت حاجة بالأقساط (تابلت، موبايل، ديب فريزر..) النظام بيتابع كام قسط اتدفع وكام باقي.</div></div><div class="g-card"><div class="g-card-title">🤝 جمعية</div><div class="g-card-body">النظام بيتابع الدفعات الشهرية وتاريخ استلام الدور (Payout) تلقائياً.</div></div></div><div class="g-section-title">تسجيل التزام جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اضغط Add Commitment</div><div class="g-step-desc">من صفحة Commitments اضغط الزر واختار النوع (Installment أو جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">ادخل التفاصيل</div><div class="g-step-desc">المبلغ الكلي، قيمة القسط الشهري، تاريخ البداية، عدد الأقساط.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">سجّل الدفعات شهرياً</div><div class="g-step-desc">كل شهر اضغط <strong>Record Payment</strong>. الدفعة هتتسجل كمعاملة في حسابك تلقائياً.</div></div></div></div><div class="g-callout tip">📍 <strong>تنبيه تلقائي:</strong> الداشبورد بيوضح أي التزامات قسطها جاي خلال أقل من 10 أيام — عشان متنساش.</div>'},
+      en: {'guide-content-commitments': '<div class="g-section-title">🔄 Commitments</div><p class="g-p">Commitments is a dedicated section for tracking installments and rotating savings groups (جمعية) — anything with a regular payment schedule.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment</div><div class="g-card-body">If you bought something on installments (tablet, phone, freezer...) the system tracks how many payments are done and how many remain.</div></div><div class="g-card"><div class="g-card-title">🤝 Rotating Savings (جمعية)</div><div class="g-card-body">The system tracks the monthly payments and the payout date automatically.</div></div></div><div class="g-section-title">Logging a New Commitment</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Click Add Commitment</div><div class="g-step-desc">From the Commitments page, click the button and choose the type (Installment or جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Enter the details</div><div class="g-step-desc">Total amount, monthly installment value, start date, number of installments.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Log payments each month</div><div class="g-step-desc">Every month click <strong>Record Payment</strong>. The payment is logged as a transaction in your account automatically.</div></div></div></div><div class="g-callout tip">📍 <strong>Automatic reminder:</strong> The dashboard shows any commitments due within less than 10 days — so you don\'t forget.</div>'}
+    },
+    vehicles: {
+      ar: {'guide-content-vehicles': '<div class="g-section-title">🚗 المركبات (Vehicles)</div><p class="g-p">قسم المركبات بيتتبع كل تفاصيل مصاريف عربيتك أو سكوترك: الوقود، الصيانة، تغيير الزيت، المستندات، والقطع القابلة للاستهلاك.</p><div class="g-section-title">إضافة مركبة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>الاسم</strong></td><td>اسم تعرفه (العربية، السكوتر..)</td></tr><tr><td><strong>النوع</strong></td><td>🚗 Car أو 🛵 Scooter</td></tr><tr><td><strong>رقم اللوحة</strong></td><td>اختياري — للمرجع فقط</td></tr><tr><td><strong>فترة تغيير الزيت</strong></td><td>مثلاً 5000 كم — النظام يحذّرك لما تقرب</td></tr><tr><td><strong>مدى الخزان</strong></td><td>كم كيلو بالتانك الكامل</td></tr></tbody></table></div><div class="g-section-title">أنواع اللوجات</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel — وقود</div><div class="g-card-body">أدخل المبلغ والعداد — النظام يحسب كفاءة الوقود (km/L) تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance — صيانة</div><div class="g-card-body">أي صيانة عامة مرتبطة بقطعة محددة لتتبع عمرها.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change — زيت</div><div class="g-card-body">تغيير الزيت — بيصفّر عداد الـ Oil Interval تلقائياً.</div></div><div class="g-card"><div class="g-card-title">💰 Asset — مقتنيات</div><div class="g-card-body">أي شراء مرتبط بالمركبة (إكسسوار، إطارات، بطارية..).</div></div></div><div class="g-section-title">تعديل مركبة</div><p class="g-p">اضغط زر <strong>Edit</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p><div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة Transactions واخترت كاتيجوري "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>'},
+      en: {'guide-content-vehicles': '<div class="g-section-title">🚗 Vehicles</div><p class="g-p">The Vehicles section tracks every detail of your car or scooter expenses: fuel, maintenance, oil changes, documents, and consumable parts.</p><div class="g-section-title">Adding a Vehicle</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Name</strong></td><td>A name you\'ll recognize (the car, the scooter...)</td></tr><tr><td><strong>Type</strong></td><td>🚗 Car or 🛵 Scooter</td></tr><tr><td><strong>Plate Number</strong></td><td>Optional — reference only</td></tr><tr><td><strong>Oil Change Interval</strong></td><td>e.g. 5000 km — the system warns you as you approach it</td></tr><tr><td><strong>Tank Range</strong></td><td>How many km on a full tank</td></tr></tbody></table></div><div class="g-section-title">Log Types</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel</div><div class="g-card-body">Enter the amount and odometer — the system calculates fuel efficiency (km/L) automatically.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance</div><div class="g-card-body">Any general maintenance linked to a specific part, to track its lifespan.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change</div><div class="g-card-body">Logging an oil change automatically resets the Oil Interval counter.</div></div><div class="g-card"><div class="g-card-title">💰 Asset</div><div class="g-card-body">Any purchase linked to the vehicle (accessories, tires, battery...).</div></div></div><div class="g-section-title">Editing a Vehicle</div><p class="g-p">Click the <strong>Edit</strong> button next to a vehicle to change its name, type, oil interval, or tank range at any time.</p><div class="g-callout tip">🔗 <strong>Transaction integration:</strong> If you log a fuel expense from the Transactions page and pick the "Fuel" category while specifying the vehicle and odometer — the system adds a vehicle log automatically.</div>'}
+    },
+    budgets: {
+      ar: {'guide-content-budgets': '<div class="g-section-title">🎯 الميزانيات (Budgets)</div><p class="g-p">من صفحة Budgets تقدر تحدد حد شهري لكل كاتيجوري. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p><div class="g-section-title">كيف تستخدمها</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل كاتيجوري في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل كاتيجوري بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div></div>'},
+      en: {'guide-content-budgets': '<div class="g-section-title">🎯 Budgets</div><p class="g-p">From the Budgets page you can set a monthly limit per category. The system computes the average of the last 3 months and suggests a suitable number.</p><div class="g-section-title">How to Use It</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Type the limit into the field</div><div class="g-step-desc">Next to each category on the page there\'s an amount field — enter your desired monthly limit.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Or use "Use average"</div><div class="g-step-desc">The system automatically fills in the average of the last 3 months as a suggested limit.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Track the progress bar</div><div class="g-step-desc">Each category shows a bar indicating how much of the limit has been spent. 🟢 On track | 🔴 Over budget.</div></div></div></div>'}
+    },
+    reports: {
+      ar: {'guide-content-reports': '<div class="g-section-title">📈 التقارير (Reports)</div><p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والكاتيجوري.</p><div class="g-section-title">الفلاتر المتاحة</div><div class="g-table-wrap"><table><thead><tr><th>الفلتر</th><th>الخيارات</th></tr></thead><tbody><tr><td><strong>الفترة</strong></td><td>كل الوقت / هذه السنة / آخر 6 أشهر / آخر 3 أشهر / هذا الشهر / تخصيص</td></tr><tr><td><strong>الكاتيجوري</strong></td><td>قائمة شجرية متعددة الاختيار — parent أو sub-categories</td></tr></tbody></table></div><div class="g-section-title">ما تشوفه في التقارير</div><div class="g-card"><div class="g-card-body">📊 <strong>الرسم البياني الشهري:</strong> Bar/Line chart للمصاريف شهر بشهر<br><br>🗂️ <strong>جدول الكاتيجوريز:</strong> مجموع كل كاتيجوري للشهر الحالي + للفترة الكلية<br><br>📅 <strong>التفصيل الشهري:</strong> مجموع المصاريف شهر بشهر بترتيب تنازلي</div></div><div class="g-section-title">نصائح للتقارير</div><div class="g-card"><div class="g-card-body">📊 فلتر بكاتيجوري واحدة لمعرفة مصاريفها بالضبط<br>📅 اختار آخر 3 أشهر عشان تشوف ترند مصاريفك<br>🎯 قارن التقارير مع الميزانيات للتحكم الكامل في الصرف</div></div>'},
+      en: {'guide-content-reports': '<div class="g-section-title">📈 Reports</div><p class="g-p">The Reports page gives you an analytical view of your spending and income, with filtering by period and category.</p><div class="g-section-title">Available Filters</div><div class="g-table-wrap"><table><thead><tr><th>Filter</th><th>Options</th></tr></thead><tbody><tr><td><strong>Period</strong></td><td>All time / This year / Last 6 months / Last 3 months / This month / Custom</td></tr><tr><td><strong>Category</strong></td><td>Multi-select tree list — parent or sub-categories</td></tr></tbody></table></div><div class="g-section-title">What You See in Reports</div><div class="g-card"><div class="g-card-body">📊 <strong>Monthly chart:</strong> Bar/line chart of spending month by month<br><br>🗂️ <strong>Category table:</strong> Total per category for the current month + the full period<br><br>📅 <strong>Monthly breakdown:</strong> Total spending month by month, in descending order</div></div><div class="g-section-title">Tips for Reports</div><div class="g-card"><div class="g-card-body">📊 Filter by a single category to see its spending precisely<br>📅 Pick the last 3 months to see your spending trend<br>🎯 Compare reports against budgets for full control over spending</div></div>'}
+    },
+    drive: {
+      ar: {'guide-content-drive': '<div class="g-section-title">☁️ لماذا ربط Google Drive؟</div><p class="g-p">FinTrack بيحفظ بياناتك في <strong>localStorage</strong> في المتصفح — ده معناه إنها محلية على جهازك بس. بدون Drive:</p><div class="g-cards" style="margin-bottom:16px"><div class="g-card"><div class="g-card-title" style="color:var(--negative)">✗ مرتبطة بمتصفح واحد</div><div class="g-card-body">لو فتحت الملف في متصفح تاني أو جهاز تاني، مش هتلاقي بياناتك.</div></div><div class="g-card"><div class="g-card-title" style="color:var(--negative)">✗ ممكن تتمسح</div><div class="g-card-body">لو مسحت بيانات المتصفح أو عملت Format، البيانات راحت.</div></div></div><div class="g-callout tip">✓ <strong>ربط Google Drive</strong> بيحل المشكلتين: مزامنة تلقائية + متعدد الأجهزة + نسخة احتياطية دايماً. النظام بيحفظ ملف واحد فقط: <code>fintrack-data.json</code> — مش بيشوف أي ملفات تانية ليك.</div><div class="g-section-title">⚠️ شرط مهم قبل البدء</div><div class="g-callout warning">الملف لازم يكون مرفوع على <strong>HTTPS</strong> وليس مفتوح كملف محلي (file://) — لأن Google OAuth مش بيشتغل مع بروتوكول file://. الحل: ارفعه على GitHub Pages، Netlify، Vercel، أو أي استضافة مجانية.</div><div class="g-section-title">المرحلة الأولى: إنشاء Google Cloud Project</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">افتح Google Cloud Console</div><div class="g-step-desc">روح على <code>console.cloud.google.com</code> وسجّل دخولك بحساب Google العادي بتاعك.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أنشئ مشروع جديد</div><div class="g-step-desc">من القائمة العلوية اضغط <strong>Select a project ← New Project</strong>. اكتب اسم مثل <em>FinTrack</em> واضغط Create.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">فعّل Google Drive API</div><div class="g-step-desc">من القائمة الجانبية: <strong>APIs &amp; Services ← Library</strong>. ابحث عن <em>Google Drive API</em> واضغط <strong>Enable</strong>.</div></div></div></div><div class="g-section-title">المرحلة الثانية: إنشاء OAuth Client ID</div><div class="g-steps"><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">روح لـ OAuth Consent Screen</div><div class="g-step-desc">من <strong>APIs &amp; Services ← OAuth consent screen</strong>. اختار <strong>External</strong> ثم اضغط Create.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">ادخل بيانات التطبيق</div><div class="g-step-desc"><strong>App name:</strong> FinTrack &nbsp;|&nbsp; <strong>User support email:</strong> إيميلك &nbsp;|&nbsp; <strong>Developer contact:</strong> إيميلك — ثم Save and Continue.</div></div></div><div class="g-step"><div class="g-step-n">6</div><div class="g-step-b"><div class="g-step-title">Scopes — اتركها فاضية</div><div class="g-step-desc">في صفحة Scopes اضغط <strong>Save and Continue</strong> بدون ما تضيف حاجة.</div></div></div><div class="g-step"><div class="g-step-n">7</div><div class="g-step-b"><div class="g-step-title">Test Users — أضف إيميلك</div><div class="g-step-desc">اضغط <strong>Add Users</strong> وأضف إيميل حساب Google اللي هتستخدمه مع النظام.</div></div></div><div class="g-step"><div class="g-step-n">8</div><div class="g-step-b"><div class="g-step-title">إنشاء Credentials</div><div class="g-step-desc">من <strong>APIs &amp; Services ← Credentials</strong> اضغط <strong>Create Credentials ← OAuth Client ID</strong>.</div></div></div><div class="g-step"><div class="g-step-n">9</div><div class="g-step-b"><div class="g-step-title">اختار Web Application</div><div class="g-step-desc"><strong>Application type:</strong> Web application &nbsp;|&nbsp; <strong>Authorized JavaScript origins:</strong> رابط الموقع اللي رافع عليه الملف (مثال: <code>https://yourusername.github.io</code>)</div></div></div><div class="g-step"><div class="g-step-n">10</div><div class="g-step-b"><div class="g-step-title">انسخ الـ Client ID</div><div class="g-step-desc">بعد الإنشاء هيظهر لك <strong>Client ID</strong> — انسخه. شكله: <code>123456789-xxxxx.apps.googleusercontent.com</code></div></div></div></div><div class="g-section-title">المرحلة الثالثة: ربط النظام</div><div class="g-steps"><div class="g-step"><div class="g-step-n">11</div><div class="g-step-b"><div class="g-step-title">في FinTrack اضغط 🔗 Connect Google Drive</div><div class="g-step-desc">موجود في الـ sidebar تحت في قسم "الأدوات".</div></div></div><div class="g-step"><div class="g-step-n">12</div><div class="g-step-b"><div class="g-step-title">الصق الـ Client ID</div><div class="g-step-desc">في النافذة اللي هتظهر، الصق الـ Client ID واضغط <strong>Save &amp; Connect</strong>.</div></div></div><div class="g-step"><div class="g-step-n">13</div><div class="g-step-b"><div class="g-step-title">وافق على الصلاحيات</div><div class="g-step-desc">هيفتح نافذة Google تطلب صلاحية واحدة فقط: رؤية وتعديل الملفات اللي أنشأها التطبيق بس. اضغط Allow.</div></div></div><div class="g-step"><div class="g-step-n">14</div><div class="g-step-b"><div class="g-step-title">اكتمل الربط ✓</div><div class="g-step-desc">هتشوف في الـ sidebar مؤشر أخضر كتبه <strong>Google Drive: synced</strong>. النظام دلوقتي بيحفظ كل تغيير تلقائياً.</div></div></div></div><div class="g-section-title">مؤشرات حالة الـ Sync</div><div class="g-card"><div class="g-card-body">🟢 <strong>Google Drive: synced</strong> — كل حاجة متزامنة<br>🟡 <strong>Google Drive: syncing…</strong> — بيرفع دلوقتي<br>🔴 <strong>Google Drive: sync error</strong> — في مشكلة (تحقق من الانترنت)<br>⚪ <strong>Google Drive: not connected</strong> — مش مربوط بـ Drive</div></div><div class="g-section-title">أسئلة شائعة</div><div class="g-faq"><div class="g-faq-item"><div class="g-faq-q">هل Google بتقدر تشوف بياناتي؟</div><div class="g-faq-a">النظام بيطلب صلاحية <code>drive.file</code> فقط — بيشوف ويعدّل الملفات اللي أنشأها هو بس، مش كل Drive بتاعك.</div></div><div class="g-faq-item"><div class="g-faq-q">إيه اللي بيحصل لو انقطع الانترنت؟</div><div class="g-faq-a">النظام بيكمل شغلك عادي. بياناتك بتتحفظ محلياً. لما يرجع الانترنت، Sync بيتم تلقائياً.</div></div><div class="g-faq-item"><div class="g-faq-q">النافذة مش بتظهر لما أضغط Connect</div><div class="g-faq-a">المتصفح غالباً بيبلوك الـ popup. ابحث عن أيقونة في الـ address bar بتقولك إن popup اتبلك، واضغط عليها وودّن FinTrack يفتح popups.</div></div><div class="g-faq-item"><div class="g-faq-q">ظهرت رسالة "This app is blocked"</div><div class="g-faq-a">ده بيحصل لو ما أضفتش إيميلك في Test Users في Google Cloud Console. روح OAuth consent screen وأضف إيميلك.</div></div></div>'},
+      en: {'guide-content-drive': '<div class="g-section-title">☁️ Why Connect Google Drive?</div><p class="g-p">FinTrack saves your data in the browser\'s <strong>localStorage</strong> — meaning it\'s local to your device only. Without Drive:</p><div class="g-cards" style="margin-bottom:16px"><div class="g-card"><div class="g-card-title" style="color:var(--negative)">✗ Tied to one browser</div><div class="g-card-body">If you open the file in a different browser or device, you won\'t find your data.</div></div><div class="g-card"><div class="g-card-title" style="color:var(--negative)">✗ Can be wiped</div><div class="g-card-body">If you clear browser data or reformat, the data is gone.</div></div></div><div class="g-callout tip">✓ <strong>Connecting Google Drive</strong> solves both problems: automatic sync + multi-device + an always-on backup. The system only ever touches one file: <code>fintrack-data.json</code> — it never sees any other files of yours.</div><div class="g-section-title">⚠️ Important Requirement Before You Start</div><div class="g-callout warning">The file must be hosted over <strong>HTTPS</strong>, not opened as a local file (file://) — because Google OAuth doesn\'t work with the file:// protocol. The fix: host it on GitHub Pages, Netlify, Vercel, or any free hosting.</div><div class="g-section-title">Stage 1: Create a Google Cloud Project</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open Google Cloud Console</div><div class="g-step-desc">Go to <code>console.cloud.google.com</code> and sign in with your regular Google account.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Create a new project</div><div class="g-step-desc">From the top menu, click <strong>Select a project ← New Project</strong>. Type a name like <em>FinTrack</em> and click Create.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Enable the Google Drive API</div><div class="g-step-desc">From the sidebar: <strong>APIs &amp; Services ← Library</strong>. Search for <em>Google Drive API</em> and click <strong>Enable</strong>.</div></div></div></div><div class="g-section-title">Stage 2: Create an OAuth Client ID</div><div class="g-steps"><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">Go to the OAuth Consent Screen</div><div class="g-step-desc">From <strong>APIs &amp; Services ← OAuth consent screen</strong>. Choose <strong>External</strong> then click Create.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">Enter the app details</div><div class="g-step-desc"><strong>App name:</strong> FinTrack &nbsp;|&nbsp; <strong>User support email:</strong> your email &nbsp;|&nbsp; <strong>Developer contact:</strong> your email — then Save and Continue.</div></div></div><div class="g-step"><div class="g-step-n">6</div><div class="g-step-b"><div class="g-step-title">Scopes — leave it empty</div><div class="g-step-desc">On the Scopes page click <strong>Save and Continue</strong> without adding anything.</div></div></div><div class="g-step"><div class="g-step-n">7</div><div class="g-step-b"><div class="g-step-title">Test Users — add your email</div><div class="g-step-desc">Click <strong>Add Users</strong> and add the email of the Google account you\'ll use with the system.</div></div></div><div class="g-step"><div class="g-step-n">8</div><div class="g-step-b"><div class="g-step-title">Create Credentials</div><div class="g-step-desc">From <strong>APIs &amp; Services ← Credentials</strong> click <strong>Create Credentials ← OAuth Client ID</strong>.</div></div></div><div class="g-step"><div class="g-step-n">9</div><div class="g-step-b"><div class="g-step-title">Choose Web Application</div><div class="g-step-desc"><strong>Application type:</strong> Web application &nbsp;|&nbsp; <strong>Authorized JavaScript origins:</strong> the URL where the file is hosted (example: <code>https://yourusername.github.io</code>)</div></div></div><div class="g-step"><div class="g-step-n">10</div><div class="g-step-b"><div class="g-step-title">Copy the Client ID</div><div class="g-step-desc">After creation you\'ll see a <strong>Client ID</strong> — copy it. It looks like: <code>123456789-xxxxx.apps.googleusercontent.com</code></div></div></div></div><div class="g-section-title">Stage 3: Connect the System</div><div class="g-steps"><div class="g-step"><div class="g-step-n">11</div><div class="g-step-b"><div class="g-step-title">In FinTrack, click 🔗 Connect Google Drive</div><div class="g-step-desc">Found in the sidebar under the "Tools" section.</div></div></div><div class="g-step"><div class="g-step-n">12</div><div class="g-step-b"><div class="g-step-title">Paste the Client ID</div><div class="g-step-desc">In the dialog that appears, paste the Client ID and click <strong>Save &amp; Connect</strong>.</div></div></div><div class="g-step"><div class="g-step-n">13</div><div class="g-step-b"><div class="g-step-title">Approve the permissions</div><div class="g-step-desc">A Google window opens requesting a single permission: view and edit only the files this app created. Click Allow.</div></div></div><div class="g-step"><div class="g-step-n">14</div><div class="g-step-b"><div class="g-step-title">Connection complete ✓</div><div class="g-step-desc">You\'ll see a green indicator in the sidebar reading <strong>Google Drive: synced</strong>. The system now saves every change automatically.</div></div></div></div><div class="g-section-title">Sync Status Indicators</div><div class="g-card"><div class="g-card-body">🟢 <strong>Google Drive: synced</strong> — everything is in sync<br>🟡 <strong>Google Drive: syncing…</strong> — uploading right now<br>🔴 <strong>Google Drive: sync error</strong> — something went wrong (check your internet)<br>⚪ <strong>Google Drive: not connected</strong> — not linked to Drive</div></div><div class="g-section-title">FAQ</div><div class="g-faq"><div class="g-faq-item"><div class="g-faq-q">Can Google see my data?</div><div class="g-faq-a">The system only requests the <code>drive.file</code> permission — it can only see and edit files it created itself, not your whole Drive.</div></div><div class="g-faq-item"><div class="g-faq-q">What happens if the internet drops?</div><div class="g-faq-a">The system keeps working normally. Your data is saved locally. When the internet comes back, sync happens automatically.</div></div><div class="g-faq-item"><div class="g-faq-q">The window doesn\'t appear when I click Connect</div><div class="g-faq-a">Your browser is probably blocking the popup. Look for an icon in the address bar saying a popup was blocked, click it, and allow FinTrack to open popups.</div></div><div class="g-faq-item"><div class="g-faq-q">I got a "This app is blocked" message</div><div class="g-faq-a">This happens if you didn\'t add your email under Test Users in Google Cloud Console. Go to the OAuth consent screen and add your email.</div></div></div>'}
+    }
+  };
+</script>
 </head>
 <body>
 <script>
@@ -738,7 +812,7 @@
         <div>
           <div class="section-title">Account Balances<span class="hint">converted to EGP</span></div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Account</th><th>Type</th><th class="amt">Balance</th></tr></thead>
+            <thead><tr><th id="th-dash-acc">Account</th><th id="th-dash-type">Type</th><th class="amt" id="th-dash-bal">Balance</th></tr></thead>
             <tbody id="dash-accounts-body"></tbody>
           </table></div>
         </div>
@@ -750,7 +824,7 @@
 
       <div class="section-title">Recent Transactions</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+        <thead><tr><th id="th-dash-date">Date</th><th id="th-dash-racc">Account</th><th id="th-dash-cat">Category</th><th id="th-dash-note">Note</th><th class="amt" id="th-dash-amt">Amount</th></tr></thead>
         <tbody id="dash-recent-body"></tbody>
       </table></div>
     </section>
@@ -764,7 +838,7 @@
       <div class="table-wrap">
         <div class="head-row"><h3>All Accounts</h3></div>
         <table>
-          <thead><tr><th>Name</th><th>Type</th><th>Currency</th><th class="amt">Opening</th><th class="amt">Current Balance</th><th></th></tr></thead>
+          <thead><tr><th id="th-acc-name">Name</th><th id="th-acc-type">Type</th><th id="th-acc-cur">Currency</th><th class="amt" id="th-acc-opening">Opening</th><th class="amt" id="th-acc-curbal">Current Balance</th><th></th></tr></thead>
           <tbody id="accounts-body"></tbody>
         </table>
       </div>
@@ -772,7 +846,7 @@
       <div class="section-title">Exchange Rates<span class="hint">used to convert balances to EGP</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Currency</th><th class="amt">Rate to EGP</th><th></th></tr></thead>
+          <thead><tr><th id="th-fx-cur">Currency</th><th class="amt" id="th-fx-rate">Rate to EGP</th><th></th></tr></thead>
           <tbody id="fx-body"></tbody>
         </table>
       </div>
@@ -812,7 +886,7 @@
       <div class="pill-row" id="txn-filters"></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Account</th><th>Category</th><th>Note</th><th class="amt">Amount</th><th></th></tr></thead>
+          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th></th></tr></thead>
           <tbody id="txn-body"></tbody>
         </table>
       </div>
@@ -905,7 +979,7 @@
 
         <div class="table-wrap" style="margin-bottom:18px;">
           <table>
-            <thead><tr><th>Date</th><th>Vehicle</th><th>Type</th><th class="amt">Amount</th><th class="amt">KM</th><th class="amt">Dist.</th><th class="amt">km/L</th><th>Note</th><th></th></tr></thead>
+            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
             <tbody id="vlogs-table-body"></tbody>
           </table>
         </div>
@@ -986,7 +1060,7 @@
         </div>
         <div class="table-wrap" style="overflow:auto;max-height:310px;">
           <table style="min-width:unset;">
-            <thead><tr><th>الكاتيجوري</th><th class="amt">الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
+            <thead><tr><th id="th-rep-cat">الكاتيجوري</th><th class="amt" id="th-rep-thismonth">الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
             <tbody id="reports-tree-body"></tbody>
           </table>
         </div>
@@ -996,7 +1070,7 @@
       <div class="section-title" style="margin-top:4px;">التفصيل الشهري</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
+          <thead><tr><th id="th-rep-month">الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
           <tbody id="reports-monthly-body"></tbody>
         </table>
       </div>
@@ -1030,11 +1104,11 @@
               <img src="data:image/png;base64,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" alt="Hossam Al-Zomor">
               <div>
                 <div class="g-hero-title">FinTrack</div>
-                <div class="g-hero-sub">نظام إدارة مالية شخصي — بواسطة Hossam Al-Zomor</div>
+                <div class="g-hero-sub" id="guide-ov-hero-sub">نظام إدارة مالية شخصي — بواسطة Hossam Al-Zomor</div>
               </div>
             </div>
-            <p class="g-desc">FinTrack نظام مالي شخصي متكامل يعمل في المتصفح مباشرةً — بدون سيرفرات خارجية أو اشتراكات. بياناتك عندك أنت فقط.</p>
-            <div class="g-pills">
+            <p class="g-desc" id="guide-ov-desc">FinTrack نظام مالي شخصي متكامل يعمل في المتصفح مباشرةً — بدون سيرفرات خارجية أو اشتراكات. بياناتك عندك أنت فقط.</p>
+            <div class="g-pills" id="guide-ov-pills">
               <span class="g-pill">💾 يعمل offline بالكامل</span>
               <span class="g-pill">🌐 مزامنة Google Drive اختيارية</span>
               <span class="g-pill">🔒 بياناتك عندك أنت فقط</span>
@@ -1042,6 +1116,7 @@
             </div>
           </div>
 
+          <div id="guide-ov-rest">
           <div class="g-section-title">هيكل النظام</div>
           <div class="g-table-wrap">
             <table><thead><tr><th>القسم</th><th>وظيفته</th><th>الأهمية</th></tr></thead>
@@ -1064,10 +1139,12 @@
             <div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">اضغط <strong>+ New Transaction</strong> من أي صفحة وسجّل مصاريفك ودخلك يومياً.</div></div></div>
             <div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">اربط Google Drive (اختياري)</div><div class="g-step-desc">من الـ sidebar اضغط <strong>🔗 Connect Google Drive</strong> — هيخلي بياناتك محفوظة ومتزامنة تلقائياً.</div></div></div>
           </div>
+          </div>
         </div>
 
         <!-- ===== TAB: ACCOUNTS ===== -->
         <div class="guide-panel" id="guide-tab-accounts">
+          <div id="guide-content-accounts">
           <div class="g-section-title">🏦 الحسابات (Accounts)</div>
           <p class="g-p">الحسابات هي الأساس اللي بتقوم عليه كل حاجة. كل معاملة لازم تكون مربوطة بحساب معين.</p>
 
@@ -1091,10 +1168,12 @@
 
           <div class="g-section-title">أسعار الصرف</div>
           <p class="g-p">لو عندك حسابات بعملات مختلفة (دولار، ريال..)، ضبط أسعار الصرف من نفس الصفحة. النظام بيحوّل كل حاجة لـ EGP في التقارير والداشبورد.</p>
+          </div>
         </div>
 
         <!-- ===== TAB: TRANSACTIONS ===== -->
         <div class="guide-panel" id="guide-tab-transactions">
+          <div id="guide-content-transactions">
           <div class="g-section-title">💸 المعاملات (Transactions)</div>
           <p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p>
 
@@ -1127,10 +1206,12 @@
               <strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ
             </div>
           </div>
+          </div>
         </div>
 
         <!-- ===== TAB: CATEGORIES ===== -->
         <div class="guide-panel" id="guide-tab-categories">
+          <div id="guide-content-categories">
           <div class="g-section-title">🏷️ الكاتيجوريز (Categories)</div>
           <p class="g-p">الكاتيجوريز هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p>
 
@@ -1154,10 +1235,12 @@
           <div class="g-section-title">تعديل وحذف</div>
           <p class="g-p">اضغط <strong>Edit</strong> بجانب أي كاتيجوري رئيسية، أو أيقونة <strong>✎</strong> بجانب أي sub-category لتغيير الاسم أو الـ parent.</p>
           <div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف كاتيجوري عليها معاملات مسجّلة.</div>
+          </div>
         </div>
 
         <!-- ===== TAB: COMMITMENTS ===== -->
         <div class="guide-panel" id="guide-tab-commitments">
+          <div id="guide-content-commitments">
           <div class="g-section-title">🔄 الالتزامات والأقساط (Commitments)</div>
           <p class="g-p">الـ Commitments قسم مخصص لتتبع الأقساط والجمعيات — اللي ليها جدول دفعات منتظم.</p>
 
@@ -1173,10 +1256,12 @@
             <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">سجّل الدفعات شهرياً</div><div class="g-step-desc">كل شهر اضغط <strong>Record Payment</strong>. الدفعة هتتسجل كمعاملة في حسابك تلقائياً.</div></div></div>
           </div>
           <div class="g-callout tip">📍 <strong>تنبيه تلقائي:</strong> الداشبورد بيوضح أي التزامات قسطها جاي خلال أقل من 10 أيام — عشان متنساش.</div>
+          </div>
         </div>
 
         <!-- ===== TAB: VEHICLES ===== -->
         <div class="guide-panel" id="guide-tab-vehicles">
+          <div id="guide-content-vehicles">
           <div class="g-section-title">🚗 المركبات (Vehicles)</div>
           <p class="g-p">قسم المركبات بيتتبع كل تفاصيل مصاريف عربيتك أو سكوترك: الوقود، الصيانة، تغيير الزيت، المستندات، والقطع القابلة للاستهلاك.</p>
 
@@ -1202,10 +1287,12 @@
           <p class="g-p">اضغط زر <strong>Edit</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p>
 
           <div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة Transactions واخترت كاتيجوري "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>
+          </div>
         </div>
 
         <!-- ===== TAB: BUDGETS ===== -->
         <div class="guide-panel" id="guide-tab-budgets">
+          <div id="guide-content-budgets">
           <div class="g-section-title">🎯 الميزانيات (Budgets)</div>
           <p class="g-p">من صفحة Budgets تقدر تحدد حد شهري لكل كاتيجوري. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p>
 
@@ -1215,10 +1302,12 @@
             <div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div>
             <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل كاتيجوري بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div>
           </div>
+          </div>
         </div>
 
         <!-- ===== TAB: REPORTS ===== -->
         <div class="guide-panel" id="guide-tab-reports">
+          <div id="guide-content-reports">
           <div class="g-section-title">📈 التقارير (Reports)</div>
           <p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والكاتيجوري.</p>
 
@@ -1246,10 +1335,12 @@
               🎯 قارن التقارير مع الميزانيات للتحكم الكامل في الصرف
             </div>
           </div>
+          </div>
         </div>
 
         <!-- ===== TAB: GOOGLE DRIVE ===== -->
         <div class="guide-panel" id="guide-tab-drive">
+          <div id="guide-content-drive">
           <div class="g-section-title">☁️ لماذا ربط Google Drive؟</div>
           <p class="g-p">FinTrack بيحفظ بياناتك في <strong>localStorage</strong> في المتصفح — ده معناه إنها محلية على جهازك بس. بدون Drive:</p>
 
@@ -1305,6 +1396,7 @@
             <div class="g-faq-item"><div class="g-faq-q">إيه اللي بيحصل لو انقطع الانترنت؟</div><div class="g-faq-a">النظام بيكمل شغلك عادي. بياناتك بتتحفظ محلياً. لما يرجع الانترنت، Sync بيتم تلقائياً.</div></div>
             <div class="g-faq-item"><div class="g-faq-q">النافذة مش بتظهر لما أضغط Connect</div><div class="g-faq-a">المتصفح غالباً بيبلوك الـ popup. ابحث عن أيقونة في الـ address bar بتقولك إن popup اتبلك، واضغط عليها وودّن FinTrack يفتح popups.</div></div>
             <div class="g-faq-item"><div class="g-faq-q">ظهرت رسالة "This app is blocked"</div><div class="g-faq-a">ده بيحصل لو ما أضفتش إيميلك في Test Users في Google Cloud Console. روح OAuth consent screen وأضف إيميلك.</div></div>
+          </div>
           </div>
         </div>
 
@@ -2282,10 +2374,10 @@ function renderDashboard(){
     const cls = tx.type==='income'||tx.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
-      <td data-label="Account">${acc?acc.name:'—'}</td>
-      <td data-label="Category">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="Note">${tx.note||''}</td>
-      <td class="amt ${cls}" data-label="Amount">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
+      <td data-label="${t('th_account')}">${acc?acc.name:'—'}</td>
+      <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
+      <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_txn')}</td></tr>`;
 }
@@ -2296,10 +2388,10 @@ function renderAccounts(){
     const bal = accountBalance(a);
     return `<tr>
       <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
-      <td data-label="Type"><span class="tag">${a.type}</span></td>
-      <td data-label="Currency">${a.currency}</td>
-      <td class="amt" data-label="Opening">${fmtMoney(a.openingBalance)}</td>
-      <td class="amt ${bal<0?'neg':''}" data-label="Balance">${fmtMoney(bal)}</td>
+      <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
+      <td data-label="${t('th_currency')}">${a.currency}</td>
+      <td class="amt" data-label="${t('th_opening')}">${fmtMoney(a.openingBalance)}</td>
+      <td class="amt ${bal<0?'neg':''}" data-label="${t('th_current_balance')}">${fmtMoney(bal)}</td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-reconcile-account="${a.id}">${t('btn_reconcile')}</button>
@@ -2311,7 +2403,7 @@ function renderAccounts(){
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
       <td class="td-date" data-label="">${r.currency}${r.currency==='EGP' ? ' <span class="tag">base</span>' : ''}</td>
-      <td class="amt" data-label="Rate to EGP">
+      <td class="amt" data-label="${t('th_rate_egp')}">
         <input type="number" step="0.0001" value="${r.rateToEGP}" data-fx="${r.currency}"
           style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
       </td>
@@ -2418,10 +2510,10 @@ function renderTransactions(){
     const cls = tx.type==='income'||tx.type==='transfer_in' ? 'pos':'neg';
     return `<tr>
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
-      <td data-label="Account">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?' <span class="tag">Archived</span>':''}</td>
-      <td data-label="Category">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="Note">${tx.note||''}</td>
-      <td class="amt ${cls}" data-label="Amount">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
+      <td data-label="${t('th_account')}">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
+      <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
+      <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>
@@ -3049,14 +3141,14 @@ function _renderReportsInner(){
     const pTot=_expInRange(from,to,filtSet);
     const pMon=_expInRange(mKey,mKey,filtSet);
     if(pTot===0&&pMon===0) return '';
-    return `<tr><td class="td-date" data-label="" style="font-weight:600;">${c.name}</td><td class="amt" data-label="هذا الشهر">${fmtMoney(pMon)}</td><td class="amt" data-label="الكل">${fmtMoney(pTot)}</td></tr>`
+    return `<tr><td class="td-date" data-label="" style="font-weight:600;">${c.name}</td><td class="amt" data-label="${t('rep_this_month_th')}">${fmtMoney(pMon)}</td><td class="amt" data-label="${t('rep_total_col')}">${fmtMoney(pTot)}</td></tr>`
       +ch.filter(x=>!useCat||selIds.has(x.id)).map(x=>{
         const ct=_expInRange(from,to,new Set([x.id]));
         const cm=_expInRange(mKey,mKey,new Set([x.id]));
         if(ct===0&&cm===0) return '';
-        return `<tr><td class="td-date" data-label="" style="padding-left:22px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" data-label="هذا الشهر" style="color:var(--text-muted);">${fmtMoney(cm)}</td><td class="amt" data-label="الكل" style="color:var(--text-muted);">${fmtMoney(ct)}</td></tr>`;
+        return `<tr><td class="td-date" data-label="" style="padding-left:22px;color:var(--text-muted);font-size:12.5px;">└ ${x.name}</td><td class="amt" data-label="${t('rep_this_month_th')}" style="color:var(--text-muted);">${fmtMoney(cm)}</td><td class="amt" data-label="${t('rep_total_col')}" style="color:var(--text-muted);">${fmtMoney(ct)}</td></tr>`;
       }).join('');
-  }).join('')||`<tr><td colspan="3" class="empty">لا توجد بيانات</td></tr>`;
+  }).join('')||`<tr><td colspan="3" class="empty">${t('rep_no_data')}</td></tr>`;
 
   // Monthly breakdown + chart
   let months=allMonthsWithActivity();
@@ -3068,13 +3160,13 @@ function _renderReportsInner(){
   _drawChart(months, amounts, chartType);
 
   const hdrMon=document.getElementById('rep-monthly-hdr');
-  if(hdrMon)hdrMon.textContent=useCat?document.getElementById('rep-cat-label').textContent:'كل الكاتيجوريز';
+  if(hdrMon)hdrMon.textContent=useCat?document.getElementById('rep-cat-label').textContent:t('rep_all_cats');
   const monthsDesc=[...months].reverse();
   document.getElementById('reports-monthly-body').innerHTML=monthsDesc.map(mk=>{
     const amt=amounts[months.indexOf(mk)];
     if(!amt)return '';
-    return `<tr><td class="td-date" data-label="">${mk}</td><td class="amt" data-label="المبلغ">${fmtMoney(amt)}</td></tr>`;
-  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">لا توجد بيانات</td></tr>`;
+    return `<tr><td class="td-date" data-label="">${mk}</td><td class="amt" data-label="${t('rep_amount_th')}">${fmtMoney(amt)}</td></tr>`;
+  }).filter(Boolean).join('')||`<tr><td colspan="2" class="empty">${t('rep_no_data')}</td></tr>`;
 }
 
 // Reports event wiring
@@ -3219,12 +3311,12 @@ function renderVehicleLogsPanel(){
   // Table
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
       <td class="td-date" data-label="">${fmtDate(l.date)} · ${l.vehicleIcon} ${l.vehicleName}</td>
-      <td data-label="Type"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
-      <td class="amt neg" data-label="Amount">${fmtMoney(l.amount)}</td>
-      <td class="amt" data-label="KM">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
-      <td class="amt" data-label="Dist.">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
-      <td class="amt" data-label="km/L">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
-      <td class="td-note" dir="auto" data-label="Note">${l.note||''}</td>
+      <td data-label="${t('th_type')}"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
+      <td class="amt neg" data-label="${t('th_amount')}">${fmtMoney(l.amount)}</td>
+      <td class="amt" data-label="${t('th_km')}">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
+      <td class="amt" data-label="${t('th_dist')}">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
+      <td class="amt" data-label="${t('th_kmpl')}">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${l.note||''}</td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-vlog="${l.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-del-vlog="${l.id}">${t('btn_delete')}</button>
@@ -3763,22 +3855,22 @@ function openModal(kind, ctx={}){
     rows.sort((a,b)=> b.date.localeCompare(a.date));
     const total = rows.reduce((s,r)=> s + toEGP(r.amount, r.currency), 0);
     html = `<div class="modal" style="width:560px;">
-      <h2>This Month — ${isIncome?'Income':'Expenses'} Breakdown</h2>
-      <div class="help-text">${mKey} · ${rows.length} entr${rows.length===1?'y':'ies'} · total EGP ${fmtMoney(total)}</div>
+      <h2>${LANG==='ar' ? (isIncome?'هذا الشهر — تفصيل الدخل':'هذا الشهر — تفصيل المصاريف') : 'This Month — '+(isIncome?'Income':'Expenses')+' Breakdown'}</h2>
+      <div class="help-text">${mKey} · ${rows.length} ${LANG==='ar'?'عملية':('entr'+(rows.length===1?'y':'ies'))} · ${LANG==='ar'?'الإجمالي':'total'} EGP ${fmtMoney(total)}</div>
       <div class="table-wrap" style="margin-top:14px;">
         <table>
-          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+          <thead><tr><th>${t('th_date')}</th><th>${t('th_category')}</th><th>${t('th_note')}</th><th class="amt">${t('th_amount')}</th></tr></thead>
           <tbody>
             ${rows.map(r=>`<tr>
               <td class="td-date" data-label="">${fmtDate(r.date)}</td>
-              <td data-label="Category">${r.label}</td>
-              <td class="td-note" dir="auto" data-label="Note">${r.note||''}</td>
-              <td class="amt td-actions ${isIncome?'pos':'neg'}" data-label="Amount">${r.currency} ${fmtMoney(r.amount)}</td>
-            </tr>`).join('') || `<tr><td colspan="4" class="empty">No entries yet this month</td></tr>`}
+              <td data-label="${t('th_category')}">${r.label}</td>
+              <td class="td-note" dir="auto" data-label="${t('th_note')}">${r.note||''}</td>
+              <td class="amt td-actions ${isIncome?'pos':'neg'}" data-label="${t('th_amount')}">${r.currency} ${fmtMoney(r.amount)}</td>
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">${LANG==='ar'?'لا توجد عمليات هذا الشهر بعد':'No entries yet this month'}</td></tr>`}
           </tbody>
         </table>
       </div>
-      <div class="modal-actions"><button type="button" class="btn secondary" data-close>Close</button></div>
+      <div class="modal-actions"><button type="button" class="btn secondary" data-close>${t('btn_close')||(LANG==='ar'?'إغلاق':'Close')}</button></div>
     </div>`;
   }
 
@@ -3890,17 +3982,17 @@ function openModal(kind, ctx={}){
       <div class="section-title" style="margin:0 0 10px 0;">Documents &amp; Renewals</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Type</th><th>Renewal Date</th><th>Note</th><th></th></tr></thead>
+          <thead><tr><th>${t('th_type')}</th><th>${LANG==='ar'?'تاريخ التجديد':'Renewal Date'}</th><th>${t('th_note')}</th><th></th></tr></thead>
           <tbody>
             ${docs.map(d=>`<tr>
               <td class="td-date" data-label="">${d.docType}</td>
-              <td data-label="Renewal">${fmtDate(d.renewalDate)}</td>
-              <td class="td-note" dir="auto" data-label="Note">${d.note||''}</td>
+              <td data-label="${LANG==='ar'?'التجديد':'Renewal'}">${fmtDate(d.renewalDate)}</td>
+              <td class="td-note" dir="auto" data-label="${t('th_note')}">${d.note||''}</td>
               <td class="td-actions">
-                <button class="btn ghost sm" data-edit-vdoc="${d.id}">Edit</button>
-                <button class="btn ghost sm" data-del-vdoc="${d.id}">Delete</button>
+                <button class="btn ghost sm" data-edit-vdoc="${d.id}">${t('btn_edit')}</button>
+                <button class="btn ghost sm" data-del-vdoc="${d.id}">${t('btn_delete')}</button>
               </td>
-            </tr>`).join('') || `<tr><td colspan="4" class="empty">No documents tracked</td></tr>`}
+            </tr>`).join('') || `<tr><td colspan="4" class="empty">${LANG==='ar'?'لا توجد مستندات':'No documents tracked'}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -4913,6 +5005,8 @@ const I18N = {
     th_account:'Account', th_type:'Type', th_balance:'Balance', th_date:'Date',
     th_category:'Category', th_note:'Note', th_amount:'Amount',
     th_currency:'Currency', th_opening:'Opening', th_name:'Name',
+    th_current_balance:'Current Balance', th_vehicle:'Vehicle',
+    rep_this_month_th:'This Month', rep_no_data:'No data yet', btn_close:'Close',
     page_accounts:'Accounts', page_accounts_sub:'Cash, banks & wallets',
     all_accounts:'All Accounts', btn_new_account:'+ New Account',
     exchange_rates:'Exchange Rates', exchange_rates_hint:'used to convert balances to EGP',
@@ -4982,6 +5076,8 @@ const I18N = {
     th_account:'\u0627\u0644\u062d\u0633\u0627\u0628', th_type:'\u0627\u0644\u0646\u0648\u0639', th_balance:'\u0627\u0644\u0631\u0635\u064a\u062f', th_date:'\u0627\u0644\u062a\u0627\u0631\u064a\u062e',
     th_category:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a',
     th_currency:'\u0627\u0644\u0639\u0645\u0644\u0629', th_opening:'\u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a', th_name:'\u0627\u0644\u0627\u0633\u0645',
+    th_current_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a', th_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629',
+    rep_this_month_th:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_no_data:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0639\u062f', btn_close:'\u0625\u063a\u0644\u0627\u0642',
     page_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', page_accounts_sub:'\u0643\u0627\u0634\u060c \u0628\u0646\u0648\u0643 \u0648\u0645\u062d\u0627\u0641\u0638 \u0628\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u062a',
     all_accounts:'\u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', btn_new_account:'+ \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f',
     exchange_rates:'\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0635\u0631\u0641', exchange_rates_hint:'\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0644\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
@@ -5062,6 +5158,38 @@ function applyLang(lang){
   var bd = document.getElementById('btn-connect-drive'); if(bd) bd.textContent = t('btn_connect_drive');
   var bx = document.getElementById('btn-export'); if(bx) bx.textContent = t('btn_export');
   var bi = document.getElementById('btn-import'); if(bi) bi.textContent = t('btn_import');
+
+  // Guide tab labels
+  document.querySelectorAll('.guide-tab[data-tab]').forEach(function(btn){
+    var key = btn.dataset.tab;
+    var labels = GUIDE_TAB_LABELS[lang] || GUIDE_TAB_LABELS.en;
+    if(labels[key]) btn.textContent = labels[key];
+  });
+
+  // Guide tab full content (bilingual HTML blocks keyed by DOM id)
+  Object.keys(GUIDE_CONTENT).forEach(function(tabKey){
+    var content = GUIDE_CONTENT[tabKey][lang] || GUIDE_CONTENT[tabKey].en;
+    if(!content) return;
+    Object.keys(content).forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.innerHTML = content[id];
+    });
+  });
+
+  // Table headers (desktop <th> + mobile data-label via CSS content:attr)
+  var thMap = {
+    'th-dash-acc':'th_account','th-dash-type':'th_type','th-dash-bal':'th_balance',
+    'th-dash-date':'th_date','th-dash-racc':'th_account','th-dash-cat':'th_category','th-dash-note':'th_note','th-dash-amt':'th_amount',
+    'th-acc-name':'th_name','th-acc-type':'th_type','th-acc-cur':'th_currency','th-acc-opening':'th_opening','th-acc-curbal':'th_current_balance',
+    'th-fx-cur':'th_currency','th-fx-rate':'th_rate_egp',
+    'th-txn-date':'th_date','th-txn-acc':'th_account','th-txn-cat':'th_category','th-txn-note':'th_note','th-txn-amt':'th_amount',
+    'th-veh-date':'th_date','th-veh-vehicle':'th_vehicle','th-veh-type':'th_type','th-veh-amt':'th_amount',
+    'th-veh-km':'th_km','th-veh-dist':'th_dist','th-veh-kmpl':'th_kmpl','th-veh-note':'th_note',
+    'th-rep-cat':'rep_cat_col','th-rep-thismonth':'rep_this_month_th','th-rep-month':'rep_month_th'
+  };
+  Object.keys(thMap).forEach(function(id){
+    var el = document.getElementById(id); if(el) el.textContent = t(thMap[id]);
+  });
 
   // Static page texts
   [['#view-accounts h1','page_accounts'],['#view-accounts .today','page_accounts_sub'],

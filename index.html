@@ -104,6 +104,42 @@
 
   .content{flex:1;min-width:0;padding:28px 34px 60px 34px;}
   .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;}
+
+  /* Global small icon toolbar, shown at the top of every page */
+  .global-toolbar{
+    display:flex;align-items:center;justify-content:flex-end;gap:8px;
+    margin-bottom:14px;flex-wrap:wrap;
+  }
+  .gt-btn{
+    position:relative;
+    width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--surface);border:1px solid var(--border);
+    color:var(--text-muted);font-size:15px;cursor:pointer;
+    transition:border-color .15s ease, color .15s ease, transform .1s ease;
+  }
+  .gt-btn:hover{color:var(--text);border-color:var(--accent);transform:translateY(-1px);}
+  .gt-btn.connected{border-color:var(--positive);color:var(--positive);}
+  .gt-btn.syncing{border-color:var(--warning);color:var(--warning);}
+  .gt-btn.error{border-color:var(--negative);color:var(--negative);}
+  .gt-btn .gt-dot{
+    position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;
+    background:var(--text-muted);border:1.5px solid var(--bg);
+  }
+  .gt-btn.connected .gt-dot{background:var(--positive);}
+  .gt-btn.syncing .gt-dot{background:var(--warning);animation:pulse 1s infinite;}
+  .gt-btn.error .gt-dot{background:var(--negative);}
+  html[lang="ar"] .gt-btn .gt-dot{right:auto;left:-2px;}
+  .gt-btn::after{
+    content:attr(data-tip);
+    position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    background:var(--surface-2, #1c2230);color:var(--text);
+    padding:5px 9px;border-radius:6px;font-size:11.5px;white-space:nowrap;
+    border:1px solid var(--border);
+    opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:50;
+  }
+  .gt-btn:hover::after{opacity:1;}
+  @media (max-width:640px){ .gt-btn::after{display:none;} }
   .topbar h1{font-family:var(--font-display);font-size:22px;margin:0;font-weight:600;letter-spacing:-0.01em;}
   .topbar .today{font-size:12px;color:var(--text-faint);margin-top:3px;}
 
@@ -666,13 +702,10 @@
   html[lang="ar"] .sidebar {
     border-right: none;
     border-left: 1px solid var(--border);
-    order: 2;
   }
-  html[lang="ar"] .content { order: 1; }
   html[lang="ar"] .nav button { text-align: right; }
-  html[lang="ar"] .sidebar-toggle-btn { right: auto; left: -16px; }
-  html[lang="ar"] .sidebar-toggle-btn::before { content: '›'; }
-  html[lang="ar"] .app.sidebar-collapsed .sidebar-toggle-btn::before { content: '‹'; }
+  html[lang="ar"] .sidebar-toggle-btn { left: auto; right: 206px; }
+  html[lang="ar"] .app.sidebar-collapsed .sidebar-toggle-btn { right: 6px; }
   html[lang="ar"] th { text-align: right; }
   html[lang="ar"] .topbar { flex-direction: row; }
   html[lang="ar"] .g-table-wrap thead th { text-align: right; }
@@ -785,18 +818,20 @@
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
       <button data-view="guide"><span class="ic">📖</span><span class="lbl">دليل الاستخدام</span></button>
     </nav>
-    <div class="nav-footer" id="nav-footer">
-      <button id="btn-lang-toggle">🌐 عربي / English</button>
-      <button id="btn-theme-toggle">☀ Light Mode</button>
-      <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-status-text">Google Drive: not connected</span></div>
-      <button id="btn-connect-drive">🔗 Connect Google Drive</button>
-      <button id="btn-export">⬇ Export backup (JSON)</button>
-      <button id="btn-import">⬆ Import backup</button>
-      <input type="file" id="file-import" accept="application/json" style="display:none;">
-    </div>
+    <input type="file" id="file-import" accept="application/json" style="display:none;">
   </aside>
 
   <main class="content">
+
+    <!-- Global icon toolbar: appears above every page -->
+    <div class="global-toolbar">
+      <button class="gt-btn" id="btn-lang-toggle" data-tip="English"><span>🌐</span></button>
+      <button class="gt-btn" id="btn-theme-toggle" data-tip="Light Mode"><span>☀</span></button>
+      <button class="gt-btn" id="gt-drive-status" data-tip="Google Drive: not connected"><span>☁</span><span class="gt-dot" id="gt-drive-dot"></span></button>
+      <button class="gt-btn" id="btn-connect-drive" data-tip="Connect Google Drive"><span>🔗</span></button>
+      <button class="gt-btn" id="btn-export" data-tip="Export backup (JSON)"><span>⬇</span></button>
+      <button class="gt-btn" id="btn-import" data-tip="Import backup"><span>⬆</span></button>
+    </div>
 
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
@@ -2184,17 +2219,16 @@ function queueDrivePush(){
 
 function updateSyncStatus(state){
   const syncTexts = {connected:t('sync_connected'),syncing:t('sync_syncing'),error:t('sync_error'),disconnected:t('sync_not_connected')};
-  const el = document.getElementById('sync-status');
-  const text = document.getElementById('sync-status-text');
-  if(!el || !text) return;
-  el.className = 'sync-status' + (state==='connected' ? ' connected' : state==='syncing' ? ' syncing' : state==='error' ? ' error' : '');
+  const btn = document.getElementById('gt-drive-status');
+  if(!btn) return;
+  btn.className = 'gt-btn' + (state==='connected' ? ' connected' : state==='syncing' ? ' syncing' : state==='error' ? ' error' : '');
   const labels = {
     connected: syncTexts['connected'],
     syncing: syncTexts['syncing'],
     error: syncTexts['error'],
     disconnected: syncTexts['disconnected']
   };
-  text.textContent = labels[state] || labels.disconnected;
+  btn.dataset.tip = labels[state] || labels.disconnected;
 }
 
 document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
@@ -2217,9 +2251,11 @@ function updateThemeButtonLabel(){
   const btn = document.getElementById('btn-theme-toggle');
   if(!btn) return;
   const isLight = document.body.classList.contains('light');
-  btn.textContent = isLight
+  const label = isLight
     ? (typeof t==='function' ? t('btn_theme_dark')  : '🌙 Dark Mode')
     : (typeof t==='function' ? t('btn_theme_light') : '☀ Light Mode');
+  btn.dataset.tip = label;
+  btn.querySelector('span').textContent = isLight ? '🌙' : '☀';
 }
 document.getElementById('btn-theme-toggle').addEventListener('click', ()=>{
   document.body.classList.toggle('light');
@@ -5151,13 +5187,19 @@ function applyLang(lang){
     if(lbl && navMap[btn.dataset.view]) lbl.textContent = t(navMap[btn.dataset.view]);
   });
 
-  // Sidebar buttons
-  var bl = document.getElementById('btn-lang-toggle'); if(bl) bl.textContent = t('btn_lang');
-  var bt = document.getElementById('btn-theme-toggle');
-  if(bt) bt.textContent = document.body.classList.contains('light') ? t('btn_theme_dark') : t('btn_theme_light');
-  var bd = document.getElementById('btn-connect-drive'); if(bd) bd.textContent = t('btn_connect_drive');
-  var bx = document.getElementById('btn-export'); if(bx) bx.textContent = t('btn_export');
-  var bi = document.getElementById('btn-import'); if(bi) bi.textContent = t('btn_import');
+  // Global icon toolbar tooltips
+  var bl = document.getElementById('btn-lang-toggle'); if(bl) bl.dataset.tip = t('btn_lang');
+  updateThemeButtonLabel();
+  var bd = document.getElementById('btn-connect-drive'); if(bd) bd.dataset.tip = t('btn_connect_drive');
+  var bx = document.getElementById('btn-export'); if(bx) bx.dataset.tip = t('btn_export');
+  var bi = document.getElementById('btn-import'); if(bi) bi.dataset.tip = t('btn_import');
+  var driveBtn = document.getElementById('gt-drive-status');
+  if(driveBtn){
+    var curState = driveBtn.classList.contains('connected') ? 'connected'
+      : driveBtn.classList.contains('syncing') ? 'syncing'
+      : driveBtn.classList.contains('error') ? 'error' : 'disconnected';
+    updateSyncStatus(curState);
+  }
 
   // Guide tab labels
   document.querySelectorAll('.guide-tab[data-tab]').forEach(function(btn){

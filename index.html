@@ -457,26 +457,24 @@
     }
 
     /* All Logs panel extra controls */
-    #vlogs-filter-bar{flex-direction:column;gap:8px;}
-    #vlogs-filter-bar .field{min-width:0!important;flex:none;width:100%;}
-    #vlogs-filter-bar > div:last-child{width:100%;justify-content:stretch;gap:6px;}
-    #vlogs-filter-bar > div:last-child button{flex:1;}
+    #vlogs-filter-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    #vlogs-filter-bar .field{min-width:0!important;margin:0;}
     #vlogs-summary-strip{flex-direction:column;gap:8px;}
     #vlogs-summary-strip > div{flex:none!important;}
 
-    /* Transaction filter bar on mobile: search full-width, then 2-col for selects */
-    #txn-filter-bar{flex-direction:column;gap:6px;}
-    #txn-filter-bar input[type="search"]{width:100%;min-width:0;flex:none;}
-    #txn-filter-bar select{flex:1;min-width:0;}
-    #txn-filter-bar > div{width:100%;min-width:0;}
-    #txn-filter-bar > div button{width:100%;}
-    #txn-filter-bar #txn-reset{align-self:flex-end;}
-    /* 2-column grid for the two selects */
-    #txn-month-filter,#txn-account-filter{flex:1;}
+    /* Transaction filter bar on mobile: search + wide elements span full row, short selects pair up */
+    #txn-filter-bar{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;}
+    #txn-filter-bar select{width:100%;min-width:0;}
+    #txn-reset{width:100%;}
 
     /* Reports filter bar */
-    #rep-filter-bar{flex-direction:column;gap:8px;}
-    #rep-filter-bar > *{width:100%;min-width:0;}
+    #rep-filter-bar{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;grid-auto-flow:dense;}
+    #rep-filter-bar > *{min-width:0;}
+    #rep-filter-bar select{width:100%;}
+    #rep-reset{width:100%;}
+
+    /* Shared: any element marked filter-wide spans the full row in these 2-col grids */
+    .filter-wide{grid-column:1 / -1;width:100%;min-width:0;}
 
     /* Kill any residual min-width on tables – the card layout handles it */
     .table-wrap table{min-width:0;}
@@ -707,7 +705,6 @@
   html[lang="ar"] .sidebar-toggle-btn { left: auto; right: 206px; }
   html[lang="ar"] .app.sidebar-collapsed .sidebar-toggle-btn { right: 6px; }
   html[lang="ar"] th { text-align: right; }
-  html[lang="ar"] .topbar { flex-direction: row; }
   html[lang="ar"] .g-table-wrap thead th { text-align: right; }
 
   /* Guide page: two full-content blocks per tab, one per language.
@@ -730,7 +727,7 @@
       categories:'🏷️ Categories', commitments:'🔄 Commitments', vehicles:'🚗 Vehicles',
       budgets:'🎯 Budgets', reports:'📈 Reports', drive:'☁️ Google Drive'},
     ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', transactions:'💸 المعاملات',
-      categories:'🏷️ الكاتيجوريز', commitments:'🔄 الالتزامات', vehicles:'🚗 المركبات',
+      categories:'🏷️ الفئات', commitments:'🔄 الالتزامات', vehicles:'🚗 المركبات',
       budgets:'🎯 الميزانيات', reports:'📈 التقارير', drive:'☁️ Google Drive'}
   };
 
@@ -742,7 +739,7 @@
         'guide-ov-hero-sub': 'نظام إدارة مالية شخصي — بواسطة Hossam Al-Zomor',
         'guide-ov-desc': 'FinTrack نظام مالي شخصي متكامل يعمل في المتصفح مباشرةً — بدون سيرفرات خارجية أو اشتراكات. بياناتك عندك أنت فقط.',
         'guide-ov-pills': '<span class="g-pill">💾 يعمل offline بالكامل</span><span class="g-pill">🌐 مزامنة Google Drive اختيارية</span><span class="g-pill">🔒 بياناتك عندك أنت فقط</span><span class="g-pill">📱 يعمل على الموبايل والكمبيوتر</span>',
-        'guide-ov-rest': '<div class="g-section-title">هيكل النظام</div><div class="g-table-wrap"><table><thead><tr><th>القسم</th><th>وظيفته</th><th>الأهمية</th></tr></thead><tbody><tr><td><strong>الحسابات</strong></td><td>محافظك وحساباتك البنكية</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>المعاملات</strong></td><td>تسجيل دخل ومصروف وتحويل</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الكاتيجوريز</strong></td><td>تصنيف المصاريف والدخل</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الالتزامات</strong></td><td>أقساط وجمعيات</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>المركبات</strong></td><td>تتبع مصاريف العربية والسكوتر</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>الميزانيات</strong></td><td>تحديد حد شهري لكل كاتيجوري</td><td><span class="g-badge">اختياري</span></td></tr><tr><td><strong>التقارير</strong></td><td>تحليل مصاريفك بالتفصيل</td><td><span class="g-badge">اختياري</span></td></tr></tbody></table></div><div class="g-section-title">الترتيب الموصى به للبداية</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أضف حساباتك</div><div class="g-step-desc">روح صفحة <strong>Accounts</strong> واضغط <strong>Add Account</strong>. أضف كل وعاء مالي عندك مع الرصيد الافتتاحي الصحيح.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الكاتيجوريز</div><div class="g-step-desc">روح صفحة <strong>Categories</strong> وعدّل التصنيفات اللي تناسبك.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف مركباتك (لو عندك)</div><div class="g-step-desc">روح صفحة <strong>Vehicles</strong> وأضف عربيتك أو سكوترك مع بيانات الزيت والوقود.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">اضغط <strong>+ New Transaction</strong> من أي صفحة وسجّل مصاريفك ودخلك يومياً.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">اربط Google Drive (اختياري)</div><div class="g-step-desc">من الـ sidebar اضغط <strong>🔗 Connect Google Drive</strong> — هيخلي بياناتك محفوظة ومتزامنة تلقائياً.</div></div></div></div>'
+        'guide-ov-rest': '<div class="g-section-title">هيكل النظام</div><div class="g-table-wrap"><table><thead><tr><th>القسم</th><th>وظيفته</th><th>الأهمية</th></tr></thead><tbody><tr><td><strong>الحسابات</strong></td><td>محافظك وحساباتك البنكية</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>المعاملات</strong></td><td>تسجيل دخل ومصروف وتحويل</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الفئات</strong></td><td>تصنيف المصاريف والدخل</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الالتزامات</strong></td><td>أقساط وجمعيات</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>المركبات</strong></td><td>تتبع مصاريف العربية والسكوتر</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>الميزانيات</strong></td><td>تحديد حد شهري لكل فئة</td><td><span class="g-badge">اختياري</span></td></tr><tr><td><strong>التقارير</strong></td><td>تحليل مصاريفك بالتفصيل</td><td><span class="g-badge">اختياري</span></td></tr></tbody></table></div><div class="g-section-title">الترتيب الموصى به للبداية</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أضف حساباتك</div><div class="g-step-desc">روح صفحة <strong>Accounts</strong> واضغط <strong>Add Account</strong>. أضف كل وعاء مالي عندك مع الرصيد الافتتاحي الصحيح.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الفئات</div><div class="g-step-desc">روح صفحة <strong>Categories</strong> وعدّل التصنيفات اللي تناسبك.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف مركباتك (لو عندك)</div><div class="g-step-desc">روح صفحة <strong>Vehicles</strong> وأضف عربيتك أو سكوترك مع بيانات الزيت والوقود.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">اضغط <strong>+ New Transaction</strong> من أي صفحة وسجّل مصاريفك ودخلك يومياً.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">اربط Google Drive (اختياري)</div><div class="g-step-desc">من الـ sidebar اضغط <strong>🔗 Connect Google Drive</strong> — هيخلي بياناتك محفوظة ومتزامنة تلقائياً.</div></div></div></div>'
       },
       en: {
         'guide-ov-hero-sub': 'Personal finance management system — by Hossam Al-Zomor',
@@ -756,11 +753,11 @@
       en: {'guide-content-accounts': '<div class="g-section-title">🏦 Accounts</div><p class="g-p">Accounts are the foundation everything else builds on. Every transaction must be linked to a specific account.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash</div><div class="g-card-body">Money in your hand or at home. Example: "My wallet", "Cash at home".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank</div><div class="g-card-body">Your bank accounts. You can add more than one if you bank with several banks.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">E-wallets like Vodafone Cash, Orange Money, InstaPay.</div></div></div><div class="g-section-title">Adding a New Account</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open the Accounts page</div><div class="g-step-desc">From the sidebar, click <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Click Add Account</div><div class="g-step-desc">A form opens — enter the account name and choose its type and currency.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Set the opening balance</div><div class="g-step-desc">Enter the actual balance currently in the account. This is the starting point the system calculates from.</div></div></div></div><div class="g-callout warning">⚠️ <strong>Very important:</strong> The opening balance needs to be accurate. Get it wrong and every balance downstream will be wrong too. Use the <strong>Reconcile</strong> button afterward to fix any discrepancy.</div><div class="g-section-title">Reconcile — Matching Balances</div><p class="g-p">If you notice a difference between the system balance and the real one, use the <strong>Reconcile</strong> button next to that account. The system will ask for the real balance and automatically log an adjustment transaction.</p><div class="g-section-title">Exchange Rates</div><p class="g-p">If you have accounts in different currencies (USD, SAR...), set the exchange rates on the same page. The system converts everything to EGP in reports and the dashboard.</p>'}
     },
     transactions: {
-      ar: {'guide-content-transactions': '<div class="g-section-title">💸 المعاملات (Transactions)</div><p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span> مصروف</div><div class="g-card-body">أي حاجة بتصرفها: أكل، مواصلات، فواتير، إيجار. بتخصم من رصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span> دخل</div><div class="g-card-body">أي حاجة بتدخل: مرتب، فلوس من حد، أرباح. بتضيف لرصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span> تحويل</div><div class="g-card-body">نقل فلوس من حساب لحساب تاني عندك. مش مصروف ولا دخل — بس إعادة توزيع.</div></div></div><div class="g-section-title">حقول المعاملة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense / Income / Transfer</td><td>لازم يتحدد أول حاجة</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr><tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr><tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr><tr><td><strong>الكاتيجوري</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr><tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت كاتيجوري مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div><div class="g-section-title">البحث والفلترة</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>النوع:</strong> All / Income / Expense / Transfers<br><strong>الشهر:</strong> اعرض معاملات شهر معين<br><strong>الحساب:</strong> معاملات حساب معين<br><strong>الكاتيجوري:</strong> من القائمة المنسدلة الشجرية<br><strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ</div></div>'},
+      ar: {'guide-content-transactions': '<div class="g-section-title">💸 المعاملات (Transactions)</div><p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span> مصروف</div><div class="g-card-body">أي حاجة بتصرفها: أكل، مواصلات، فواتير، إيجار. بتخصم من رصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span> دخل</div><div class="g-card-body">أي حاجة بتدخل: مرتب، فلوس من حد، أرباح. بتضيف لرصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span> تحويل</div><div class="g-card-body">نقل فلوس من حساب لحساب تاني عندك. مش مصروف ولا دخل — بس إعادة توزيع.</div></div></div><div class="g-section-title">حقول المعاملة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense / Income / Transfer</td><td>لازم يتحدد أول حاجة</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr><tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr><tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr><tr><td><strong>الفئة</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr><tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت فئة مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div><div class="g-section-title">البحث والفلترة</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>النوع:</strong> All / Income / Expense / Transfers<br><strong>الشهر:</strong> اعرض معاملات شهر معين<br><strong>الحساب:</strong> معاملات حساب معين<br><strong>الفئة:</strong> من القائمة المنسدلة الشجرية<br><strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ</div></div>'},
       en: {'guide-content-transactions': '<div class="g-section-title">💸 Transactions</div><p class="g-p">Transactions are the backbone of the system. Every income, expense, or transfer between accounts needs to be logged here.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span></div><div class="g-card-body">Anything you spend: food, transport, bills, rent. Deducted from the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span></div><div class="g-card-body">Anything coming in: salary, money from someone, profits. Added to the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span></div><div class="g-card-body">Moving money between two of your own accounts. Not an expense or income — just redistribution.</div></div></div><div class="g-section-title">Transaction Fields</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th><th>Note</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense / Income / Transfer</td><td>Must be chosen first</td></tr><tr><td><strong>Date</strong></td><td>Date of the transaction</td><td>Doesn\'t have to be today</td></tr><tr><td><strong>Amount</strong></td><td>Value in the account\'s currency</td><td>—</td></tr><tr><td><strong>Account</strong></td><td>Which account it came from</td><td>—</td></tr><tr><td><strong>Category</strong></td><td>Classification of the expense or income</td><td>Not present for transfers</td></tr><tr><td><strong>Note</strong></td><td>Optional description</td><td>Helps when searching later</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>Vehicle integration:</strong> If you pick a vehicle-related category (fuel, maintenance, oil), extra fields appear for the vehicle and odometer — letting the system calculate fuel efficiency and track oil changes automatically.</div><div class="g-section-title">Search &amp; Filter</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>Type:</strong> All / Income / Expense / Transfers<br><strong>Month:</strong> Show a specific month\'s transactions<br><strong>Account:</strong> A specific account\'s transactions<br><strong>Category:</strong> From the tree dropdown<br><strong>Search:</strong> Search text in the Note or Amount</div></div>'}
     },
     categories: {
-      ar: {'guide-content-categories': '<div class="g-section-title">🏷️ الكاتيجوريز (Categories)</div><p class="g-p">الكاتيجوريز هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p><div class="g-section-title">هيكل الكاتيجوريز — مستويين</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category (كاتيجوري رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>📂 <strong>Sub-Category (تحت-كاتيجوري):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت كاتيجوري رئيسية<br><br><em>التقارير والميزانيات بتشتغل على المستويين — المجاميع بترتفع للـ parent تلقائياً.</em></div></div><div class="g-section-title">إضافة كاتيجوري جديدة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense (مصروف) أو Income (دخل)</td></tr><tr><td><strong>الاسم</strong></td><td>اسم التصنيف — تقدر تكتب عربي وإنجليزي مع بعض</td></tr><tr><td><strong>Parent</strong></td><td>لو عايزها sub-category اختار الـ parent. لو None هتبقى رئيسية.</td></tr></tbody></table></div><div class="g-section-title">تعديل وحذف</div><p class="g-p">اضغط <strong>Edit</strong> بجانب أي كاتيجوري رئيسية، أو أيقونة <strong>✎</strong> بجانب أي sub-category لتغيير الاسم أو الـ parent.</p><div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف كاتيجوري عليها معاملات مسجّلة.</div>'},
+      ar: {'guide-content-categories': '<div class="g-section-title">🏷️ الفئات (Categories)</div><p class="g-p">الفئات هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p><div class="g-section-title">هيكل الفئات — مستويين</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category (فئة رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>📂 <strong>Sub-Category (تحت-فئة):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت فئة رئيسية<br><br><em>التقارير والميزانيات بتشتغل على المستويين — المجاميع بترتفع للـ parent تلقائياً.</em></div></div><div class="g-section-title">إضافة فئة جديدة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense (مصروف) أو Income (دخل)</td></tr><tr><td><strong>الاسم</strong></td><td>اسم التصنيف — تقدر تكتب عربي وإنجليزي مع بعض</td></tr><tr><td><strong>Parent</strong></td><td>لو عايزها sub-category اختار الـ parent. لو None هتبقى رئيسية.</td></tr></tbody></table></div><div class="g-section-title">تعديل وحذف</div><p class="g-p">اضغط <strong>Edit</strong> بجانب أي فئة رئيسية، أو أيقونة <strong>✎</strong> بجانب أي sub-category لتغيير الاسم أو الـ parent.</p><div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف فئة عليها معاملات مسجّلة.</div>'},
       en: {'guide-content-categories': '<div class="g-section-title">🏷️ Categories</div><p class="g-p">Categories are how you classify your expenses and income. The system ships with many ready-made categories, and you can add, edit, or delete freely.</p><div class="g-section-title">Category Structure — Two Levels</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category:</strong> like "Home Expenses" or "Vehicle Expenses"<br><br>📂 <strong>Sub-Category:</strong> like "Fuel" or "Maintenance" nested under a parent category<br><br><em>Reports and budgets work on both levels — totals automatically roll up to the parent.</em></div></div><div class="g-section-title">Adding a New Category</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense or Income</td></tr><tr><td><strong>Name</strong></td><td>The category name — you can write it in Arabic and English together</td></tr><tr><td><strong>Parent</strong></td><td>Pick a parent if it should be a sub-category. Leave as None to make it a parent.</td></tr></tbody></table></div><div class="g-section-title">Editing &amp; Deleting</div><p class="g-p">Click <strong>Edit</strong> next to any parent category, or the <strong>✎</strong> icon next to any sub-category, to change its name or parent.</p><div class="g-callout warning">⚠️ You can\'t delete a parent category while it still has sub-categories — delete those first. You also can\'t delete a category that has transactions logged against it.</div>'}
     },
     commitments: {
@@ -768,15 +765,15 @@
       en: {'guide-content-commitments': '<div class="g-section-title">🔄 Commitments</div><p class="g-p">Commitments is a dedicated section for tracking installments and rotating savings groups (جمعية) — anything with a regular payment schedule.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment</div><div class="g-card-body">If you bought something on installments (tablet, phone, freezer...) the system tracks how many payments are done and how many remain.</div></div><div class="g-card"><div class="g-card-title">🤝 Rotating Savings (جمعية)</div><div class="g-card-body">The system tracks the monthly payments and the payout date automatically.</div></div></div><div class="g-section-title">Logging a New Commitment</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Click Add Commitment</div><div class="g-step-desc">From the Commitments page, click the button and choose the type (Installment or جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Enter the details</div><div class="g-step-desc">Total amount, monthly installment value, start date, number of installments.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Log payments each month</div><div class="g-step-desc">Every month click <strong>Record Payment</strong>. The payment is logged as a transaction in your account automatically.</div></div></div></div><div class="g-callout tip">📍 <strong>Automatic reminder:</strong> The dashboard shows any commitments due within less than 10 days — so you don\'t forget.</div>'}
     },
     vehicles: {
-      ar: {'guide-content-vehicles': '<div class="g-section-title">🚗 المركبات (Vehicles)</div><p class="g-p">قسم المركبات بيتتبع كل تفاصيل مصاريف عربيتك أو سكوترك: الوقود، الصيانة، تغيير الزيت، المستندات، والقطع القابلة للاستهلاك.</p><div class="g-section-title">إضافة مركبة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>الاسم</strong></td><td>اسم تعرفه (العربية، السكوتر..)</td></tr><tr><td><strong>النوع</strong></td><td>🚗 Car أو 🛵 Scooter</td></tr><tr><td><strong>رقم اللوحة</strong></td><td>اختياري — للمرجع فقط</td></tr><tr><td><strong>فترة تغيير الزيت</strong></td><td>مثلاً 5000 كم — النظام يحذّرك لما تقرب</td></tr><tr><td><strong>مدى الخزان</strong></td><td>كم كيلو بالتانك الكامل</td></tr></tbody></table></div><div class="g-section-title">أنواع اللوجات</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel — وقود</div><div class="g-card-body">أدخل المبلغ والعداد — النظام يحسب كفاءة الوقود (km/L) تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance — صيانة</div><div class="g-card-body">أي صيانة عامة مرتبطة بقطعة محددة لتتبع عمرها.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change — زيت</div><div class="g-card-body">تغيير الزيت — بيصفّر عداد الـ Oil Interval تلقائياً.</div></div><div class="g-card"><div class="g-card-title">💰 Asset — مقتنيات</div><div class="g-card-body">أي شراء مرتبط بالمركبة (إكسسوار، إطارات، بطارية..).</div></div></div><div class="g-section-title">تعديل مركبة</div><p class="g-p">اضغط زر <strong>Edit</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p><div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة Transactions واخترت كاتيجوري "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>'},
+      ar: {'guide-content-vehicles': '<div class="g-section-title">🚗 المركبات (Vehicles)</div><p class="g-p">قسم المركبات بيتتبع كل تفاصيل مصاريف عربيتك أو سكوترك: الوقود، الصيانة، تغيير الزيت، المستندات، والقطع القابلة للاستهلاك.</p><div class="g-section-title">إضافة مركبة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>الاسم</strong></td><td>اسم تعرفه (العربية، السكوتر..)</td></tr><tr><td><strong>النوع</strong></td><td>🚗 Car أو 🛵 Scooter</td></tr><tr><td><strong>رقم اللوحة</strong></td><td>اختياري — للمرجع فقط</td></tr><tr><td><strong>فترة تغيير الزيت</strong></td><td>مثلاً 5000 كم — النظام يحذّرك لما تقرب</td></tr><tr><td><strong>مدى الخزان</strong></td><td>كم كيلو بالتانك الكامل</td></tr></tbody></table></div><div class="g-section-title">أنواع اللوجات</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel — وقود</div><div class="g-card-body">أدخل المبلغ والعداد — النظام يحسب كفاءة الوقود (km/L) تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance — صيانة</div><div class="g-card-body">أي صيانة عامة مرتبطة بقطعة محددة لتتبع عمرها.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change — زيت</div><div class="g-card-body">تغيير الزيت — بيصفّر عداد الـ Oil Interval تلقائياً.</div></div><div class="g-card"><div class="g-card-title">💰 Asset — مقتنيات</div><div class="g-card-body">أي شراء مرتبط بالمركبة (إكسسوار، إطارات، بطارية..).</div></div></div><div class="g-section-title">تعديل مركبة</div><p class="g-p">اضغط زر <strong>Edit</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p><div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة Transactions واخترت فئة "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>'},
       en: {'guide-content-vehicles': '<div class="g-section-title">🚗 Vehicles</div><p class="g-p">The Vehicles section tracks every detail of your car or scooter expenses: fuel, maintenance, oil changes, documents, and consumable parts.</p><div class="g-section-title">Adding a Vehicle</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Name</strong></td><td>A name you\'ll recognize (the car, the scooter...)</td></tr><tr><td><strong>Type</strong></td><td>🚗 Car or 🛵 Scooter</td></tr><tr><td><strong>Plate Number</strong></td><td>Optional — reference only</td></tr><tr><td><strong>Oil Change Interval</strong></td><td>e.g. 5000 km — the system warns you as you approach it</td></tr><tr><td><strong>Tank Range</strong></td><td>How many km on a full tank</td></tr></tbody></table></div><div class="g-section-title">Log Types</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel</div><div class="g-card-body">Enter the amount and odometer — the system calculates fuel efficiency (km/L) automatically.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance</div><div class="g-card-body">Any general maintenance linked to a specific part, to track its lifespan.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change</div><div class="g-card-body">Logging an oil change automatically resets the Oil Interval counter.</div></div><div class="g-card"><div class="g-card-title">💰 Asset</div><div class="g-card-body">Any purchase linked to the vehicle (accessories, tires, battery...).</div></div></div><div class="g-section-title">Editing a Vehicle</div><p class="g-p">Click the <strong>Edit</strong> button next to a vehicle to change its name, type, oil interval, or tank range at any time.</p><div class="g-callout tip">🔗 <strong>Transaction integration:</strong> If you log a fuel expense from the Transactions page and pick the "Fuel" category while specifying the vehicle and odometer — the system adds a vehicle log automatically.</div>'}
     },
     budgets: {
-      ar: {'guide-content-budgets': '<div class="g-section-title">🎯 الميزانيات (Budgets)</div><p class="g-p">من صفحة Budgets تقدر تحدد حد شهري لكل كاتيجوري. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p><div class="g-section-title">كيف تستخدمها</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل كاتيجوري في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل كاتيجوري بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div></div>'},
+      ar: {'guide-content-budgets': '<div class="g-section-title">🎯 الميزانيات (Budgets)</div><p class="g-p">من صفحة Budgets تقدر تحدد حد شهري لكل فئة. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p><div class="g-section-title">كيف تستخدمها</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل فئة في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل فئة بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div></div>'},
       en: {'guide-content-budgets': '<div class="g-section-title">🎯 Budgets</div><p class="g-p">From the Budgets page you can set a monthly limit per category. The system computes the average of the last 3 months and suggests a suitable number.</p><div class="g-section-title">How to Use It</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Type the limit into the field</div><div class="g-step-desc">Next to each category on the page there\'s an amount field — enter your desired monthly limit.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Or use "Use average"</div><div class="g-step-desc">The system automatically fills in the average of the last 3 months as a suggested limit.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Track the progress bar</div><div class="g-step-desc">Each category shows a bar indicating how much of the limit has been spent. 🟢 On track | 🔴 Over budget.</div></div></div></div>'}
     },
     reports: {
-      ar: {'guide-content-reports': '<div class="g-section-title">📈 التقارير (Reports)</div><p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والكاتيجوري.</p><div class="g-section-title">الفلاتر المتاحة</div><div class="g-table-wrap"><table><thead><tr><th>الفلتر</th><th>الخيارات</th></tr></thead><tbody><tr><td><strong>الفترة</strong></td><td>كل الوقت / هذه السنة / آخر 6 أشهر / آخر 3 أشهر / هذا الشهر / تخصيص</td></tr><tr><td><strong>الكاتيجوري</strong></td><td>قائمة شجرية متعددة الاختيار — parent أو sub-categories</td></tr></tbody></table></div><div class="g-section-title">ما تشوفه في التقارير</div><div class="g-card"><div class="g-card-body">📊 <strong>الرسم البياني الشهري:</strong> Bar/Line chart للمصاريف شهر بشهر<br><br>🗂️ <strong>جدول الكاتيجوريز:</strong> مجموع كل كاتيجوري للشهر الحالي + للفترة الكلية<br><br>📅 <strong>التفصيل الشهري:</strong> مجموع المصاريف شهر بشهر بترتيب تنازلي</div></div><div class="g-section-title">نصائح للتقارير</div><div class="g-card"><div class="g-card-body">📊 فلتر بكاتيجوري واحدة لمعرفة مصاريفها بالضبط<br>📅 اختار آخر 3 أشهر عشان تشوف ترند مصاريفك<br>🎯 قارن التقارير مع الميزانيات للتحكم الكامل في الصرف</div></div>'},
+      ar: {'guide-content-reports': '<div class="g-section-title">📈 التقارير (Reports)</div><p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والفئة.</p><div class="g-section-title">الفلاتر المتاحة</div><div class="g-table-wrap"><table><thead><tr><th>الفلتر</th><th>الخيارات</th></tr></thead><tbody><tr><td><strong>الفترة</strong></td><td>كل الوقت / هذه السنة / آخر 6 أشهر / آخر 3 أشهر / هذا الشهر / تخصيص</td></tr><tr><td><strong>الفئة</strong></td><td>قائمة شجرية متعددة الاختيار — parent أو sub-categories</td></tr></tbody></table></div><div class="g-section-title">ما تشوفه في التقارير</div><div class="g-card"><div class="g-card-body">📊 <strong>الرسم البياني الشهري:</strong> Bar/Line chart للمصاريف شهر بشهر<br><br>🗂️ <strong>جدول الفئات:</strong> مجموع كل فئة للشهر الحالي + للفترة الكلية<br><br>📅 <strong>التفصيل الشهري:</strong> مجموع المصاريف شهر بشهر بترتيب تنازلي</div></div><div class="g-section-title">نصائح للتقارير</div><div class="g-card"><div class="g-card-body">📊 فلتر بفئة واحدة لمعرفة مصاريفها بالضبط<br>📅 اختار آخر 3 أشهر عشان تشوف ترند مصاريفك<br>🎯 قارن التقارير مع الميزانيات للتحكم الكامل في الصرف</div></div>'},
       en: {'guide-content-reports': '<div class="g-section-title">📈 Reports</div><p class="g-p">The Reports page gives you an analytical view of your spending and income, with filtering by period and category.</p><div class="g-section-title">Available Filters</div><div class="g-table-wrap"><table><thead><tr><th>Filter</th><th>Options</th></tr></thead><tbody><tr><td><strong>Period</strong></td><td>All time / This year / Last 6 months / Last 3 months / This month / Custom</td></tr><tr><td><strong>Category</strong></td><td>Multi-select tree list — parent or sub-categories</td></tr></tbody></table></div><div class="g-section-title">What You See in Reports</div><div class="g-card"><div class="g-card-body">📊 <strong>Monthly chart:</strong> Bar/line chart of spending month by month<br><br>🗂️ <strong>Category table:</strong> Total per category for the current month + the full period<br><br>📅 <strong>Monthly breakdown:</strong> Total spending month by month, in descending order</div></div><div class="g-section-title">Tips for Reports</div><div class="g-card"><div class="g-card-body">📊 Filter by a single category to see its spending precisely<br>📅 Pick the last 3 months to see your spending trend<br>🎯 Compare reports against budgets for full control over spending</div></div>'}
     },
     drive: {
@@ -893,12 +890,12 @@
         <button class="btn" data-open-modal="transaction">+ New Transaction</button>
       </div>
       <div id="txn-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
-        <input type="search" id="txn-search" placeholder="بحث بالنوت أو الكاتيجوري..." data-i18n-placeholder="txn_search_placeholder" style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
+        <input type="search" id="txn-search" class="filter-wide" placeholder="بحث بالنوت أو الفئة..." data-i18n-placeholder="txn_search_placeholder" style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
         <select id="txn-month-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الشهور</option>
           <option value="__custom__" id="txn-month-custom-opt">فترة مخصصة...</option>
         </select>
-        <div id="txn-date-range" style="display:none;align-items:center;gap:6px;">
+        <div id="txn-date-range" class="filter-wide" style="display:none;align-items:center;gap:6px;">
           <input type="date" id="txn-date-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:13px;">
           <span style="color:var(--text-muted);font-size:12px;" id="txn-date-range-sep">إلى</span>
           <input type="date" id="txn-date-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:13px;">
@@ -906,9 +903,9 @@
         <select id="txn-account-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الحسابات</option>
         </select>
-        <div style="position:relative;min-width:180px;">
+        <div id="txn-cat-wrap" class="filter-wide" style="position:relative;min-width:180px;">
           <button type="button" id="txn-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
-            <span id="txn-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الكاتيجوريز</span><span style="flex:none;font-size:10px;">▾</span>
+            <span id="txn-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الفئات</span><span style="flex:none;font-size:10px;">▾</span>
           </button>
           <div id="txn-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
             <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
@@ -1003,7 +1000,7 @@
             <label>To</label>
             <input type="date" id="vlogs-filter-to">
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
+          <div style="display:flex;gap:6px;flex-shrink:0;" class="filter-wide">
             <button type="button" class="btn ghost sm" id="vlogs-sort-toggle">Date: Newest first ↓</button>
             <button type="button" class="btn secondary sm" id="vlogs-filter-reset">Reset</button>
           </div>
@@ -1062,10 +1059,10 @@
             <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">إلى</div>
             <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
           </div>
-          <div style="position:relative;flex:1;min-width:180px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الكاتيجوري (دخل + مصاريف)</div>
+          <div style="position:relative;flex:1;min-width:180px;" class="filter-wide">
+            <div style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفئة (دخل + مصاريف)</div>
             <button type="button" id="rep-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
-              <span id="rep-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الكاتيجوريز</span><span style="flex:none;font-size:10px;">▾</span>
+              <span id="rep-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الفئات</span><span style="flex:none;font-size:10px;">▾</span>
             </button>
             <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
               <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
@@ -1096,11 +1093,11 @@
             </select>
           </div>
           <canvas id="rep-chart" style="max-height:240px;"></canvas>
-          <div id="rep-chart-empty" style="padding:40px;text-align:center;color:var(--text-faint);font-size:12px;display:none;">اختر كاتيجوري وفترة لعرض الرسم البياني</div>
+          <div id="rep-chart-empty" style="padding:40px;text-align:center;color:var(--text-faint);font-size:12px;display:none;">اختر فئة وفترة لعرض الرسم البياني</div>
         </div>
         <div class="table-wrap" style="overflow:auto;max-height:310px;">
           <table style="min-width:unset;">
-            <thead><tr><th id="th-rep-cat">الكاتيجوري</th><th class="amt" id="th-rep-thismonth">الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
+            <thead><tr><th id="th-rep-cat">الفئة</th><th class="amt" id="th-rep-thismonth">الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
             <tbody id="reports-tree-body"></tbody>
           </table>
         </div>
@@ -1129,7 +1126,7 @@
           <button class="guide-tab active" data-tab="overview">🧭 نظرة عامة</button>
           <button class="guide-tab" data-tab="accounts">🏦 الحسابات</button>
           <button class="guide-tab" data-tab="transactions">💸 المعاملات</button>
-          <button class="guide-tab" data-tab="categories">🏷️ الكاتيجوريز</button>
+          <button class="guide-tab" data-tab="categories">🏷️ الفئات</button>
           <button class="guide-tab" data-tab="commitments">🔄 الالتزامات</button>
           <button class="guide-tab" data-tab="vehicles">🚗 المركبات</button>
           <button class="guide-tab" data-tab="budgets">🎯 الميزانيات</button>
@@ -1163,10 +1160,10 @@
             <tbody>
               <tr><td><strong>الحسابات</strong></td><td>محافظك وحساباتك البنكية</td><td><span class="g-badge green">أساسي</span></td></tr>
               <tr><td><strong>المعاملات</strong></td><td>تسجيل دخل ومصروف وتحويل</td><td><span class="g-badge green">أساسي</span></td></tr>
-              <tr><td><strong>الكاتيجوريز</strong></td><td>تصنيف المصاريف والدخل</td><td><span class="g-badge green">أساسي</span></td></tr>
+              <tr><td><strong>الفئات</strong></td><td>تصنيف المصاريف والدخل</td><td><span class="g-badge green">أساسي</span></td></tr>
               <tr><td><strong>الالتزامات</strong></td><td>أقساط وجمعيات</td><td><span class="g-badge blue">مهم</span></td></tr>
               <tr><td><strong>المركبات</strong></td><td>تتبع مصاريف العربية والسكوتر</td><td><span class="g-badge blue">مهم</span></td></tr>
-              <tr><td><strong>الميزانيات</strong></td><td>تحديد حد شهري لكل كاتيجوري</td><td><span class="g-badge">اختياري</span></td></tr>
+              <tr><td><strong>الميزانيات</strong></td><td>تحديد حد شهري لكل فئة</td><td><span class="g-badge">اختياري</span></td></tr>
               <tr><td><strong>التقارير</strong></td><td>تحليل مصاريفك بالتفصيل</td><td><span class="g-badge">اختياري</span></td></tr>
             </tbody></table>
           </div>
@@ -1174,7 +1171,7 @@
           <div class="g-section-title">الترتيب الموصى به للبداية</div>
           <div class="g-steps">
             <div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أضف حساباتك</div><div class="g-step-desc">روح صفحة <strong>Accounts</strong> واضغط <strong>Add Account</strong>. أضف كل وعاء مالي عندك مع الرصيد الافتتاحي الصحيح.</div></div></div>
-            <div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الكاتيجوريز</div><div class="g-step-desc">روح صفحة <strong>Categories</strong> وعدّل التصنيفات اللي تناسبك.</div></div></div>
+            <div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الفئات</div><div class="g-step-desc">روح صفحة <strong>Categories</strong> وعدّل التصنيفات اللي تناسبك.</div></div></div>
             <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف مركباتك (لو عندك)</div><div class="g-step-desc">روح صفحة <strong>Vehicles</strong> وأضف عربيتك أو سكوترك مع بيانات الزيت والوقود.</div></div></div>
             <div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">اضغط <strong>+ New Transaction</strong> من أي صفحة وسجّل مصاريفك ودخلك يومياً.</div></div></div>
             <div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">اربط Google Drive (اختياري)</div><div class="g-step-desc">من الـ sidebar اضغط <strong>🔗 Connect Google Drive</strong> — هيخلي بياناتك محفوظة ومتزامنة تلقائياً.</div></div></div>
@@ -1230,11 +1227,11 @@
             <tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr>
             <tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr>
             <tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr>
-            <tr><td><strong>الكاتيجوري</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr>
+            <tr><td><strong>الفئة</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr>
             <tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr>
           </tbody></table></div>
 
-          <div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت كاتيجوري مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div>
+          <div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت فئة مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div>
 
           <div class="g-section-title">البحث والفلترة</div>
           <div class="g-card" style="margin-bottom:0">
@@ -1242,7 +1239,7 @@
               <strong>النوع:</strong> All / Income / Expense / Transfers<br>
               <strong>الشهر:</strong> اعرض معاملات شهر معين<br>
               <strong>الحساب:</strong> معاملات حساب معين<br>
-              <strong>الكاتيجوري:</strong> من القائمة المنسدلة الشجرية<br>
+              <strong>الفئة:</strong> من القائمة المنسدلة الشجرية<br>
               <strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ
             </div>
           </div>
@@ -1252,19 +1249,19 @@
         <!-- ===== TAB: CATEGORIES ===== -->
         <div class="guide-panel" id="guide-tab-categories">
           <div id="guide-content-categories">
-          <div class="g-section-title">🏷️ الكاتيجوريز (Categories)</div>
-          <p class="g-p">الكاتيجوريز هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p>
+          <div class="g-section-title">🏷️ الفئات (Categories)</div>
+          <p class="g-p">الفئات هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p>
 
-          <div class="g-section-title">هيكل الكاتيجوريز — مستويين</div>
+          <div class="g-section-title">هيكل الفئات — مستويين</div>
           <div class="g-card">
             <div class="g-card-body">
-              🗂️ <strong>Parent Category (كاتيجوري رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>
-              📂 <strong>Sub-Category (تحت-كاتيجوري):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت كاتيجوري رئيسية<br><br>
+              🗂️ <strong>Parent Category (فئة رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>
+              📂 <strong>Sub-Category (تحت-فئة):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت فئة رئيسية<br><br>
               <em>التقارير والميزانيات بتشتغل على المستويين — المجاميع بترتفع للـ parent تلقائياً.</em>
             </div>
           </div>
 
-          <div class="g-section-title">إضافة كاتيجوري جديدة</div>
+          <div class="g-section-title">إضافة فئة جديدة</div>
           <div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead>
           <tbody>
             <tr><td><strong>النوع</strong></td><td>Expense (مصروف) أو Income (دخل)</td></tr>
@@ -1273,8 +1270,8 @@
           </tbody></table></div>
 
           <div class="g-section-title">تعديل وحذف</div>
-          <p class="g-p">اضغط <strong>Edit</strong> بجانب أي كاتيجوري رئيسية، أو أيقونة <strong>✎</strong> بجانب أي sub-category لتغيير الاسم أو الـ parent.</p>
-          <div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف كاتيجوري عليها معاملات مسجّلة.</div>
+          <p class="g-p">اضغط <strong>Edit</strong> بجانب أي فئة رئيسية، أو أيقونة <strong>✎</strong> بجانب أي sub-category لتغيير الاسم أو الـ parent.</p>
+          <div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف فئة عليها معاملات مسجّلة.</div>
           </div>
         </div>
 
@@ -1326,7 +1323,7 @@
           <div class="g-section-title">تعديل مركبة</div>
           <p class="g-p">اضغط زر <strong>Edit</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p>
 
-          <div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة Transactions واخترت كاتيجوري "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>
+          <div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة Transactions واخترت فئة "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>
           </div>
         </div>
 
@@ -1334,13 +1331,13 @@
         <div class="guide-panel" id="guide-tab-budgets">
           <div id="guide-content-budgets">
           <div class="g-section-title">🎯 الميزانيات (Budgets)</div>
-          <p class="g-p">من صفحة Budgets تقدر تحدد حد شهري لكل كاتيجوري. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p>
+          <p class="g-p">من صفحة Budgets تقدر تحدد حد شهري لكل فئة. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p>
 
           <div class="g-section-title">كيف تستخدمها</div>
           <div class="g-steps">
-            <div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل كاتيجوري في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div>
+            <div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل فئة في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div>
             <div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div>
-            <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل كاتيجوري بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div>
+            <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل فئة بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div>
           </div>
           </div>
         </div>
@@ -1349,20 +1346,20 @@
         <div class="guide-panel" id="guide-tab-reports">
           <div id="guide-content-reports">
           <div class="g-section-title">📈 التقارير (Reports)</div>
-          <p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والكاتيجوري.</p>
+          <p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والفئة.</p>
 
           <div class="g-section-title">الفلاتر المتاحة</div>
           <div class="g-table-wrap"><table><thead><tr><th>الفلتر</th><th>الخيارات</th></tr></thead>
           <tbody>
             <tr><td><strong>الفترة</strong></td><td>كل الوقت / هذه السنة / آخر 6 أشهر / آخر 3 أشهر / هذا الشهر / تخصيص</td></tr>
-            <tr><td><strong>الكاتيجوري</strong></td><td>قائمة شجرية متعددة الاختيار — parent أو sub-categories</td></tr>
+            <tr><td><strong>الفئة</strong></td><td>قائمة شجرية متعددة الاختيار — parent أو sub-categories</td></tr>
           </tbody></table></div>
 
           <div class="g-section-title">ما تشوفه في التقارير</div>
           <div class="g-card">
             <div class="g-card-body">
               📊 <strong>الرسم البياني الشهري:</strong> Bar/Line chart للمصاريف شهر بشهر<br><br>
-              🗂️ <strong>جدول الكاتيجوريز:</strong> مجموع كل كاتيجوري للشهر الحالي + للفترة الكلية<br><br>
+              🗂️ <strong>جدول الفئات:</strong> مجموع كل فئة للشهر الحالي + للفترة الكلية<br><br>
               📅 <strong>التفصيل الشهري:</strong> مجموع المصاريف شهر بشهر بترتيب تنازلي
             </div>
           </div>
@@ -1370,7 +1367,7 @@
           <div class="g-section-title">نصائح للتقارير</div>
           <div class="g-card">
             <div class="g-card-body">
-              📊 فلتر بكاتيجوري واحدة لمعرفة مصاريفها بالضبط<br>
+              📊 فلتر بفئة واحدة لمعرفة مصاريفها بالضبط<br>
               📅 اختار آخر 3 أشهر عشان تشوف ترند مصاريفك<br>
               🎯 قارن التقارير مع الميزانيات للتحكم الكامل في الصرف
             </div>
@@ -2865,7 +2862,7 @@ function _treeLabelText(state, allCats){
   const selPar = allCats.filter(c=>!c.parentId && state[c.id]===true);
   const selCh  = allCats.filter(c=>c.parentId && state[c.id]===true && !selPar.find(p=>p.id===c.parentId));
   const parts = [...selPar.map(p=>p.name), ...selCh.map(c=>c.name)];
-  if(!parts.length) return 'كل الكاتيجوريز';
+  if(!parts.length) return 'كل الفئات';
   return parts.length<=2 ? parts.join(', ') : `${parts[0]} +${parts.length-1} أخرى`;
 }
 
@@ -2905,11 +2902,11 @@ function _initTreeDropdown({btnId,dropdownId,treeId,labelId,searchId,allBtnId,no
   });
   document.getElementById(noneBtnId)?.addEventListener('click', ()=>{
     const expKeys={}; Object.entries(state).filter(([k])=>k.startsWith('_exp_')).forEach(([k,v])=>expKeys[k]=v);
-    state=expKeys; rebuild(); labelEl.textContent='كل الكاتيجوريز'; onApply(new Set());
+    state=expKeys; rebuild(); labelEl.textContent='كل الفئات'; onApply(new Set());
   });
   return {
     getSelectedIds(){ return _treeGetLeafIds(state,getCats()); },
-    reset(){ state={}; if(labelEl) labelEl.textContent='كل الكاتيجوريز'; }
+    reset(){ state={}; if(labelEl) labelEl.textContent='كل الفئات'; }
   };
 }
 
@@ -3494,7 +3491,7 @@ function renderBudgets(){
   const topExpenseCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
   const mKey = thisMonthKey();
   if(!topExpenseCats.length){
-    document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">${LANG==='ar'?'لا يوجد كاتيجوريز مصاريف بعد':'No expense categories yet'}</div>`;
+    document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">${LANG==='ar'?'لا يوجد فئات مصاريف بعد':'No expense categories yet'}</div>`;
     return;
   }
   document.getElementById('budgets-grid').innerHTML = topExpenseCats.map(c=>budgetCardHTML(c, mKey, false)).join('');
@@ -5116,7 +5113,7 @@ const I18N = {
     nav_dashboard:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629', nav_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
     nav_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', nav_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631',
     nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a',
-    nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
+    nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0641\u0626\u0627\u062a', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
     btn_lang:'\ud83c\udf10 English',
     btn_theme_light:'\u2600 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d', btn_theme_dark:'\ud83c\udf19 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
     btn_connect_drive:'\ud83d\udd17 \u0631\u0628\u0637 Google Drive',
@@ -5136,7 +5133,7 @@ const I18N = {
     empty_no_txn:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u0623\u0648\u0644\u0649 \u0645\u0639\u0627\u0645\u0644\u0627\u062a\u0643',
     empty_due_soon:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0648\u0627\u0639\u064a\u062f \u0642\u0631\u064a\u0628\u0629',
     th_account:'\u0627\u0644\u062d\u0633\u0627\u0628', th_type:'\u0627\u0644\u0646\u0648\u0639', th_balance:'\u0627\u0644\u0631\u0635\u064a\u062f', th_date:'\u0627\u0644\u062a\u0627\u0631\u064a\u062e',
-    th_category:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a',
+    th_category:'\u0627\u0644\u0641\u0626\u0629', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a',
     th_currency:'\u0627\u0644\u0639\u0645\u0644\u0629', th_opening:'\u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a', th_name:'\u0627\u0644\u0627\u0633\u0645',
     th_current_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a', th_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     rep_this_month_th:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_no_data:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0639\u062f', btn_close:'\u0625\u063a\u0644\u0627\u0642',
@@ -5147,21 +5144,21 @@ const I18N = {
     empty_no_accounts_long:'\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u062d\u0633\u0627\u0628\u0627\u064b \u0644\u0628\u062f\u0621 \u0627\u0644\u062a\u062a\u0628\u0639',
     archived_tag:'\u0645\u0624\u0631\u0634\u0641',
     page_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a', btn_new_txn2:'+ \u0645\u0639\u0627\u0645\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
-    txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a...',
-    txn_all_months:'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631', txn_all_accounts:'\u0643\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', txn_all_categories:'\u0643\u0644 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632',
+    txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0641\u0626\u0629...',
+    txn_all_months:'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631', txn_all_accounts:'\u0643\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', txn_all_categories:'\u0643\u0644 \u0627\u0644\u0641\u0626\u0627\u062a',
     txn_custom_range:'\u0641\u062a\u0631\u0629 \u0645\u062e\u0635\u0635\u0629...', txn_date_range_sep:'\u0625\u0644\u0649',
     txn_filter_all:'\u0627\u0644\u0643\u0644', txn_filter_income:'\u062f\u062e\u0644', txn_filter_expense:'\u0645\u0635\u0627\u0631\u064a\u0641', txn_filter_transfer:'\u062a\u062d\u0648\u064a\u0644\u0627\u062a',
     txn_count:function(n){ return n+' \u0645\u0639\u0627\u0645\u0644\u0629'; },
     txn_page_of:function(c,tot,all){ return '\u0635\u0641\u062d\u0629 '+c+' \u0645\u0646 '+tot+' ('+all+')'; },
     txn_prev:'\u2192 \u0627\u0644\u0633\u0627\u0628\u0642', txn_next:'\u0627\u0644\u062a\u0627\u0644\u064a \u2190',
     empty_no_txn_filter:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u062a\u0637\u0627\u0628\u0642 \u0627\u0644\u0641\u0644\u062a\u0631', transfer_tag:'\u062a\u062d\u0648\u064a\u0644',
-    page_categories:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632', page_categories_sub:'\u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0627\u0644\u062f\u062e\u0644 \u0648\u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641 \u0645\u0639 \u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0641\u0631\u0639\u064a\u0629',
-    btn_new_category:'+ \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a \u062c\u062f\u064a\u062f\u0629',
-    expense_categories:'\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632 \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641', income_categories:'\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632 \u0627\u0644\u062f\u062e\u0644',
-    empty_no_categories:function(type){ return '\u0644\u0627 \u064a\u0648\u062c\u062f \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632 '+(type==='expense'?'\u0645\u0635\u0627\u0631\u064a\u0641':'\u062f\u062e\u0644')+' \u0628\u0639\u062f'; },
+    page_categories:'\u0627\u0644\u0641\u0626\u0627\u062a', page_categories_sub:'\u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0627\u0644\u062f\u062e\u0644 \u0648\u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641 \u0645\u0639 \u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0641\u0631\u0639\u064a\u0629',
+    btn_new_category:'+ \u0641\u0626\u0629 \u062c\u062f\u064a\u062f\u0629',
+    expense_categories:'\u0641\u0626\u0627\u062a \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641', income_categories:'\u0641\u0626\u0627\u062a \u0627\u0644\u062f\u062e\u0644',
+    empty_no_categories:function(type){ return '\u0644\u0627 \u064a\u0648\u062c\u062f \u0641\u0626\u0627\u062a '+(type==='expense'?'\u0645\u0635\u0627\u0631\u064a\u0641':'\u062f\u062e\u0644')+' \u0628\u0639\u062f'; },
     cannot_del_cat_children:'\u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062d\u0630\u0641: \u0641\u064a\u0647\u0627 \u062a\u0635\u0646\u064a\u0641\u0627\u062a \u0641\u0631\u0639\u064a\u0629 \u2014 \u0627\u062d\u0630\u0641\u0647\u0627 \u0623\u0648\u0644\u0627\u064b',
     cannot_del_cat_txns:'\u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062d\u0630\u0641: \u0639\u0644\u064a\u0647\u0627 \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0645\u0633\u062c\u0651\u0644\u0629',
-    cat_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', cat_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a',
+    cat_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0641\u0626\u0629', cat_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0641\u0626\u0629',
     page_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', page_commitments_sub:'\u0623\u0642\u0633\u0627\u0637 \u0648\u062c\u0645\u0639\u064a\u0627\u062a \u2014 \u062a\u062a\u0628\u0639 \u0645\u0627 \u062a\u0628\u0642\u0649',
     btn_new_commitment:'+ \u0627\u0644\u062a\u0632\u0627\u0645 \u062c\u062f\u064a\u062f',
     page_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', page_vehicles_sub:'\u0648\u0642\u0648\u062f\u060c \u0635\u064a\u0627\u0646\u0629\u060c \u062a\u063a\u064a\u064a\u0631 \u0632\u064a\u062a \u0648\u0627\u0644\u0639\u062f\u0627\u062f \u2014 \u0644\u0643\u0644 \u0645\u0631\u0643\u0628\u0629',
@@ -5170,14 +5167,14 @@ const I18N = {
     th_km:'\u0643\u0645', th_dist:'\u0627\u0644\u0645\u0633\u0627\u0641\u0629', th_kmpl:'\u0643\u0645/\u0644\u062a\u0631',
     veh_view_log:'\u0639\u0631\u0636 / \u062a\u0633\u062c\u064a\u0644', veh_btn_edit:'\u062a\u0639\u062f\u064a\u0644', veh_btn_delete:'\u062d\u0630\u0641',
     veh_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0645\u0631\u0643\u0628\u0629', veh_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u0631\u0643\u0628\u0629',
-    page_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', page_budgets_sub:'\u062d\u062f\u062f \u0633\u0642\u0641\u0627\u064b \u0634\u0647\u0631\u064a\u0627\u064b \u0644\u0643\u0644 \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a',
+    page_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', page_budgets_sub:'\u062d\u062f\u062f \u0633\u0642\u0641\u0627\u064b \u0634\u0647\u0631\u064a\u0627\u064b \u0644\u0643\u0644 \u0641\u0626\u0629',
     page_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631', page_reports_sub:'\u062a\u062d\u0644\u064a\u0644 \u0645\u0635\u0627\u0631\u064a\u0641\u0643 \u0648\u062f\u062e\u0644\u0643 \u0628\u0627\u0644\u062a\u0641\u0635\u064a\u0644',
     rep_period_all:'\u0643\u0644 \u0627\u0644\u0648\u0642\u062a', rep_period_ytd:'\u0647\u0630\u0647 \u0627\u0644\u0633\u0646\u0629', rep_period_6m:'\u0622\u062e\u0631 6 \u0623\u0634\u0647\u0631',
     rep_period_3m:'\u0622\u062e\u0631 3 \u0623\u0634\u0647\u0631', rep_period_1m:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_period_custom:'\u062a\u062e\u0635\u064a\u0635...',
-    rep_all_cats:'\u0643\u0644 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632', rep_chart_title:'\u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a \u0627\u0644\u0634\u0647\u0631\u064a',
-    rep_cat_col:'\u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a', rep_total_col:'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a', rep_monthly_breakdown:'\u0627\u0644\u062a\u0641\u0635\u064a\u0644 \u0627\u0644\u0634\u0647\u0631\u064a',
+    rep_all_cats:'\u0643\u0644 \u0627\u0644\u0641\u0626\u0627\u062a', rep_chart_title:'\u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a \u0627\u0644\u0634\u0647\u0631\u064a',
+    rep_cat_col:'\u0627\u0644\u0641\u0626\u0629', rep_total_col:'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a', rep_monthly_breakdown:'\u0627\u0644\u062a\u0641\u0635\u064a\u0644 \u0627\u0644\u0634\u0647\u0631\u064a',
     rep_month_th:'\u0627\u0644\u0634\u0647\u0631', rep_amount_th:'\u0627\u0644\u0645\u0628\u0644\u063a',
-    rep_empty_chart:'\u0627\u062e\u062a\u0631 \u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a \u0648\u0641\u062a\u0631\u0629 \u0644\u0639\u0631\u0636 \u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a',
+    rep_empty_chart:'\u0627\u062e\u062a\u0631 \u0641\u0626\u0629 \u0648\u0641\u062a\u0631\u0629 \u0644\u0639\u0631\u0636 \u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a',
     page_guide:'\ud83d\udcd6 \u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645', page_guide_sub:'\u0634\u0631\u062d \u062a\u0641\u0635\u064a\u0644\u064a \u0644\u0644\u0646\u0638\u0627\u0645 \u0648\u0631\u0628\u0637 Google Drive',
     sync_not_connected:'Google Drive: \u063a\u064a\u0631 \u0645\u062a\u0635\u0644', sync_connected:'Google Drive: \u0645\u062a\u0632\u0627\u0645\u0646 \u2713',
     sync_syncing:'Google Drive: \u062c\u0627\u0631\u064a \u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629\u2026', sync_error:'Google Drive: \u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629',

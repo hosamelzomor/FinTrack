@@ -805,7 +805,6 @@
     <div class="brand">
       <div class="mark"><span class="dot"></span>FinTrack</div>
       <div class="sub">Wealth Platform</div>
-      <button id="btn-more-toggle" class="more-toggle" aria-label="More">⋯</button>
     </div>
     <nav class="nav" id="nav">
       <button data-view="dashboard" class="active"><span class="ic">◆</span><span class="lbl">Dashboard</span></button>
@@ -897,7 +896,13 @@
         <input type="search" id="txn-search" placeholder="بحث بالنوت أو الكاتيجوري..." data-i18n-placeholder="txn_search_placeholder" style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;">
         <select id="txn-month-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الشهور</option>
+          <option value="__custom__" id="txn-month-custom-opt">فترة مخصصة...</option>
         </select>
+        <div id="txn-date-range" style="display:none;align-items:center;gap:6px;">
+          <input type="date" id="txn-date-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:13px;">
+          <span style="color:var(--text-muted);font-size:12px;" id="txn-date-range-sep">إلى</span>
+          <input type="date" id="txn-date-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:13px;">
+        </div>
         <select id="txn-account-filter" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;">
           <option value="">كل الحسابات</option>
         </select>
@@ -2268,9 +2273,6 @@ document.getElementById('btn-sidebar-toggle').addEventListener('click', ()=>{
   document.getElementById('btn-sidebar-toggle').textContent = collapsed ? '›' : '‹';
   try{ localStorage.setItem('fintrack_sidebar_collapsed', collapsed ? '1' : '0'); }catch(e){}
 });
-document.getElementById('btn-more-toggle').addEventListener('click', ()=>{
-  document.getElementById('nav-footer').classList.toggle('open');
-});
 document.getElementById('nav').addEventListener('click', e=>{
   const btn = e.target.closest('button[data-view]');
   if(!btn) return;
@@ -2281,7 +2283,6 @@ function showView(name){
   document.querySelector(`.nav button[data-view="${name}"]`)?.classList.add('active');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  document.getElementById('nav-footer').classList.remove('open');
   renderAll();
 }
 
@@ -2472,6 +2473,8 @@ let txnFilter = 'all';
 let txnSearchQuery = '';
 let txnMonthFilterVal = '';
 let txnAccountFilterVal = '';
+let txnDateFromVal = '';
+let txnDateToVal = '';
 let txnPage = 0;
 const TXN_PG = 100;
 let _txnTreeCtrl = null;
@@ -2498,9 +2501,14 @@ function renderTransactions(){
   // Populate month filter options (newest first) across ALL transactions (live + archived), preserving selection
   const monthSel = document.getElementById('txn-month-filter');
   const allMonths = [...new Set(DB.transactions.map(t=>monthKey(t.date)))].filter(Boolean).sort().reverse();
-  if(!allMonths.includes(txnMonthFilterVal)) txnMonthFilterVal = '';
+  const isCustomRange = txnMonthFilterVal === '__custom__';
+  if(!isCustomRange && txnMonthFilterVal && !allMonths.includes(txnMonthFilterVal)) txnMonthFilterVal = '';
   monthSel.innerHTML = `<option value="">${t('txn_all_months')}</option>` +
-    allMonths.map(m=>`<option value="${m}" ${m===txnMonthFilterVal?'selected':''}>${m}</option>`).join('');
+    allMonths.map(m=>`<option value="${m}" ${m===txnMonthFilterVal?'selected':''}>${m}</option>`).join('') +
+    `<option value="__custom__" ${isCustomRange?'selected':''}>${t('txn_custom_range')}</option>`;
+  document.getElementById('txn-date-range').style.display = isCustomRange ? 'flex' : 'none';
+  document.getElementById('txn-date-from').value = txnDateFromVal;
+  document.getElementById('txn-date-to').value = txnDateToVal;
 
   // Populate account filter options — ALL accounts (live + archived), archived ones labeled
   const acctSel = document.getElementById('txn-account-filter');
@@ -2514,7 +2522,10 @@ function renderTransactions(){
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
 
-  if(txnMonthFilterVal) list = list.filter(t=>monthKey(t.date)===txnMonthFilterVal);
+  if(isCustomRange){
+    if(txnDateFromVal) list = list.filter(t=>t.date >= txnDateFromVal);
+    if(txnDateToVal) list = list.filter(t=>t.date <= txnDateToVal);
+  } else if(txnMonthFilterVal) list = list.filter(t=>monthKey(t.date)===txnMonthFilterVal);
   if(txnAccountFilterVal) list = list.filter(t=>t.accountId===txnAccountFilterVal);
 
   const selCatIds = _txnTreeCtrl ? _txnTreeCtrl.getSelectedIds() : new Set();
@@ -2578,7 +2589,21 @@ document.getElementById('txn-search').addEventListener('input', e=>{
   txnSearchQuery = e.target.value; txnPage=0; renderTransactions();
 });
 document.getElementById('txn-month-filter').addEventListener('change', e=>{
-  txnMonthFilterVal = e.target.value; txnPage=0; renderTransactions();
+  txnMonthFilterVal = e.target.value; txnPage=0;
+  if(txnMonthFilterVal === '__custom__'){
+    document.getElementById('txn-date-range').style.display = 'flex';
+    // Don't re-render yet — wait for the person to actually pick dates,
+    // otherwise it'd show zero results the instant "Custom range" is chosen.
+  } else {
+    txnDateFromVal=''; txnDateToVal='';
+    renderTransactions();
+  }
+});
+document.getElementById('txn-date-from').addEventListener('change', e=>{
+  txnDateFromVal = e.target.value; txnPage=0; renderTransactions();
+});
+document.getElementById('txn-date-to').addEventListener('change', e=>{
+  txnDateToVal = e.target.value; txnPage=0; renderTransactions();
 });
 document.getElementById('txn-account-filter').addEventListener('change', e=>{
   txnAccountFilterVal = e.target.value; txnPage=0; renderTransactions();
@@ -2588,7 +2613,7 @@ document.getElementById('txn-pagination').addEventListener('click', e=>{
   txnPage = parseInt(btn.dataset.txnpage); renderTransactions();
 });
 document.getElementById('txn-reset').addEventListener('click', ()=>{
-  txnFilter='all'; txnSearchQuery=''; txnMonthFilterVal=''; txnAccountFilterVal=''; txnPage=0;
+  txnFilter='all'; txnSearchQuery=''; txnMonthFilterVal=''; txnAccountFilterVal=''; txnDateFromVal=''; txnDateToVal=''; txnPage=0;
   document.getElementById('txn-search').value='';
   if(_txnTreeCtrl) _txnTreeCtrl.reset();
   renderTransactions();
@@ -5052,6 +5077,7 @@ const I18N = {
     page_transactions:'Transactions', btn_new_txn2:'+ New Transaction',
     txn_search_placeholder:'Search by note or category...',
     txn_all_months:'All months', txn_all_accounts:'All accounts', txn_all_categories:'All categories',
+    txn_custom_range:'Custom range...', txn_date_range_sep:'to',
     txn_filter_all:'All', txn_filter_income:'Income', txn_filter_expense:'Expense', txn_filter_transfer:'Transfers',
     txn_count:function(n){ return n+' transaction'+(n===1?'':'s'); },
     txn_page_of:function(c,tot,all){ return 'Page '+c+' of '+tot+' ('+all+')'; },
@@ -5123,6 +5149,7 @@ const I18N = {
     page_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a', btn_new_txn2:'+ \u0645\u0639\u0627\u0645\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
     txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a...',
     txn_all_months:'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631', txn_all_accounts:'\u0643\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', txn_all_categories:'\u0643\u0644 \u0627\u0644\u0643\u0627\u062a\u064a\u062c\u0648\u0631\u064a\u0632',
+    txn_custom_range:'\u0641\u062a\u0631\u0629 \u0645\u062e\u0635\u0635\u0629...', txn_date_range_sep:'\u0625\u0644\u0649',
     txn_filter_all:'\u0627\u0644\u0643\u0644', txn_filter_income:'\u062f\u062e\u0644', txn_filter_expense:'\u0645\u0635\u0627\u0631\u064a\u0641', txn_filter_transfer:'\u062a\u062d\u0648\u064a\u0644\u0627\u062a',
     txn_count:function(n){ return n+' \u0645\u0639\u0627\u0645\u0644\u0629'; },
     txn_page_of:function(c,tot,all){ return '\u0635\u0641\u062d\u0629 '+c+' \u0645\u0646 '+tot+' ('+all+')'; },
@@ -5232,6 +5259,7 @@ function applyLang(lang){
   Object.keys(thMap).forEach(function(id){
     var el = document.getElementById(id); if(el) el.textContent = t(thMap[id]);
   });
+  var drSep = document.getElementById('txn-date-range-sep'); if(drSep) drSep.textContent = t('txn_date_range_sep');
 
   // Static page texts
   [['#view-accounts h1','page_accounts'],['#view-accounts .today','page_accounts_sub'],

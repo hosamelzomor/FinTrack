@@ -1540,6 +1540,11 @@ function migrateDB(db){
   const legacyCreatedBase = Date.UTC(2000, 0, 1);
   db.transactions.forEach((t, i)=>{
     if(!t.createdAt) t.createdAt = new Date(legacyCreatedBase + i).toISOString();
+    // Every transaction must belong to an account. Keep legacy records usable by
+    // attaching missing account links to the first available account when possible.
+    if(!t.accountId && db.accounts && db.accounts.length) t.accountId = db.accounts[0].id;
+    const linkedAcc = (db.accounts||[]).find(a=>a.id===t.accountId);
+    if(linkedAcc && !t.currency) t.currency = linkedAcc.currency;
   });
 
   // Commitment payments are a first-class mirror of their transaction. Older versions
@@ -4555,6 +4560,10 @@ const submitHandlers = {
     if(data.accountId){
       const a = accountById(data.accountId);
       if(!a) throw new Error('Account not found');
+      const hasTxns = DB.transactions.some(t=>t.accountId===a.id);
+      if(hasTxns && a.currency !== data.currency){
+        throw new Error(tt('مينفعش تغيّر عملة الحساب لأنه مرتبط بمعاملات موجودة. اعمل حساب جديد بالعملة المطلوبة.','You cannot change an account currency while it has linked transactions. Create a new account with the required currency instead.'));
+      }
       a.name = data.name.trim(); a.type = data.type; a.currency = data.currency;
       a.openingBalance = Number(data.openingBalance)||0; a.openingDate = data.openingDate;
       a.excludeFromNetWorth = data.excludeFromNetWorth === 'on';
@@ -4605,6 +4614,10 @@ const submitHandlers = {
     saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
   },
   transaction(data){
+    if(!data.accountId) throw new Error(tt('اختار الحساب المرتبط بالمعاملة','Choose the account linked to this transaction'));
+    const selectedAccount = accountById(data.accountId);
+    if(!selectedAccount) throw new Error(tt('الحساب المرتبط بالمعاملة غير موجود','The account linked to this transaction was not found'));
+
     if(data.transferPairId){
       // Editing an existing transfer: date/amount/note only, accounts stay fixed.
       const pair = DB.transactions.filter(t=>t.transferPairId===data.transferPairId);
@@ -4677,6 +4690,7 @@ const submitHandlers = {
     if(data.type==='transfer'){
       if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
       const from = accountById(data.accountId), to = accountById(data.destAccountId);
+      if(!to) throw new Error(tt('اختار الحساب المستلم','Choose the destination account'));
       const amount = Number(data.amount);
       const destAmount = from.currency===to.currency ? amount : amount * (fxRate(from.currency)/fxRate(to.currency));
       const pairId = uid('pair');

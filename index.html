@@ -1542,6 +1542,33 @@ function migrateDB(db){
     if(!t.createdAt) t.createdAt = new Date(legacyCreatedBase + i).toISOString();
   });
 
+  // Commitment payments are a first-class mirror of their transaction. Older versions
+  // allowed cash payments without a transaction, and could leave a stale linkedTransactionId
+  // after the transaction was deleted. Normalize those records so reports never silently
+  // lose the payment, and recreate the transaction when the payment still has an account.
+  db.commitments = db.commitments || [];
+  db.commitmentPayments = db.commitmentPayments || [];
+  const txnIds = new Set(db.transactions.map(t=>t.id));
+  db.commitmentPayments.forEach(p=>{
+    if(p.linkedTransactionId && !txnIds.has(p.linkedTransactionId)){
+      const c = db.commitments.find(x=>x.id===p.commitmentId);
+      const acc = p.accountId ? (db.accounts||[]).find(a=>a.id===p.accountId) : null;
+      if(c && acc){
+        const txnId = uid('txn');
+        db.transactions.push({
+          id: txnId, date:p.date, createdAt:new Date().toISOString(),
+          accountId:acc.id, categoryId:'cat_commit', amount:Number(p.amount)||0,
+          currency:acc.currency, note:c.name, type:'expense', transferPairId:null,
+          commitmentPaymentId:p.id
+        });
+        p.linkedTransactionId = txnId;
+        txnIds.add(txnId);
+      } else {
+        p.linkedTransactionId = null;
+      }
+    }
+  });
+
   // Old shared "Vehicle Expenses" categories from an earlier version — migrate any existing
   // transactions off them onto the new Car-specific ones, then drop the old categories.
   const oldToNew = { cat_vehicle:'cat_car', cat_fuel:'cat_car_fuel', cat_vehicle_maint:'cat_car_maint', cat_vehicle_oil:'cat_car_oil', cat_vehicle_asset:'cat_car_asset' };
@@ -2650,8 +2677,8 @@ function confirmIfLinked(txnId, action){
   const src = findLinkedSource(txnId);
   if(src){
     return confirm(tt(
-      `المعاملة دي مربوطة بـ ${src.label} (${src.kind==='commitment'?'دفعة التزام':'سجل مركبة'}). ${action==='edit'?'تعديلها':'حذفها'} هنا مش هيحدّث السجل ده — ممكن يحصل عدم تطابق. تكمل؟`,
-      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ${action==='edit'?'Editing':'Deleting'} it here won't update that record — the two may go out of sync. Continue?`
+      `المعاملة دي مرتبطة بـ ${src.label} (${src.kind==='commitment'?'دفعة التزام':'سجل مركبة'}). ${action==='edit'?'تعديلها هيحدّث السجل المرتبط تلقائياً.':'حذفها هيحذف السجل المرتبط كمان.'} تكمل؟`,
+      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ${action==='edit'?'Editing it will update the linked record automatically.':'Deleting it will delete the linked record too.'} Continue?`
     ));
   }
   if(action==='delete') return confirm(tt('حذف المعاملة دي؟ الإجراء ده مش قابل للتراجع.','Delete this transaction? This can\'t be undone.'));
@@ -2666,8 +2693,19 @@ document.getElementById('view-transactions').addEventListener('click', e=>{
   }
   const id = e.target.dataset.delTxn; if(!id) return;
   if(!confirmIfLinked(id, 'delete')) return;
+  const linkedPmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===id);
+  const linkedVehicleLog = DB.vehicleLogs.find(l=>l.linkedTransactionId===id);
   DB.transactions = DB.transactions.filter(t=>t.id!==id);
-  saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف المعاملة':'Transaction deleted');
+  if(linkedPmt){
+    const c = DB.commitments.find(x=>x.id===linkedPmt.commitmentId);
+    DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.id!==linkedPmt.id);
+    if(c){
+      const paidCount = commitmentPayments(c.id).length;
+      c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+    }
+  }
+  if(linkedVehicleLog) DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==linkedVehicleLog.id);
+  saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف المعاملة والسجل المرتبط':'Transaction and linked record deleted');
 });
 
 /* ---------------------------- RENDER: CATEGORIES ---------------------------- */
@@ -2774,9 +2812,12 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
       ? tt(`حذف ${c ? c.name : 'الالتزام'}؟ ده هيمسح كمان ${paymentCount} دفعة متسجلة نهائياً. الإجراء ده مش قابل للتراجع.`, `Delete ${c ? c.name : 'this commitment'}? This also permanently deletes its ${paymentCount} recorded payment${paymentCount===1?'':'s'}. This can't be undone.`)
       : tt(`حذف ${c ? c.name : 'الالتزام'}؟ الإجراء ده مش قابل للتراجع.`, `Delete ${c ? c.name : 'this commitment'}? This can't be undone.`);
     if(!confirm(warning)) return;
+    const paymentIds = DB.commitmentPayments.filter(p=>p.commitmentId===delId).map(p=>p.id);
+    const linkedTxnIds = new Set(DB.commitmentPayments.filter(p=>p.commitmentId===delId && p.linkedTransactionId).map(p=>p.linkedTransactionId));
     DB.commitments = DB.commitments.filter(c=>c.id!==delId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.commitmentId!==delId);
-    saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف الالتزام':'Commitment deleted');
+    DB.transactions = DB.transactions.filter(t=>!linkedTxnIds.has(t.id));
+    saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف الالتزام ودفعاته ومعاملاته المرتبطة':'Commitment, its payments and linked transactions deleted');
   }
 });
 
@@ -3552,6 +3593,12 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
 
 
 /* ---------------------------- MODALS ---------------------------- */
+function commitmentOptions(selected){
+  const active = DB.commitments.filter(c=>c.status!=='completed' || c.id===selected);
+  return `<option value="">${tt('— اختار الالتزام —','— Select commitment —')}</option>` +
+    active.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${c.name}</option>`).join('');
+}
+
 function accountOptions(selected){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
 }
@@ -3688,6 +3735,10 @@ function openModal(kind, ctx={}){
     if(!DB.accounts.length){ toast(tt('ضيف حساب الأول','Add an account first')); return; }
     const editing = ctx.txnId ? DB.transactions.find(t=>t.id===ctx.txnId) : null;
     if(ctx.txnId && !editing){ toast(tt('المعاملة مش موجودة','Transaction not found')); return; }
+    const linkedCommitmentPayment = editing
+      ? DB.commitmentPayments.find(p=>p.linkedTransactionId===editing.id)
+      : null;
+    const linkedCommitmentId = linkedCommitmentPayment ? linkedCommitmentPayment.commitmentId : null;
 
     if(editing && editing.type.startsWith('transfer')){
       // Reduced edit form for transfers: date/amount/note only, accounts read-only.
@@ -3745,6 +3796,10 @@ function openModal(kind, ctx={}){
           <div class="field" id="txn-category-field">
             <label>${tt('الفئة','Category')}</label>
             <select name="categoryId" id="txn-category-select">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
+          </div>
+          <div class="field" id="txn-commitment-field" style="display:${(editing && linkedCommitmentId) || (!editing && typeVal==='expense' && editing?.categoryId==='cat_commit') ? 'block':'none'};">
+            <label>${tt('الالتزام المرتبط','Linked Commitment')}</label>
+            <select name="commitmentId" id="txn-commitment-select">${commitmentOptions(linkedCommitmentId||'')}</select>
           </div>
           ${editing ? '' : `
           <div class="field" id="txn-vehicle-field" style="display:none;">
@@ -3887,10 +3942,11 @@ function openModal(kind, ctx={}){
           </div>
           <input type="hidden" name="method" value="cash">
         </div>
-        <div class="field" id="pay-account-field" style="display:none;">
+        <div class="field" id="pay-account-field">
           <label>${tt('من حساب','From Account')}</label>
           <select name="accountId">${accountOptions()}</select>
         </div>
+        <div class="help-text">${tt('الدفعة هتتسجل كمعاملة مرتبطة بالالتزام، وأي تعديل أو حذف من أي صفحة هينعكس على الصفحة التانية.','The payment will be saved as a linked transaction. Editing or deleting it from either page updates the other side too.')}</div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('تسجيل الدفعة','Record Payment')}</button>
@@ -4448,10 +4504,31 @@ function wireModal(kind){
       updatePartOptions();
       recalcLiters();
     };
-    catSelect.addEventListener('change', updateVehicleFields);
-    vehicleSelect.addEventListener('change', updatePartOptions);
+    const commitmentField = backdrop.querySelector('#txn-commitment-field');
+    const commitmentSelect = backdrop.querySelector('#txn-commitment-select');
+    const updateCommitmentField = ()=>{
+      if(!commitmentField || !commitmentSelect) return;
+      const isCommitment = catSelect?.value === 'cat_commit' && (backdrop.querySelector('[name="type"]')?.value || typeVal) === 'expense';
+      commitmentField.style.display = isCommitment ? 'block' : 'none';
+      if(!isCommitment) commitmentSelect.value = linkedCommitmentId || '';
+    };
+    catSelect.addEventListener('change', ()=>{
+      updateVehicleFields();
+      updateCommitmentField();
+    });
+    const txnTypeInput = backdrop.querySelector('[name="type"]');
+    backdrop.querySelectorAll('#txn-type-group .radio-opt').forEach(opt=>{
+      opt.addEventListener('click', ()=>{
+        setTimeout(()=>{
+          updateCommitmentField();
+          updateVehicleFields();
+        }, 0);
+      });
+    });
+    vehicleSelect?.addEventListener('change', updatePartOptions);
     amountInput?.addEventListener('input', recalcLiters);
     updateVehicleFields();
+    updateCommitmentField();
   }
 
   const form = backdrop.querySelector('form');
@@ -4542,16 +4619,61 @@ const submitHandlers = {
       saveDB(); toast(tt('اتحدث التحويل','Transfer updated'));
       return;
     }
+
     if(data.txnId){
-      // Editing an existing regular (income/expense) transaction in place.
+      // Editing an existing regular transaction. If it is a commitment payment,
+      // the commitment-payment record is updated in the same operation.
       const t = DB.transactions.find(x=>x.id===data.txnId);
       if(!t) throw new Error('Transaction not found');
       const acc = accountById(data.accountId);
-      t.date = data.date; t.accountId = data.accountId; t.categoryId = data.categoryId;
-      t.amount = Number(data.amount); t.currency = acc.currency; t.note = data.note; t.type = data.type;
+      if(!acc) throw new Error('Choose an account');
+
+      const linkedPmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===t.id);
+      const commitmentId = linkedPmt ? linkedPmt.commitmentId : (data.categoryId==='cat_commit' ? data.commitmentId : null);
+
+      if(data.categoryId==='cat_commit'){
+        if(data.type!=='expense') throw new Error(tt('دفعات الالتزامات لازم تكون مصروف','Commitment payments must be expenses'));
+        if(!commitmentId) throw new Error(tt('اختار الالتزام المرتبط بالدفعة','Choose the commitment linked to this payment'));
+        const c = DB.commitments.find(x=>x.id===commitmentId);
+        if(!c) throw new Error('Commitment not found');
+        if(linkedPmt && linkedPmt.commitmentId!==commitmentId) throw new Error(tt('المعاملة مرتبطة بالتزام مختلف','This transaction is linked to a different commitment'));
+      } else if(linkedPmt){
+        throw new Error(tt('المعاملة دي مرتبطة بدفعة التزام — لازم تفضل فئة الالتزامات','This transaction is linked to a commitment payment — keep the Commitments category'));
+      }
+
+      t.date = data.date;
+      t.accountId = data.accountId;
+      t.categoryId = data.categoryId;
+      t.amount = Number(data.amount);
+      t.currency = acc.currency;
+      t.note = data.note;
+      t.type = data.type;
+
+      if(linkedPmt){
+        linkedPmt.date = data.date;
+        linkedPmt.amount = Number(data.amount);
+        linkedPmt.accountId = data.accountId;
+        linkedPmt.method = data.method || linkedPmt.method || 'cash';
+      } else if(data.categoryId==='cat_commit'){
+        DB.commitmentPayments.push({
+          id:uid('pmt'),
+          commitmentId,
+          date:data.date,
+          amount:Number(data.amount),
+          method:data.method || 'cash',
+          accountId:data.accountId,
+          linkedTransactionId:t.id
+        });
+      }
+      const c = commitmentId ? DB.commitments.find(x=>x.id===commitmentId) : null;
+      if(c){
+        const paidCount = commitmentPayments(c.id).length;
+        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+      }
       saveDB(); toast(tt('اتحدثت المعاملة','Transaction updated'));
       return;
     }
+
     if(data.type==='transfer'){
       if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
       const from = accountById(data.accountId), to = accountById(data.destAccountId);
@@ -4563,24 +4685,44 @@ const submitHandlers = {
       DB.transactions.push({id:uid('txn'), date:data.date, createdAt, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
     } else {
       const acc = accountById(data.accountId);
-      const txnId = uid('txn');
-      DB.transactions.push({
-        id: txnId, date:data.date, createdAt:new Date().toISOString(), accountId:data.accountId, categoryId:data.categoryId,
-        amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
-      });
-      // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log
-      // entry too, so odometer-based fuel efficiency, oil-change and part-wear tracking pick it up.
-      const info = categoryVehicleInfo(data.categoryId);
-      if(info && data.vehicleId){
-        const v = vehicleById(data.vehicleId);
-        if(v){
-          DB.vehicleLogs.push({
-            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
-            amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-            litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
-            partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
-            note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
-          });
+      if(!acc) throw new Error('Choose an account');
+      if(data.categoryId==='cat_commit'){
+        if(data.type!=='expense') throw new Error(tt('دفعات الالتزامات لازم تكون مصروف','Commitment payments must be expenses'));
+        if(!data.commitmentId) throw new Error(tt('اختار الالتزام المرتبط بالدفعة','Choose the commitment linked to this payment'));
+        const c = DB.commitments.find(x=>x.id===data.commitmentId);
+        if(!c) throw new Error('Commitment not found');
+        const txnId = uid('txn');
+        DB.transactions.push({
+          id:txnId, date:data.date, createdAt:new Date().toISOString(), accountId:data.accountId,
+          categoryId:'cat_commit', amount:Number(data.amount), currency:acc.currency,
+          note:data.note || c.name, type:'expense', transferPairId:null,
+          commitmentPaymentId:null
+        });
+        DB.commitmentPayments.push({
+          id:uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
+          method:data.method || 'cash', accountId:data.accountId, linkedTransactionId:txnId
+        });
+        const paidCount = commitmentPayments(c.id).length;
+        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+      } else {
+        const txnId = uid('txn');
+        DB.transactions.push({
+          id: txnId, date:data.date, createdAt:new Date().toISOString(), accountId:data.accountId, categoryId:data.categoryId,
+          amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
+        });
+        // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log.
+        const info = categoryVehicleInfo(data.categoryId);
+        if(info && data.vehicleId){
+          const v = vehicleById(data.vehicleId);
+          if(v){
+            DB.vehicleLogs.push({
+              id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
+              amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+              litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
+              partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
+              note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
+            });
+          }
         }
       }
     }
@@ -4619,23 +4761,29 @@ const submitHandlers = {
   },
   payment(data){
     const c = DB.commitments.find(x=>x.id===data.commitmentId);
-    const method = data.method;
-    let accountId = data.accountId || null;
-    let currency = 'EGP';
-    let txnId = null;
-    if(method==='bank_transfer'){
-      if(!accountId) throw new Error('Choose an account');
-      const acc = accountById(accountId); currency = acc.currency;
-      txnId = uid('txn');
-      DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
-    }
-    DB.commitmentPayments.push({
-      id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
-      method, accountId, linkedTransactionId: txnId
+    if(!c) throw new Error('Commitment not found');
+    if(!data.accountId) throw new Error(tt('اختار الحساب اللي اتدفعت منه الدفعة','Choose the account the payment was made from'));
+    const acc = accountById(data.accountId);
+    if(!acc) throw new Error('Account not found');
+
+    const amount = Number(data.amount);
+    if(!(amount > 0)) throw new Error(tt('المبلغ لازم يكون أكبر من صفر','Amount must be greater than zero'));
+
+    const txnId = uid('txn');
+    const paymentId = uid('pmt');
+    DB.transactions.push({
+      id:txnId, date:data.date, createdAt:new Date().toISOString(),
+      accountId:acc.id, categoryId:'cat_commit', amount, currency:acc.currency,
+      note:c.name, type:'expense', transferPairId:null, commitmentPaymentId:paymentId
     });
+    DB.commitmentPayments.push({
+      id:paymentId, commitmentId:c.id, date:data.date, amount,
+      method:data.method || 'cash', accountId:acc.id, linkedTransactionId:txnId
+    });
+
     const paidCount = commitmentPayments(c.id).length;
-    if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
-    saveDB(); toast(tt('اتسجلت الدفعة','Payment recorded'));
+    c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+    saveDB(); toast(tt('اتسجلت الدفعة والمعاملة المرتبطة','Payment and linked transaction recorded'));
   },
   payout(data){
     const c = DB.commitments.find(x=>x.id===data.commitmentId);

@@ -1482,7 +1482,16 @@ function loadDB(){
   }
   return seedDB();
 }
-function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); queueDrivePush(); }
+function saveDB(){
+  // Some transaction flows are created outside the main transaction form. Make sure every
+  // newly-created transaction has a registration timestamp before persisting it.
+  const stampBase = Date.now();
+  (DB.transactions||[]).forEach((t, i)=>{
+    if(!t.createdAt) t.createdAt = new Date(stampBase + i).toISOString();
+  });
+  localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  queueDrivePush();
+}
 function saveLocalOnly(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
 
 function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
@@ -1525,6 +1534,14 @@ function migrateDB(db){
     { id:'cat_adjustment_inc', name:'Balance Adjustments', type:'income', parentId:null }
   ];
   defaultCats.forEach(c=>{ if(!catIds.has(c.id)){ db.categories.push(c); catIds.add(c.id); } });
+  // Registration timestamp for transaction ordering. Older databases did not store this,
+  // so preserve their existing array order as a stable fallback during migration.
+  db.transactions = db.transactions || [];
+  const legacyCreatedBase = Date.UTC(2000, 0, 1);
+  db.transactions.forEach((t, i)=>{
+    if(!t.createdAt) t.createdAt = new Date(legacyCreatedBase + i).toISOString();
+  });
+
   // Old shared "Vehicle Expenses" categories from an earlier version — migrate any existing
   // transactions off them onto the new Car-specific ones, then drop the old categories.
   const oldToNew = { cat_vehicle:'cat_car', cat_fuel:'cat_car_fuel', cat_vehicle_maint:'cat_car_maint', cat_vehicle_oil:'cat_car_oil', cat_vehicle_asset:'cat_car_asset' };
@@ -2403,7 +2420,11 @@ function renderDashboard(){
       <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
     </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">${t('empty_due_soon')}</div>`;
 
-  const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
+  const recent = liveTransactions().sort((a,b)=>{
+    const dateCmp = (b.date||'').localeCompare(a.date||'');
+    if(dateCmp !== 0) return dateCmp;
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  }).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(tx=>{
     const acc = accountById(tx.accountId);
     const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
@@ -2516,7 +2537,12 @@ function renderTransactions(){
     DB.accounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}${a.excludeFromNetWorth?` (${t('archived_tag')})`:''}` + '</option>').join('');
 
   // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
-  let list = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date));
+  // Newest transaction date first; when dates are equal, newest registration first.
+  let list = [...DB.transactions].sort((a,b)=>{
+    const dateCmp = (b.date||'').localeCompare(a.date||'');
+    if(dateCmp !== 0) return dateCmp;
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
   if(txnFilter==='income') list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
@@ -4532,13 +4558,14 @@ const submitHandlers = {
       const amount = Number(data.amount);
       const destAmount = from.currency===to.currency ? amount : amount * (fxRate(from.currency)/fxRate(to.currency));
       const pairId = uid('pair');
-      DB.transactions.push({id:uid('txn'), date:data.date, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
-      DB.transactions.push({id:uid('txn'), date:data.date, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
+      const createdAt = new Date().toISOString();
+      DB.transactions.push({id:uid('txn'), date:data.date, createdAt, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
+      DB.transactions.push({id:uid('txn'), date:data.date, createdAt, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
     } else {
       const acc = accountById(data.accountId);
       const txnId = uid('txn');
       DB.transactions.push({
-        id: txnId, date:data.date, accountId:data.accountId, categoryId:data.categoryId,
+        id: txnId, date:data.date, createdAt:new Date().toISOString(), accountId:data.accountId, categoryId:data.categoryId,
         amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
       });
       // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log

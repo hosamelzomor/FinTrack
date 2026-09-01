@@ -1642,21 +1642,8 @@ function accountBalance(acc){
     if(t.accountId !== acc.id) return;
     if(t.type === 'income') bal += Number(t.amount);
     else if(t.type === 'expense') bal -= Number(t.amount);
-    else if(t.type === 'transfer_out'){
-      // A negative-opening reserve account represents money earmarked/held aside,
-      // not a real negative bank/cash balance. Releasing that reserve brings it
-      // toward zero; it must not subtract the amount a second time.
-      if(Number(acc.openingBalance) < 0) bal += Number(t.amount);
-      else bal -= Number(t.amount);
-    }
-    else if(t.type === 'transfer_in'){
-      // If the matching source is a negative-opening reserve account, the money
-      // is already included in the destination's real balance; this transfer is
-      // only releasing the earmark, so don't add it to the destination again.
-      const pair = t.transferPairId ? DB.transactions.find(x=>x.transferPairId===t.transferPairId && x.type==='transfer_out') : null;
-      const source = pair ? accountById(pair.accountId) : null;
-      if(!(source && Number(source.openingBalance) < 0)) bal += Number(t.amount);
-    }
+    else if(t.type === 'transfer_out') bal -= Number(t.amount);
+    else if(t.type === 'transfer_in') bal += Number(t.amount);
   });
   return bal;
 }
@@ -4511,7 +4498,7 @@ const submitHandlers = {
     const diff = actual - computed;
     if(Math.abs(diff) < 0.01){ toast(tt('مفيش فرق للتسجيل','No difference to record')); return; }
     DB.transactions.push({
-      id: uid('txn'), date: todayLocalISO(), createdAt: new Date().toISOString(), accountId: a.id,
+      id: uid('txn'), date: todayLocalISO(), accountId: a.id,
       categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
       amount: Math.abs(diff), currency: a.currency,
       note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
@@ -4530,7 +4517,7 @@ const submitHandlers = {
       const diff = Number(data[key]) - computed;
       if(Math.abs(diff) < 0.01) return;
       DB.transactions.push({
-        id: uid('txn'), date: today, createdAt: new Date(Date.now() + recorded).toISOString(), accountId: a.id,
+        id: uid('txn'), date: today, accountId: a.id,
         categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
         amount: Math.abs(diff), currency: a.currency,
         note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null

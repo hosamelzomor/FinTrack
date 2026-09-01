@@ -963,7 +963,214 @@
         <div><h1>Vehicles</h1><div class="today">Fuel, maintenance, oil changes &amp; mileage — per vehicle</div></div>
         <button class="btn" data-open-modal="vehicle">+ New Vehicle</button>
       </div>
-      </div></div>
+      <div class="field" style="max-width:260px;margin-bottom:14px;">
+        <label id="veh-fuel-price-label">⛽ Fuel Price (EGP / liter)</label>
+        <input type="number" step="0.01" id="fuel-price-input">
+      </div>
+      <div class="radio-group" id="veh-subtab-group" style="max-width:280px;margin-bottom:18px;">
+        <div class="radio-opt selected" data-val="cards" id="veh-subtab-cards">Vehicles</div>
+        <div class="radio-opt" data-val="logs" id="veh-subtab-logs">All Logs</div>
+      </div>
+
+      <div id="veh-cards-panel">
+        <div class="grid cols-3" id="vehicles-grid"></div>
+      </div>
+
+      <div id="veh-logs-panel" style="display:none;">
+        <div id="vlogs-filter-bar" class="field-row" style="align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div class="field" style="margin:0;min-width:160px;flex:1;">
+            <label id="vlogs-lbl-vehicle">Vehicle</label>
+            <select id="vlogs-filter-vehicle"></select>
+          </div>
+          <div class="field" style="margin:0;min-width:150px;flex:1;">
+            <label id="vlogs-lbl-type">Type</label>
+            <select id="vlogs-filter-type">
+              <option value="all" id="vlogs-opt-all">All types</option>
+              <option value="fuel" id="vlogs-opt-fuel">⛽ Fuel</option>
+              <option value="maintenance" id="vlogs-opt-maint">🔧 Maintenance</option>
+              <option value="oil" id="vlogs-opt-oil">🛢 Oil Change</option>
+              <option value="asset" id="vlogs-opt-asset">💰 Asset</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;flex:1;">
+            <label id="vlogs-lbl-from">From</label>
+            <input type="date" id="vlogs-filter-from">
+          </div>
+          <div class="field" style="margin:0;flex:1;">
+            <label id="vlogs-lbl-to">To</label>
+            <input type="date" id="vlogs-filter-to">
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;" class="filter-wide">
+            <button type="button" class="btn ghost sm" id="vlogs-sort-toggle">Date: Newest first ↓</button>
+            <button type="button" class="btn secondary sm" id="vlogs-filter-reset">Reset</button>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-bottom:18px;padding:18px 20px;">
+          <div id="vlogs-chart-header" style="margin-bottom:10px;"></div>
+          <canvas id="vlogs-chart" style="max-height:220px;width:100%;"></canvas>
+          <div id="vlogs-chart-empty" class="empty" style="display:none;padding:24px 0 4px 0;"></div>
+        </div>
+
+        <div id="vlogs-summary-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+
+        <div class="table-wrap" style="margin-bottom:18px;">
+          <table>
+            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
+            <tbody id="vlogs-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- BUDGETS -->
+    <section class="view" id="view-budgets">
+      <div class="topbar">
+        <div><h1>Budgets</h1><div class="today">Set a monthly limit per category — suggested from your real spending history</div></div>
+      </div>
+      <div class="grid cols-3" id="budgets-grid"></div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="view" id="view-reports">
+      <div class="topbar">
+        <div><h1>Reports</h1><div class="today">تحليل مصاريفك ودخلك بالتفصيل</div></div>
+      </div>
+      <!-- Filter bar -->
+      <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+        <div id="rep-filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          <div>
+            <div id="rep-lbl-period" style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفترة</div>
+            <select id="rep-period-sel" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 10px;font-size:13px;min-width:130px;">
+              <option value="all" id="rep-period-all">كل الوقت</option>
+              <option value="ytd" id="rep-period-ytd">هذه السنة</option>
+              <option value="6m" id="rep-period-6m">آخر 6 أشهر</option>
+              <option value="3m" id="rep-period-3m">آخر 3 أشهر</option>
+              <option value="1m" id="rep-period-1m">هذا الشهر</option>
+              <option value="custom" id="rep-period-custom">تخصيص...</option>
+            </select>
+          </div>
+          <div id="rep-from-wrap" style="display:none;">
+            <div id="rep-lbl-from" style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">من</div>
+            <input type="month" id="rep-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
+          </div>
+          <div id="rep-to-wrap" style="display:none;">
+            <div id="rep-lbl-to" style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">إلى</div>
+            <input type="month" id="rep-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px;">
+          </div>
+          <div style="position:relative;flex:1;min-width:180px;" class="filter-wide">
+            <div id="rep-lbl-cat" style="font-size:9.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">الفئة (دخل + مصاريف)</div>
+            <button type="button" id="rep-cat-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <span id="rep-cat-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">كل الفئات</span><span style="flex:none;font-size:10px;">▾</span>
+            </button>
+            <div id="rep-cat-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:290px;max-height:350px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+              <div style="padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);">
+                <input type="text" id="rep-cat-search" placeholder="ابحث..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none;">
+              </div>
+              <div style="padding:4px 0;" id="rep-cat-tree"></div>
+              <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
+                <button class="btn ghost sm" id="rep-cat-all">الكل</button>
+                <button class="btn ghost sm" id="rep-cat-none">إلغاء</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn ghost sm" id="rep-reset" style="align-self:flex-end;padding:7px 11px;" title="مسح الفلاتر">↺</button>
+        </div>
+      </div>
+
+      <!-- Summary strip -->
+      <div id="rep-summary-strip" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
+
+      <!-- Chart + Category table side by side -->
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:18px;" id="rep-main-grid">
+        <div class="card" style="padding:14px 16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div id="rep-chart-heading" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">الرسم البياني الشهري</div>
+            <select id="rep-chart-type" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 7px;font-size:11px;">
+              <option value="bar" id="rep-chart-opt-bar">Bar</option>
+              <option value="line" id="rep-chart-opt-line">Line</option>
+            </select>
+          </div>
+          <canvas id="rep-chart" style="max-height:240px;"></canvas>
+          <div id="rep-chart-empty" style="padding:40px;text-align:center;color:var(--text-faint);font-size:12px;display:none;">اختر فئة وفترة لعرض الرسم البياني</div>
+        </div>
+        <div class="table-wrap" style="overflow:auto;max-height:310px;">
+          <table style="min-width:unset;">
+            <thead><tr><th id="th-rep-cat">الفئة</th><th class="amt" id="th-rep-thismonth">الشهر</th><th class="amt" id="rep-period-hdr">الكل</th></tr></thead>
+            <tbody id="reports-tree-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Monthly breakdown table -->
+      <div class="section-title" style="margin-top:4px;" id="rep-monthly-section-title">التفصيل الشهري</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-rep-month">الشهر</th><th class="amt" id="rep-monthly-hdr">المبلغ</th></tr></thead>
+          <tbody id="reports-monthly-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- GUIDE -->
+    <section class="view" id="view-guide">
+      <div class="topbar">
+        <div><h1>📖 دليل الاستخدام</h1><div class="today">شرح تفصيلي للنظام وربط Google Drive</div></div>
+      </div>
+
+      <div id="guide-root">
+
+        <!-- GUIDE NAV TABS -->
+        <div class="guide-tabs" id="guide-tabs">
+          <button class="guide-tab active" data-tab="overview">🧭 نظرة عامة</button>
+          <button class="guide-tab" data-tab="accounts">🏦 الحسابات</button>
+          <button class="guide-tab" data-tab="transactions">💸 المعاملات</button>
+          <button class="guide-tab" data-tab="categories">🏷️ الفئات</button>
+          <button class="guide-tab" data-tab="commitments">🔄 الالتزامات</button>
+          <button class="guide-tab" data-tab="vehicles">🚗 المركبات</button>
+          <button class="guide-tab" data-tab="budgets">🎯 الميزانيات</button>
+          <button class="guide-tab" data-tab="reports">📈 التقارير</button>
+          <button class="guide-tab" data-tab="drive">☁️ Google Drive</button>
+        </div>
+
+        <!-- ===== TAB: OVERVIEW ===== -->
+        <div class="guide-panel active" id="guide-tab-overview">
+          <div class="g-hero">
+            <div class="g-hero-logo">
+              <img src="data:image/png;base64,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" alt="Hossam Al-Zomor">
+              <div>
+                <div class="g-hero-title">FinTrack</div>
+                <div class="g-hero-sub" id="guide-ov-hero-sub">نظام إدارة مالية شخصي — بواسطة Hossam Al-Zomor</div>
+              </div>
+            </div>
+            <p class="g-desc" id="guide-ov-desc">FinTrack نظام مالي شخصي متكامل يعمل في المتصفح مباشرةً — بدون سيرفرات خارجية أو اشتراكات. بياناتك عندك أنت فقط.</p>
+            <div class="g-pills" id="guide-ov-pills">
+              <span class="g-pill">💾 يعمل بدون إنترنت بالكامل</span>
+              <span class="g-pill">🌐 مزامنة Google Drive اختيارية</span>
+              <span class="g-pill">🔒 بياناتك عندك أنت فقط</span>
+              <span class="g-pill">📱 يعمل على الموبايل والكمبيوتر</span>
+            </div>
+          </div>
+
+          <div id="guide-ov-rest">
+          <div class="g-section-title">هيكل النظام</div>
+          <div class="g-table-wrap">
+            <table><thead><tr><th>القسم</th><th>وظيفته</th><th>الأهمية</th></tr></thead>
+            <tbody>
+              <tr><td><strong>الحسابات</strong></td><td>محافظك وحساباتك البنكية</td><td><span class="g-badge green">أساسي</span></td></tr>
+              <tr><td><strong>المعاملات</strong></td><td>تسجيل دخل ومصروف وتحويل</td><td><span class="g-badge green">أساسي</span></td></tr>
+              <tr><td><strong>الفئات</strong></td><td>تصنيف المصاريف والدخل</td><td><span class="g-badge green">أساسي</span></td></tr>
+              <tr><td><strong>الالتزامات</strong></td><td>أقساط وجمعيات</td><td><span class="g-badge blue">مهم</span></td></tr>
+              <tr><td><strong>المركبات</strong></td><td>تتبع مصاريف العربية والسكوتر</td><td><span class="g-badge blue">مهم</span></td></tr>
+              <tr><td><strong>الميزانيات</strong></td><td>تحديد حد شهري لكل فئة</td><td><span class="g-badge">اختياري</span></td></tr>
+              <tr><td><strong>التقارير</strong></td><td>تحليل مصاريفك بالتفصيل</td><td><span class="g-badge">اختياري</span></td></tr>
+            </tbody></table>
+          </div>
+
+          <div class="g-section-title">الترتيب الموصى به للبداية</div>
+          <div class="g-steps">
+            <div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أضف حساباتك</div><div class="g-step-desc">روح صفحة <strong>الحسابات</strong> واضغط <strong>حساب جديد</strong>. أضف كل وعاء مالي عندك مع الرصيد الافتتاحي الصحيح.</div></div></div>
             <div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الفئات</div><div class="g-step-desc">روح صفحة <strong>الفئات</strong> وعدّل التصنيفات اللي تناسبك.</div></div></div>
             <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف مركباتك (لو عندك)</div><div class="g-step-desc">روح صفحة <strong>المركبات</strong> وأضف عربيتك أو سكوترك مع بيانات الزيت والوقود.</div></div></div>
             <div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">اضغط <strong>+ معاملة جديدة</strong> من أي صفحة وسجّل مصاريفك ودخلك يومياً.</div></div></div>
@@ -3450,7 +3657,7 @@ function openModal(kind, ctx={}){
           </div>
         </div>
         <div class="field-row">
-          
+          <div class="field"><label>${tt('الرصيد الافتتاحي','Opening Balance')}</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
           <div class="field"><label>${tt('تاريخ الافتتاح','Opening Date')}</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
         </div>
         <div class="field">
@@ -4357,12 +4564,14 @@ const submitHandlers = {
       if(hasTxns && a.currency !== data.currency){
         throw new Error(tt('مينفعش تغيّر عملة الحساب لأنه مرتبط بمعاملات موجودة. اعمل حساب جديد بالعملة المطلوبة.','You cannot change an account currency while it has linked transactions. Create a new account with the required currency instead.'));
       }
-      a.name = data.name.trim(); a.type = data.type; a.currency = data.currency; a.openingDate = data.openingDate;
+      a.name = data.name.trim(); a.type = data.type; a.currency = data.currency;
+      a.openingBalance = Number(data.openingBalance)||0; a.openingDate = data.openingDate;
       a.excludeFromNetWorth = data.excludeFromNetWorth === 'on';
       saveDB(); toast(tt('اتحدث الحساب','Account updated'));
     } else {
       DB.accounts.push({
-        id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency, openingBalance: 0, openingDate: data.openingDate,
+        id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency,
+        openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate,
         excludeFromNetWorth: data.excludeFromNetWorth === 'on'
       });
       saveDB(); toast(tt('اتعمل الحساب','Account created'));

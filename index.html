@@ -2778,37 +2778,12 @@ function clearTokenFromSession(){
 
 function initGoogleAuth(){
   const clientId = getClientId();
-  tokenClient = null;
-  if(!clientId || typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) return false;
-  try{
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: DRIVE_SCOPE,
-      callback: onTokenResponse,
-      error_callback: onGooglePopupError,
-      ux_mode: 'popup',
-      include_granted_scopes: true
-    });
-    return !!tokenClient;
-  }catch(e){
-    console.error('Google OAuth init failed:', e);
-    tokenClient = null;
-    return false;
-  }
-}
-
-function onGooglePopupError(error){
-  console.error('Google OAuth popup error:', error);
-  updateSyncStatus('error');
-  const code = error && (error.type || error.error);
-  if(code === 'popup_closed' || code === 'popup_closed_by_user') return;
-  if(code === 'popup_failed_to_open'){
-    toast(LANG==='ar'
-      ? 'Google منع فتح نافذة تسجيل الدخول. اسمح للنوافذ المنبثقة لهذا الموقع ثم اضغط «ربط Google Drive» مرة أخرى.'
-      : 'Google could not open the sign-in window. Allow pop-ups for this site, then click “Connect Google Drive” again.');
-    return;
-  }
-  toast((LANG==='ar'?'تعذر فتح تسجيل الدخول إلى Google: ':'Could not open Google sign-in: ') + (code || 'unknown error'));
+  if(!clientId || typeof google === 'undefined' || !google.accounts) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: DRIVE_SCOPE,
+    callback: onTokenResponse
+  });
 }
 
 function driveOriginSupported(){
@@ -2827,29 +2802,18 @@ function driveEnvironmentError(){
 
 function connectDrive(){
   const clientId = getClientId();
-  if(!clientId){ openModal('drive-setup'); return false; }
+  if(!clientId){ openModal('drive-setup'); return; }
   const envError = driveEnvironmentError();
-  if(envError){ updateSyncStatus('error'); toast(envError); openModal('drive-setup'); return false; }
-  if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2){
-    toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد. أعد المحاولة بعد لحظة.':'Google Sign-In is still loading. Please try again in a moment.');
-    return false;
-  }
-  if(!tokenClient && !initGoogleAuth()){
-    toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID وإعدادات Google Cloud.':'Could not initialize Google OAuth — check the Client ID and Google Cloud settings.');
-    updateSyncStatus('error');
-    return false;
-  }
-  try{
-    // Called directly from the user's Connect button; keep the OAuth request synchronous
-    // so browser popup blockers retain the user gesture.
-    tokenClient.requestAccessToken({prompt: 'select_account'});
-    return true;
-  }catch(e){
-    console.error('Google OAuth request failed:', e);
-    updateSyncStatus('error');
-    toast((LANG==='ar'?'تعذر بدء تسجيل الدخول إلى Google: ':'Could not start Google sign-in: ') + (e.message || e));
-    return false;
-  }
+  if(envError){ updateSyncStatus('error'); toast(envError); openModal('drive-setup'); return; }
+  if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
+  if(!tokenClient) initGoogleAuth();
+  if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
+  // Always use 'select_account' for interactive sign-in so the Google popup
+  // always opens visibly. Using prompt:'' (empty) causes silent auth attempts
+  // that return interaction_required errors when the Google session has expired,
+  // forcing the user to click the button twice. 'select_account' is safe for
+  // both first-time and returning users.
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
 function describeDriveError(e){
@@ -5601,14 +5565,13 @@ function wireModal(kind){
     const data = Object.fromEntries(fd.entries());
     try{
       submitHandlers[kind](data);
-      // OAuth must be the final synchronous action in the Drive setup handler.
-      // Do not render/rebuild the application after starting the Google popup.
-      if(kind==='drive-setup') return;
       annotatePartialFillNotes();
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
         openModal('vehicle-detail', {vehicleId: data.vehicleId});
-      } else {
+      } else if(kind !== 'drive-setup'){
+        // drive-setup closes the modal itself (before the Google popup opens).
+        // All other modals close here after their submit handler runs.
         closeModal();
       }
     }catch(err){ toast(err.message || 'Something went wrong'); }
@@ -6004,36 +5967,26 @@ const submitHandlers = {
   },
   'drive-setup'(data){
     const clientId = data.clientId.trim();
-    if(!/^[0-9A-Za-z._-]+\.apps\.googleusercontent\.com$/.test(clientId)){
-      toast(LANG==='ar'?'Client ID غير صحيح — استخدم OAuth Client ID من نوع Web application وينتهي بـ .apps.googleusercontent.com':'Invalid Client ID — use a Web application OAuth Client ID ending in .apps.googleusercontent.com');
-      return;
-    }
-    const envError = driveEnvironmentError();
-    if(envError){ toast(envError); return; }
-    if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2){
-      toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أعد المحاولة بعد لحظة':'Google Sign-In library is still loading — try again in a moment');
+    if(!clientId.includes('.apps.googleusercontent.com')){
+      toast(LANG==='ar'?'Client ID غير صحيح — يجب أن ينتهي بـ .apps.googleusercontent.com':'Invalid Client ID — must end with .apps.googleusercontent.com');
       return;
     }
     setClientId(clientId);
-    localStorage.removeItem('fintrack_drive_consented');
-    clearTokenFromSession();
-    driveAccessToken = null;
-    driveFileId = null;
-    if(!initGoogleAuth() || !tokenClient){
-      toast(LANG==='ar'?'تعذر تهيئة Google OAuth — تأكد أن الـ Client ID صحيح ومضبوط كتطبيق Web.':'Could not initialize Google OAuth — verify the Client ID is valid and configured as a Web application.');
-      updateSyncStatus('error');
+    if(typeof google === 'undefined' || !google.accounts){
+      toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — تحقق من الاتصال بالإنترنت وأعد المحاولة':'Google Sign-In library not loaded — check your internet connection and try again');
       return;
     }
-    // Close immediately before the OAuth call; nothing re-renders the app between
-    // the user's submit gesture and requestAccessToken().
-    closeModal();
-    try{
-      tokenClient.requestAccessToken({prompt:'select_account'});
-    }catch(e){
-      console.error('Google OAuth request failed:', e);
-      updateSyncStatus('error');
-      toast((LANG==='ar'?'تعذر بدء تسجيل الدخول إلى Google: ':'Could not start Google sign-in: ') + (e.message || e));
+    initGoogleAuth();
+    if(!tokenClient){
+      toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
+      return;
     }
+    // Close the setup modal BEFORE opening the Google popup.
+    // Having a FinTrack modal on top of the Google consent window confuses
+    // browsers and can cause the popup to appear behind the modal overlay.
+    closeModal();
+    localStorage.removeItem('fintrack_drive_consented');
+    tokenClient.requestAccessToken({prompt:'consent'});
   }
 };
 

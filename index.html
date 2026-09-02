@@ -298,6 +298,10 @@
   /* Reports grid responsive */
   #rep-main-grid{grid-template-columns:3fr 2fr;}
   @media(max-width:900px){#rep-main-grid{grid-template-columns:1fr!important;}}
+  /* Archived/hidden accounts panel */
+  .hidden-accounts-panel{margin-top:14px;}
+  .hidden-accounts-panel .section-title{margin-bottom:10px;}
+  #toggle-hidden-accounts{white-space:nowrap;}
   /* Column resize handle */
   .col-resize{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize;z-index:2;}
   .col-resize:hover,.col-resize.dragging{background:var(--accent);opacity:.5;}
@@ -1367,17 +1371,27 @@ Object.assign(GUIDE_CONTENT, {
     </section>
 
     <!-- ACCOUNTS -->
+    <!-- Opening Balance is intentionally hidden from the account list; it remains stored and is still used in accountBalance(). -->
     <section class="view" id="view-accounts">
       <div class="topbar">
         <div><h1>Accounts</h1><div class="today">Cash, banks &amp; wallets across all currencies</div></div>
         <button class="btn" data-open-modal="account">+ New Account</button>
       </div>
       <div class="table-wrap">
-        <div class="head-row"><h3 id="acc-all-heading">All Accounts</h3></div>
+        <div class="head-row"><h3 id="acc-all-heading">All Accounts</h3><button class="btn ghost sm" id="toggle-hidden-accounts" type="button" style="display:none;"></button></div>
         <table>
-          <thead><tr><th id="th-acc-name">Name</th><th id="th-acc-type">Type</th><th id="th-acc-cur">Currency</th><th class="amt" id="th-acc-opening">Opening</th><th class="amt" id="th-acc-curbal">Current Balance</th><th></th></tr></thead>
+          <thead><tr><th id="th-acc-name">Name</th><th id="th-acc-type">Type</th><th id="th-acc-cur">Currency</th><th class="amt" id="th-acc-curbal">Current Balance</th><th></th></tr></thead>
           <tbody id="accounts-body"></tbody>
         </table>
+      </div>
+      <div id="hidden-accounts-panel" class="hidden-accounts-panel" style="display:none;">
+        <div class="section-title" id="hidden-accounts-title">Archived / Hidden Accounts</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th id="th-hidden-acc-name">Name</th><th id="th-hidden-acc-type">Type</th><th id="th-hidden-acc-cur">Currency</th><th class="amt" id="th-hidden-acc-curbal">Current Balance</th><th></th></tr></thead>
+            <tbody id="hidden-accounts-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="section-title" id="exchange-rates-title">Exchange Rates<span class="hint" id="exchange-rates-hint">used to convert balances to EGP</span></div>
@@ -1455,9 +1469,10 @@ Object.assign(GUIDE_CONTENT, {
         <button class="btn ghost sm" id="txn-reset" title="مسح الفلاتر">↺</button>
       </div>
       <div class="pill-row" id="txn-filters"></div>
+      <div id="txn-account-balance-hint" style="display:none;margin:8px 0 10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text-muted);font-size:12px;"></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th></th></tr></thead>
+          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th class="amt" id="th-txn-running" style="display:none;"></th><th></th></tr></thead>
           <tbody id="txn-body"></tbody>
         </table>
       </div>
@@ -2052,7 +2067,10 @@ function migrateDB(db){
   db.vehicleLogs = db.vehicleLogs || [];
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
-  (db.accounts||[]).forEach(a=>{ if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false; });
+  (db.accounts||[]).forEach(a=>{
+    if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false;
+    if(a.hiddenFromAccountsList===undefined && String(a.name||'').trim().toLowerCase()==='liquidity') a.hiddenFromAccountsList = true;
+  });
   const catIds = new Set((db.categories||[]).map(c=>c.id));
   const defaultCats = [
     { id:'cat_car', name:'مصاريف العربية (Car Expenses)', type:'expense', parentId:null },
@@ -3090,13 +3108,14 @@ function renderDashboard(){
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
 function renderAccounts(){
-  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
+  const visibleAccounts = DB.accounts.filter(a=>!a.hiddenFromAccountsList);
+  const hiddenAccounts = DB.accounts.filter(a=>a.hiddenFromAccountsList);
+  document.getElementById('accounts-body').innerHTML = visibleAccounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
       <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
       <td data-label="${t('th_currency')}">${a.currency}</td>
-      <td class="amt" data-label="${t('th_opening')}">${fmtMoney(a.openingBalance)}</td>
       <td class="amt ${bal<0?'neg':''}" data-label="${t('th_current_balance')}">${fmtMoney(bal)}</td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
@@ -3104,8 +3123,29 @@ function renderAccounts(){
         <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
-
+  }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
+  const hiddenBtn=document.getElementById('toggle-hidden-accounts');
+  const hiddenPanel=document.getElementById('hidden-accounts-panel');
+  const hiddenBody=document.getElementById('hidden-accounts-body');
+  if(hiddenBtn && hiddenPanel && hiddenBody){
+    hiddenBtn.style.display = hiddenAccounts.length ? 'inline-flex' : 'none';
+    hiddenBtn.textContent = t('show_hidden_accounts').replace('{n}', hiddenAccounts.length);
+    hiddenPanel.style.display = hiddenBtn.dataset.open==='1' ? 'block' : 'none';
+    hiddenBody.innerHTML = hiddenAccounts.map(a=>{
+      const bal = accountBalance(a);
+      return `<tr>
+        <td class="td-date" data-label="">${a.name} <span class="tag">${t('archived_tag')}</span></td>
+        <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
+        <td data-label="${t('th_currency')}">${a.currency}</td>
+          <td class="amt ${bal<0?'neg':''}" data-label="${t('th_current_balance')}">${fmtMoney(bal)}</td>
+        <td class="td-actions">
+          <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
+          <button class="btn ghost sm" data-reconcile-account="${a.id}">${t('btn_reconcile')}</button>
+          <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_accounts')}</td></tr>`;
+  }
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
       <td class="td-date" data-label="">${r.currency}${r.currency==='EGP' ? ' <span class="tag">base</span>' : ''}</td>
@@ -3114,6 +3154,15 @@ function renderAccounts(){
           style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
       </td>
     </tr>`).join('');
+}
+
+const hiddenAccountsToggle=document.getElementById('toggle-hidden-accounts');
+if(hiddenAccountsToggle){
+  hiddenAccountsToggle.addEventListener('click',()=>{
+    hiddenAccountsToggle.dataset.open = hiddenAccountsToggle.dataset.open==='1' ? '0' : '1';
+    renderAccounts();
+    if(window.__ftScanTables) requestAnimationFrame(window.__ftScanTables);
+  });
 }
 
 document.getElementById('view-accounts').addEventListener('change', e=>{
@@ -3220,6 +3269,52 @@ function renderTransactions(){
     });
   }
 
+  // When a specific account is selected, calculate a true running balance from that account's
+  // opening balance through every active transaction in chronological order. Other filters
+  // (month/category/type/search) only control which rows are shown; they do NOT reset the balance.
+  const selectedAccount = txnAccountFilterVal ? accountById(txnAccountFilterVal) : null;
+  const runningBalances = new Map();
+  if(selectedAccount){
+    let running = Number(selectedAccount.openingBalance)||0;
+    const chronological = DB.transactions.map((tx, idx)=>({tx, idx}))
+      .filter(x=>x.tx.accountId===selectedAccount.id && !x.tx.deletedAt)
+      .sort((a,b)=>{
+        const dc=(a.tx.date||'').localeCompare(b.tx.date||'');
+        if(dc!==0) return dc;
+        const cc=(a.tx.createdAt||'').localeCompare(b.tx.createdAt||'');
+        if(cc!==0) return cc;
+        return a.idx-b.idx;
+      });
+    chronological.forEach(({tx})=>{
+      if(tx.type==='income' || tx.type==='transfer_in') running += Number(tx.amount)||0;
+      else if(tx.type==='expense' || tx.type==='transfer_out') running -= Number(tx.amount)||0;
+      runningBalances.set(tx.id, running);
+    });
+    // For an account-filtered view, show the complete chronological trail so the opening
+    // balance naturally leads into the latest balance. Keep the other filters intact.
+    // Display newest transactions first (bottom-to-top chronological flow),
+    // while runningBalances remain calculated from the opening balance forward.
+    list.sort((a,b)=>{
+      const dc=(b.date||'').localeCompare(a.date||'');
+      if(dc!==0) return dc;
+      return (b.createdAt||'').localeCompare(a.createdAt||'');
+    });
+  }
+  const runningHead=document.getElementById('th-txn-running');
+  if(runningHead){
+    runningHead.style.display=selectedAccount?'table-cell':'none';
+    runningHead.textContent=selectedAccount?t('th_running_balance'):'';
+  }
+  const txnTable=document.querySelector('#view-transactions .table-wrap table');
+  if(txnTable) txnTable.dataset.accountBalanceMode=selectedAccount?'1':'0';
+  const openingHint=document.getElementById('txn-account-balance-hint');
+  if(openingHint){
+    openingHint.style.display=selectedAccount?'block':'none';
+    if(selectedAccount){
+      openingHint.textContent=`${t('th_opening')}: ${selectedAccount.currency||'EGP'} ${fmtMoney(Number(selectedAccount.openingBalance)||0)}  •  ${t('th_current_balance')}: ${selectedAccount.currency||'EGP'} ${fmtMoney(accountBalance(selectedAccount))}`;
+    }
+  }
+
   document.getElementById('txn-count-label').textContent = t('txn_count', list.length);
 
   const pages = Math.ceil(list.length/TXN_PG) || 1;
@@ -3236,11 +3331,12 @@ function renderTransactions(){
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
       <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
+      <td class="amt txn-running-balance" data-label="${t('th_running_balance')}" style="${selectedAccount?'':'display:none;'}">${selectedAccount ? `${tx.currency} ${fmtMoney(runningBalances.get(tx.id) ?? accountBalance(selectedAccount))}` : ''}</td>
       <td class="td-actions">
         ${tx.deletedAt ? `<button class="btn ghost sm" data-restore-txn="${tx.id}">${tt('استرجاع','Restore')}</button>` : `<button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>`}
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
 
   const pgEl = document.getElementById('txn-pagination');
   if(pgEl){
@@ -6053,7 +6149,7 @@ const I18N = {
     empty_no_txn:'No transactions yet \u2014 add your first one',
     empty_due_soon:'Nothing due soon',
     th_account:'Account', th_type:'Type', th_balance:'Balance', th_date:'Date',
-    th_category:'Category', th_note:'Note', th_amount:'Amount',
+    th_category:'Category', th_note:'Note', th_amount:'Amount', th_running_balance:'Balance after',
     th_currency:'Currency', th_opening:'Opening', th_name:'Name',
     th_current_balance:'Current Balance', th_vehicle:'Vehicle',
     rep_this_month_th:'This Month', rep_no_data:'No data yet', btn_close:'Close',
@@ -6062,7 +6158,7 @@ const I18N = {
     exchange_rates:'Exchange Rates', exchange_rates_hint:'used to convert balances to EGP',
     th_rate_egp:'Rate to EGP', btn_edit:'Edit', btn_reconcile:'Reconcile', btn_delete:'Delete',
     empty_no_accounts_long:'No accounts yet \u2014 add one to start tracking',
-    archived_tag:'Archived',
+    archived_tag:'Archived', show_hidden_accounts:'Show archived / hidden ({n})',
     page_transactions:'Transactions', btn_new_txn2:'+ New Transaction',
     txn_search_placeholder:'Search by note or category...', txn_show_deleted:'Deleted',
     txn_all_months:'All months', txn_all_accounts:'All accounts', txn_all_categories:'All categories',
@@ -6130,7 +6226,7 @@ const I18N = {
     empty_no_txn:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u0623\u0648\u0644\u0649 \u0645\u0639\u0627\u0645\u0644\u0627\u062a\u0643',
     empty_due_soon:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0648\u0627\u0639\u064a\u062f \u0642\u0631\u064a\u0628\u0629',
     th_account:'\u0627\u0644\u062d\u0633\u0627\u0628', th_type:'\u0627\u0644\u0646\u0648\u0639', th_balance:'\u0627\u0644\u0631\u0635\u064a\u062f', th_date:'\u0627\u0644\u062a\u0627\u0631\u064a\u062e',
-    th_category:'\u0627\u0644\u0641\u0626\u0629', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a',
+    th_category:'\u0627\u0644\u0641\u0626\u0629', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a', th_running_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0628\u0639\u062f \u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0629',
     th_currency:'\u0627\u0644\u0639\u0645\u0644\u0629', th_opening:'\u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a', th_name:'\u0627\u0644\u0627\u0633\u0645',
     th_current_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a', th_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     rep_this_month_th:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_no_data:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0639\u062f', btn_close:'\u0625\u063a\u0644\u0627\u0642',
@@ -6139,7 +6235,7 @@ const I18N = {
     exchange_rates:'\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0635\u0631\u0641', exchange_rates_hint:'\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0644\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
     th_rate_egp:'\u0627\u0644\u0633\u0639\u0631 \u0644\u0644\u062c\u0646\u064a\u0647', btn_edit:'\u062a\u0639\u062f\u064a\u0644', btn_reconcile:'\u0645\u0637\u0627\u0628\u0642\u0629', btn_delete:'\u062d\u0630\u0641',
     empty_no_accounts_long:'\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u062d\u0633\u0627\u0628\u0627\u064b \u0644\u0628\u062f\u0621 \u0627\u0644\u062a\u062a\u0628\u0639',
-    archived_tag:'\u0645\u0624\u0631\u0634\u0641',
+    archived_tag:'\u0645\u0624\u0631\u0634\u0641', show_hidden_accounts:'\u0639\u0631\u0636 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0624\u0631\u0634\u0641\u0629 / \u0627\u0644\u0645\u062e\u0641\u064a\u0629 ({n})',
     page_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a', btn_new_txn2:'+ \u0645\u0639\u0627\u0645\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
     txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0641\u0626\u0629...', txn_show_deleted:'\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629',
     txn_all_months:'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631', txn_all_accounts:'\u0643\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', txn_all_categories:'\u0643\u0644 \u0627\u0644\u0641\u0626\u0627\u062a',
@@ -6286,6 +6382,10 @@ function applyLang(lang){
   // Topbar action buttons
   var ab = document.querySelector('#view-accounts .topbar .btn'); if(ab) ab.textContent = t('btn_new_account');
   var aah = document.getElementById('acc-all-heading'); if(aah) aah.textContent = tt('كل الحسابات','All Accounts');
+  var hat=document.getElementById('hidden-accounts-title'); if(hat) hat.textContent = tt('الحسابات المؤرشفة / المخفية','Archived / Hidden Accounts');
+  var hnames={name:tt('الاسم','Name'),type:tt('النوع','Type'),cur:tt('العملة','Currency'),opening:tt('الافتتاحي','Opening'),curbal:tt('الرصيد الحالي','Current Balance')};
+  [['th-hidden-acc-name','name'],['th-hidden-acc-type','type'],['th-hidden-acc-cur','cur'],['th-hidden-acc-opening','opening'],['th-hidden-acc-curbal','curbal']].forEach(function(pair){var el=document.getElementById(pair[0]); if(el) el.textContent=hnames[pair[1]];});
+  renderAccounts();
   var ert = document.getElementById('exchange-rates-title');
   if(ert) ert.innerHTML = t('exchange_rates') + ' <span class="hint" id="exchange-rates-hint">' + t('exchange_rates_hint') + '</span>';
   var rch = document.getElementById('rep-chart-heading'); if(rch) rch.textContent = tt('الرسم البياني الشهري','Monthly Chart');

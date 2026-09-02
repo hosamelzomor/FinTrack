@@ -2810,17 +2810,41 @@ function silentRefreshToken(){
 // has expired (401) — does ONE silent refresh + retry before giving up.
 // This is what fixes the "sync error" that used to appear silently: an
 // expired token now recovers on its own instead of failing outright.
-async function driveApiFetch(url, options, _retried){
+async function driveApiFetch(url, options, _retried, _attempt){
   options = options || {};
+  _attempt = Number(_attempt || 0);
+  if(!driveAccessToken) throw new Error(LANG==='ar' ? 'لا يوجد اتصال نشط بـ Google Drive' : 'No active Google Drive connection');
   const requestOptions = Object.assign({}, options, {
     headers: Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + driveAccessToken })
   });
   let res;
   try{ res = await fetch(url, requestOptions); }
-  catch(e){ throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error')); }
+  catch(e){
+    if(_attempt < 2){
+      await new Promise(r=>setTimeout(r, 600 * (_attempt + 1)));
+      return driveApiFetch(url, options, _retried, _attempt + 1);
+    }
+    throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error'));
+  }
   if(res.status === 401 && !_retried){
-    await silentRefreshToken();
-    return driveApiFetch(url, options, true);
+    try{
+      await silentRefreshToken();
+      return driveApiFetch(url, options, true, _attempt);
+    }catch(refreshErr){
+      driveAccessToken = null;
+      updateSyncStatus('disconnected');
+      throw new Error(LANG==='ar'
+        ? 'انتهت جلسة Google Drive. اضغط ربط Google Drive لإعادة الاتصال.'
+        : 'The Google Drive session expired. Click Connect Google Drive to reconnect.');
+    }
+  }
+  // Retry transient Google/network failures instead of immediately showing
+  // a sync error. This covers temporary 429/5xx responses.
+  if((res.status === 429 || res.status >= 500) && _attempt < 2){
+    const retryAfter = Number(res.headers.get('Retry-After')) || 0;
+    const waitMs = Math.max(700 * (_attempt + 1), retryAfter * 1000);
+    await new Promise(r=>setTimeout(r, Math.min(waitMs, 5000)));
+    return driveApiFetch(url, options, _retried, _attempt + 1);
   }
   if(!res.ok){
     let detail = '';
@@ -2952,8 +2976,26 @@ window.addEventListener('load', ()=>{
     }
     initGoogleAuth();
     if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // Reconnect silently only from a supported origin.
-      setTimeout(()=>{ if(tokenClient) connectDrive(); }, 700);
+      // Reconnect silently. If Google requires a fresh interactive login,
+      // keep the local data fully usable and show a neutral disconnected state
+      // instead of a misleading sync error until the user reconnects.
+      setTimeout(async ()=>{
+        if(!tokenClient) return;
+        try{ await new Promise((resolve,reject)=>{
+          const client = google.accounts.oauth2.initTokenClient({
+            client_id:getClientId(), scope:DRIVE_SCOPE,
+            callback:(resp)=> resp.error ? reject(new Error(resp.error_description || resp.error)) : resolve(resp)
+          });
+          client.requestAccessToken({prompt:'none'});
+        });
+        // Use the normal callback path with the fresh token.
+        // The interactive connect flow remains available from the toolbar.
+        connectDrive();
+      }catch(e){
+        driveAccessToken = null;
+        updateSyncStatus('disconnected');
+      }
+      }, 700);
     }
   }
 });
@@ -4206,8 +4248,9 @@ function renderVehicleLogsPanel(){
     return !!root && (root.id==='cat_car' || root.id==='cat_scooter') && (!selectedRootId || root.id===selectedRootId);
   };
   const vehicleCategoryIds = DB.categories.filter(isVehicleCategory).map(c=>c.id);
-  const typeCategoryIds = [...new Set(vehicleCategoryIds.concat(typeSourceLogs.map(categoryForLog).filter(Boolean)))
-    .filter(id=>{ const c=categoryById(id); return c ? isVehicleCategory(c) : false; })];
+  const typeCategoryIds = [...new Set(
+    vehicleCategoryIds.concat(typeSourceLogs.map(categoryForLog).filter(Boolean))
+  )].filter(id=>{ const c=categoryById(id); return c ? isVehicleCategory(c) : false; });
 
   // Keep any old filter state usable, but store current selections as category IDs.
   const legacyMap = {

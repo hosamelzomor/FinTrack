@@ -887,7 +887,9 @@
     vertical-align:middle;
     white-space:nowrap;
   }
-  .table-wrap tbody td{vertical-align:middle;}
+  .table-wrap tbody td{vertical-align:middle;white-space:normal;overflow-wrap:anywhere;word-break:normal;}
+  .table-wrap tbody td.amt{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
+  .table-wrap tbody td.td-actions{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
   .table-wrap .ft-resizable-th{padding-right:16px;padding-left:16px;}
   .table-wrap .col-resize{
     position:absolute;top:0;right:-4px;width:9px;height:100%;
@@ -5926,56 +5928,67 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
     ths[index].style.width=width+'px';
     saveWidths(table,cg);
   }
+  function addResizeHandle(th, i, table, cg){
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+    // Language switching updates TH via textContent, which removes child nodes.
+    // Re-create the handle when that happens instead of considering the table initialized.
+    if(th.querySelector('.col-resize')) return;
+    th.style.position='relative';
+    th.classList.add('ft-resizable-th');
+    const handle=document.createElement('div');
+    handle.className='col-resize';
+    handle.setAttribute('aria-label', LANG==='ar' ? 'تغيير عرض العمود' : 'Resize column');
+    handle.title=LANG==='ar' ? 'اسحب لتغيير العرض • انقر مرتين للملاءمة التلقائية' : 'Drag to resize • Double-click to auto-fit';
+    th.appendChild(handle);
+    let startX=0,startW=0,moved=false;
+    handle.addEventListener('mousedown',ev=>{
+      if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+      ev.preventDefault();ev.stopPropagation();
+      startX=ev.clientX;
+      startW=th.getBoundingClientRect().width;
+      moved=false;
+      handle.classList.add('dragging');
+      document.body.classList.add('ft-col-resizing');
+      const mm=ev2=>{
+        moved=true;
+        const direction=(document.documentElement.dir==='rtl')?-1:1;
+        const delta=(ev2.clientX-startX)*direction;
+        const newW=Math.max(MIN_W,Math.round(startW+delta));
+        cg.children[i].style.width=newW+'px';
+        th.style.width=newW+'px';
+      };
+      const mu=()=>{
+        document.removeEventListener('mousemove',mm);
+        document.removeEventListener('mouseup',mu);
+        handle.classList.remove('dragging');
+        document.body.classList.remove('ft-col-resizing');
+        if(moved) saveWidths(table,cg);
+      };
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    });
+    handle.addEventListener('dblclick',ev=>{
+      if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+      ev.preventDefault();ev.stopPropagation();autoFit(table,i);
+    });
+  }
   function makeTableResizable(table){
     const ths=[...table.querySelectorAll('thead th')];
     if(!ths.length) return;
     const cg=getColGroup(table,ths.length);
     applyWidths(table);
-    if(table.dataset.resizable==='1') return;
+    if(table.dataset.resizable==='1'){
+      // The table may have been re-localized: textContent assignment can remove handles.
+      // Keep the saved widths and restore only the missing handles.
+      ths.forEach((th,i)=>addResizeHandle(th,i,table,cg));
+      return;
+    }
     table.dataset.resizable='1';
     table.classList.add('ft-resizable-table');
-    ths.forEach((th,i)=>{
-      th.style.position='relative';
-      th.classList.add('ft-resizable-th');
-      const handle=document.createElement('div');
-      handle.className='col-resize';
-      handle.setAttribute('aria-label','Resize column');
-      handle.title='Drag to resize • Double-click to auto-fit';
-      th.appendChild(handle);
-      let startX=0,startW=0,moved=false;
-      handle.addEventListener('mousedown',ev=>{
-        if(window.innerWidth<=MOBILE_BREAKPOINT) return;
-        ev.preventDefault();ev.stopPropagation();
-        startX=ev.clientX;
-        startW=th.getBoundingClientRect().width;
-        moved=false;
-        handle.classList.add('dragging');
-        document.body.classList.add('ft-col-resizing');
-        const mm=ev2=>{
-          moved=true;
-          const direction=(document.documentElement.dir==='rtl')?-1:1;
-          const delta=(ev2.clientX-startX)*direction;
-          const newW=Math.max(MIN_W,Math.round(startW+delta));
-          cg.children[i].style.width=newW+'px';
-          th.style.width=newW+'px';
-        };
-        const mu=()=>{
-          document.removeEventListener('mousemove',mm);
-          document.removeEventListener('mouseup',mu);
-          handle.classList.remove('dragging');
-          document.body.classList.remove('ft-col-resizing');
-          if(moved) saveWidths(table,cg);
-        };
-        document.addEventListener('mousemove',mm);
-        document.addEventListener('mouseup',mu);
-      });
-      handle.addEventListener('dblclick',ev=>{
-        if(window.innerWidth<=MOBILE_BREAKPOINT) return;
-        ev.preventDefault();ev.stopPropagation();autoFit(table,i);
-      });
-    });
+    ths.forEach((th,i)=>addResizeHandle(th,i,table,cg));
   }
   function scanTables(){document.querySelectorAll('table').forEach(makeTableResizable);}
+  window.__ftScanTables=scanTables;
   let scanQueued=false;
   const queueScan=()=>{
     if(scanQueued) return;
@@ -6588,10 +6601,16 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
     };
     document.querySelectorAll('#view-wealth [data-wealth-th]').forEach(th=>{ const k=th.getAttribute('data-wealth-th'); if(labels[k]!==undefined) th.textContent=labels[k]; });
     const formula=document.getElementById('wealth-formula'); if(formula) formula.textContent=tt('صافي الثروة = أرصدة الحسابات + الأصول + قيم المركبات − الالتزامات المسجلة − الأقساط المتبقية.','Net Worth = account balances + assets + vehicle values − manual liabilities − outstanding commitments.');
+    // Language localization rewrites TH contents with textContent, which removes resize handles.
+    // Re-scan after the DOM settles so resizing remains available in both languages.
+    if(window.__ftScanTables) requestAnimationFrame(window.__ftScanTables);
   };
   // Re-run once so the new view/fields are immediately available.
   renderAll();
   applyLang(LANG);
+  // applyLang() rewrites table headers with textContent; that removes resize handles.
+  // Re-attach them after localization and re-apply the saved widths.
+  if(window.__ftScanTables) requestAnimationFrame(window.__ftScanTables);
 })();
 
 </script>

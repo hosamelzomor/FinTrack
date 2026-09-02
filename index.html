@@ -2786,9 +2786,26 @@ function disconnectDrive(){
 // tokenClient (no popup/consent screen — just a token refresh). Resolves
 // with the new token, or rejects if a silent refresh isn't possible
 // (e.g. the user needs to reconnect manually).
-// Drive API requests are deliberately NEVER allowed to start Google OAuth.
-// Authentication is an explicit user action only. A failed/expired token must
-// not interrupt saving a transaction locally or open a second Google window.
+function silentRefreshToken(){
+  return new Promise((resolve, reject)=>{
+    if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
+    if(!tokenClient) initGoogleAuth();
+    if(!tokenClient){ reject(new Error('No client ID configured')); return; }
+    const prevCallback = tokenClient.callback;
+    tokenClient.callback = (resp)=>{
+      tokenClient.callback = prevCallback;
+      if(resp.error){ reject(new Error(resp.error)); return; }
+      driveAccessToken = resp.access_token;
+      resolve(resp.access_token);
+    };
+    tokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+// Wraps fetch() with the current Drive access token, and — if the token
+// has expired (401) — does ONE silent refresh + retry before giving up.
+// This is what fixes the "sync error" that used to appear silently: an
+// expired token now recovers on its own instead of failing outright.
 async function driveApiFetch(url, options){
   options = options || {};
   const headers = Object.assign({}, options.headers || {});

@@ -2806,27 +2806,13 @@ function silentRefreshToken(){
 // has expired (401) — does ONE silent refresh + retry before giving up.
 // This is what fixes the "sync error" that used to appear silently: an
 // expired token now recovers on its own instead of failing outright.
-async function driveApiFetch(url, options){
+async function driveApiFetch(url, options, _retried){
   options = options || {};
-  const headers = Object.assign({}, options.headers || {});
-  if(driveAccessToken) headers.Authorization = 'Bearer ' + driveAccessToken;
-  const requestOptions = Object.assign({}, options, {headers});
-  let res;
-  try{
-    res = await fetch(url, requestOptions);
-  }catch(e){
-    throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error'));
-  }
-  if(res.status === 401){
-    // Do NOT call requestAccessToken here. In particular, saveDB() may have
-    // just persisted a transaction and must never turn a Drive error into an
-    // authentication popup. The caller can explicitly reconnect from Drive.
-    driveAccessToken = null;
-    driveFileId = null;
-    updateSyncStatus('disconnected');
-    throw new Error(LANG==='ar'
-      ? 'انتهت جلسة Google Drive. تم حفظ بياناتك محليًا، ويمكنك إعادة الربط من زر Google Drive.'
-      : 'Google Drive session expired. Your data was saved locally; reconnect from Google Drive when needed.');
+  options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + driveAccessToken });
+  const res = await fetch(url, options);
+  if(res.status === 401 && !_retried){
+    await silentRefreshToken();
+    return driveApiFetch(url, options, true);
   }
   return res;
 }
@@ -2909,21 +2895,15 @@ async function drivePushNow(){
 
 // Debounced background push, called from saveDB() on every local change.
 function queueDrivePush(){
-  // Saving the application database is always local-first. Drive is a
-  // best-effort background mirror and can NEVER trigger authentication or
-  // reject/cancel the transaction that has already been saved locally.
   if(!driveAccessToken || !driveFileId) return;
   updateSyncStatus('syncing');
   clearTimeout(pushTimer);
   pushTimer = setTimeout(async ()=>{
-    try{
-      await driveUpdate(driveFileId, DB);
-      updateSyncStatus('connected');
-    }catch(e){
-      console.error('Background Drive push failed:', e);
-      updateSyncStatus(driveAccessToken ? 'error' : 'disconnected');
-      // Intentionally no login request and no throw: the local transaction
-      // has already been committed by saveDB().
+    try{ await driveUpdate(driveFileId, DB); updateSyncStatus('connected'); }
+    catch(e){
+      console.error(e);
+      toast(LANG==='ar' ? 'تعذّرت مزامنة Drive — قد تحتاج لإعادة الاتصال من إعدادات Drive' : 'Drive sync failed — you may need to reconnect via Drive settings');
+      updateSyncStatus('error');
     }
   }, 1500);
 }

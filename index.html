@@ -2740,6 +2740,9 @@ let driveAccessToken = null;
 let driveFileId = null;
 let tokenClient = null;
 let pushTimer = null;
+// Shared between autoReconnectDriveSilently and the conflict-guard IIFE.
+// Must live at outer scope so both can read and write the same variable.
+let driveLastRemoteModified = null;
 
 function getClientId(){ return localStorage.getItem('fintrack_client_id') || ''; }
 function setClientId(id){ localStorage.setItem('fintrack_client_id', id); }
@@ -2776,8 +2779,12 @@ function connectDrive(){
   if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
   if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
-  const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
-  tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
+  // Always use 'select_account' for interactive sign-in so the Google popup
+  // always opens visibly. Using prompt:'' (empty) causes silent auth attempts
+  // that return interaction_required errors when the Google session has expired,
+  // forcing the user to click the button twice. 'select_account' is safe for
+  // both first-time and returning users.
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
 function describeDriveError(e){
@@ -2794,17 +2801,20 @@ function describeDriveError(e){
 async function onTokenResponse(resp){
   if(resp.error){
     console.error('Google OAuth error:', resp);
-    localStorage.removeItem('fintrack_drive_consented');
+    // Only clear the consented flag for hard auth failures (invalid client, revoked access).
+    // Transient errors like interaction_required (session expired) or popup_closed_by_user
+    // do NOT mean the user revoked consent — clearing the flag would confuse the retry flow.
+    const hardError = /invalid_client|unauthorized_client|access_denied|admin_policy_enforced/i.test(resp.error);
+    if(hardError) localStorage.removeItem('fintrack_drive_consented');
     updateSyncStatus('error');
-    // Close drive-setup modal if still open so user can retry cleanly
-    if(document.getElementById('form-drive-setup')) closeModal();
-    toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + (resp.error_description || resp.error));
+    // Don't show a toast for popup_closed — the user closed it intentionally
+    if(resp.error !== 'popup_closed_by_user'){
+      toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + (resp.error_description || resp.error));
+    }
     return;
   }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
-  // Close drive-setup modal now that Google auth succeeded
-  if(document.getElementById('form-drive-setup')) closeModal();
   updateSyncStatus('syncing');
   try{
     await driveInitialSync();
@@ -3039,19 +3049,35 @@ function autoReconnectDriveSilently(){
   }
 }
 
+// Called by the Google GSI script exactly once when the library is ready.
+// This is the RELIABLE way to know google.accounts is available.
+// Replaces the unreliable 700ms setTimeout hack.
+function onGoogleLibraryLoad(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  initGoogleAuth();
+  if(localStorage.getItem('fintrack_drive_consented') === '1'){
+    // NEVER call connectDrive() here — it opens interactive UI.
+    // Use true silent token request only.
+    autoReconnectDriveSilently();
+  }
+}
+
 window.addEventListener('load', ()=>{
-  if(getClientId()){
-    if(!driveOriginSupported()){
-      updateSyncStatus('error');
-      return;
-    }
+  if(!getClientId()) return;
+  if(!driveOriginSupported()){
+    updateSyncStatus('error');
+    return;
+  }
+  // If the GSI script was already loaded (cached) before our code ran,
+  // onGoogleLibraryLoad may never fire. Fall back to checking here.
+  if(typeof google !== 'undefined' && google.accounts){
+    // Library already ready — run the same logic as onGoogleLibraryLoad
     initGoogleAuth();
     if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // NEVER call connectDrive() here: that function is interactive and may
-      // open the Google login window. Use a true silent token request.
-      setTimeout(autoReconnectDriveSilently, 700);
+      autoReconnectDriveSilently();
     }
   }
+  // Otherwise onGoogleLibraryLoad() will fire when the script finishes loading.
 });
 
 /* ---------------------------- NAVIGATION ---------------------------- */
@@ -5475,10 +5501,9 @@ function wireModal(kind){
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
         openModal('vehicle-detail', {vehicleId: data.vehicleId});
-      } else if(kind === 'drive-setup'){
-        // Do NOT close: Google OAuth popup is about to open.
-        // The modal will be closed inside onTokenResponse after auth succeeds.
-      } else {
+      } else if(kind !== 'drive-setup'){
+        // drive-setup closes the modal itself (before the Google popup opens).
+        // All other modals close here after their submit handler runs.
         closeModal();
       }
     }catch(err){ toast(err.message || 'Something went wrong'); }
@@ -5884,12 +5909,16 @@ const submitHandlers = {
       return;
     }
     initGoogleAuth();
-    if(tokenClient){
-      localStorage.removeItem('fintrack_drive_consented');
-      tokenClient.requestAccessToken({prompt:'consent'});
-    } else {
+    if(!tokenClient){
       toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
+      return;
     }
+    // Close the setup modal BEFORE opening the Google popup.
+    // Having a FinTrack modal on top of the Google consent window confuses
+    // browsers and can cause the popup to appear behind the modal overlay.
+    closeModal();
+    localStorage.removeItem('fintrack_drive_consented');
+    tokenClient.requestAccessToken({prompt:'consent'});
   }
 };
 
@@ -6780,8 +6809,8 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
   archiveTransactions = function(){ return DB.transactions.filter(t=>!t.deletedAt && isArchiveTxn(t)); };
 
   // Improve Drive sync with a remote-modification conflict guard.
+  // driveLastRemoteModified is declared at outer scope (shared with autoReconnectDriveSilently).
   let driveLocalDirty=false;
-  let driveLastRemoteModified=null;
   let driveConflictRemote=null;
   let driveConflictBusy=false;
   const _origSaveDB = saveDB;

@@ -2244,13 +2244,19 @@ function totalLiabilitiesEGP(){
     .reduce((sum,c)=>sum + commitmentRemaining(c), 0);
 }
 
+function isReconciliationAdjustment(t){
+  // Reconciliation entries correct an existing account balance; they are NOT
+  // operating income or expense and therefore must not inflate monthly cash-flow
+  // KPIs, reports, category totals, or month-detail breakdowns. They still remain
+  // normal transactions for account-balance/reconciliation purposes.
+  return !!t && (t.categoryId==='cat_adjustment' || t.categoryId==='cat_adjustment_inc');
+}
+
 function monthTotals(mKey){
-  // Match Reports page: income/expense cash-flow totals include ALL transactions,
-  // regardless of whether the account is excluded from net worth (archived).
-  // excludeFromNetWorth should only affect balance/net-worth calculations, not
-  // monthly income/expense totals — previously this silently dropped archived-
-  // account transactions whenever the month also had at least one "live" transaction.
-  const src = DB.transactions.filter(t=>!t.deletedAt && monthKey(t.date)===mKey);
+  // Income/expense cash-flow totals include real transactions, but exclude
+  // reconciliation adjustments because those are balance corrections rather than
+  // new income/expense. Account balances still include them via accountBalance().
+  const src = DB.transactions.filter(t=>!t.deletedAt && !isReconciliationAdjustment(t) && monthKey(t.date)===mKey);
   let income=0,expense=0;
   src.forEach(t=>{
     if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
@@ -2580,7 +2586,7 @@ function vehicleOptionsAll(selectedId){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  const txnEntries = DB.transactions.filter(t=>t.type==='expense' && !t.deletedAt)
+  const txnEntries = DB.transactions.filter(t=>t.type==='expense' && !t.deletedAt && !isReconciliationAdjustment(t))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId && !p.deletedAt)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
@@ -2589,7 +2595,7 @@ function allExpenseEntries(){
   return txnEntries.concat(cmPmtEntries, vehicleEntries);
 }
 function liveExpenseEntries(){
-  const txnEntries = liveTransactions().filter(t=>t.type==='expense')
+  const txnEntries = liveTransactions().filter(t=>t.type==='expense' && !isReconciliationAdjustment(t))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId && !p.deletedAt)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
@@ -4612,7 +4618,7 @@ function openModal(kind, ctx={}){
     const isIncome = ctx.type === 'income';
     let rows;
     if(isIncome){
-      rows = DB.transactions.filter(t=>t.type==='income' && monthKey(t.date)===mKey)
+      rows = DB.transactions.filter(t=>t.type==='income' && !t.deletedAt && !isReconciliationAdjustment(t) && monthKey(t.date)===mKey)
         .map(t=>({date:t.date, label: categoryLabel(t.categoryId), note:t.note, amount:t.amount, currency:t.currency}));
     } else {
       rows = allExpenseEntries().filter(e=>monthKey(e.date)===mKey)
@@ -6513,7 +6519,7 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
   _incInRange=function(from,to,catIds){
     const incCatIds=catIds?new Set([...catIds].filter(id=>{const cat=DB.categories.find(c=>c.id===id);return !cat||cat.type==='income';})):null;
     const useFilter=incCatIds&&incCatIds.size>0;
-    return DB.transactions.filter(t=>!t.deletedAt && t.type==='income').filter(t=>{const mk=monthKey(t.date);if(from&&mk<from)return false;if(to&&mk>to)return false;if(useFilter&&!incCatIds.has(t.categoryId))return false;return true;}).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+    return DB.transactions.filter(t=>!t.deletedAt && t.type==='income' && !isReconciliationAdjustment(t)).filter(t=>{const mk=monthKey(t.date);if(from&&mk<from)return false;if(to&&mk>to)return false;if(useFilter&&!incCatIds.has(t.categoryId))return false;return true;}).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
   };
 
   function renderWealth(){

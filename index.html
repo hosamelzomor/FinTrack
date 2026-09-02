@@ -654,15 +654,19 @@
   .g-table-wrap thead th{
     position:relative;text-align:center !important;font-size:11px;color:var(--text-faint);text-transform:uppercase;
     letter-spacing:.05em;padding:9px 14px;border-bottom:1px solid var(--border);
-    border-inline-end:1px solid var(--border);font-weight:700;background:var(--surface-2);
+    border-right:1px solid var(--border);font-weight:700;background:var(--surface-2);
   }
-  .g-table-wrap thead th:last-child{border-inline-end:none;}
+  html[dir="rtl"] .g-table-wrap thead th{border-right:none;border-left:1px solid var(--border);}
+  .g-table-wrap thead th:last-child{border-right:none;}
+  html[dir="rtl"] .g-table-wrap thead th:last-child{border-left:none;}
   .g-table-wrap tbody td{
     padding:10px 14px;border-bottom:1px solid var(--border);
-    border-inline-end:1px solid color-mix(in srgb,var(--border) 72%,transparent);
+    border-right:1px solid color-mix(in srgb,var(--border) 72%,transparent);
     font-size:13px;color:var(--text-muted);vertical-align:middle;
   }
-  .g-table-wrap tbody td:last-child{border-inline-end:none;}
+  html[dir="rtl"] .g-table-wrap tbody td{border-right:none;border-left:1px solid color-mix(in srgb,var(--border) 72%,transparent);}
+  .g-table-wrap tbody td:last-child{border-right:none;}
+  html[dir="rtl"] .g-table-wrap tbody td:last-child{border-left:none;}
   .g-table-wrap tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 72%,var(--accent-soft));}
   .g-table-wrap .ft-resizable-th{padding-right:16px;}
   html[dir="rtl"] .g-table-wrap .ft-resizable-th{padding-right:14px;padding-left:16px;}
@@ -882,9 +886,14 @@
     border-spacing:0;
   }
   .table-wrap th,.table-wrap td{
-    border-inline-end:1px solid var(--border);
+    border-right:1px solid var(--border);
   }
-  .table-wrap th:last-child,.table-wrap td:last-child{border-inline-end:none;}
+  html[dir="rtl"] .table-wrap th,html[dir="rtl"] .table-wrap td{
+    border-right:none;
+    border-left:1px solid var(--border);
+  }
+  .table-wrap th:last-child,.table-wrap td:last-child{border-right:none;}
+  html[dir="rtl"] .table-wrap th:last-child,html[dir="rtl"] .table-wrap td:last-child{border-left:none;}
   .table-wrap thead th{
     position:relative;
     text-align:center !important;
@@ -894,6 +903,7 @@
   .table-wrap tbody td{vertical-align:middle;white-space:normal;overflow-wrap:anywhere;word-break:normal;}
   .table-wrap tbody td.amt{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
   .table-wrap tbody td.td-actions{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
+  .table-wrap tbody td.td-note > span{unicode-bidi:plaintext;}
   .table-wrap .ft-resizable-th{padding-right:16px;padding-left:16px;}
   .table-wrap .col-resize{
     position:absolute;top:0;right:-4px;width:9px;height:100%;
@@ -908,7 +918,7 @@
   @media(max-width:760px){
     .table-wrap{overflow-x:hidden;}
     .table-wrap table{width:100%;min-width:0;table-layout:auto;}
-    .table-wrap th,.table-wrap td{border-inline-end:none;}
+    .table-wrap th,.table-wrap td{border-right:none;border-left:none;}
     .table-wrap .col-resize{display:none;}
   }
   .empty{padding:54px 24px;}
@@ -1565,7 +1575,7 @@ Object.assign(GUIDE_CONTENT, {
 
         <div class="table-wrap" style="margin-bottom:18px;">
           <table>
-            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
+            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-liters">Liters</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
             <tbody id="vlogs-table-body"></tbody>
           </table>
         </div>
@@ -3100,7 +3110,7 @@ function renderDashboard(){
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="${t('th_account')}">${acc?acc.name:'—'}</td>
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
+      <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${tx.note||''}</span></td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_txn')}</td></tr>`;
@@ -3329,7 +3339,7 @@ function renderTransactions(){
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="${t('th_account')}">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
+      <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${tx.note||''}</span></td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
       <td class="amt txn-running-balance" data-label="${t('th_running_balance')}" style="${selectedAccount?'':'display:none;'}">${selectedAccount ? `${tx.currency} ${fmtMoney(runningBalances.get(tx.id) ?? accountBalance(selectedAccount))}` : ''}</td>
       <td class="td-actions">
@@ -4169,18 +4179,20 @@ function renderVehicleLogsPanel(){
 
   // Table
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
-      <td class="td-date" data-label="">${fmtDate(l.date)} · ${l.vehicleIcon} ${l.vehicleName}</td>
+      <td class="td-date" data-label="${t('th_date')}">${fmtDate(l.date)}</td>
+      <td data-label="${t('th_vehicle')}">${l.vehicleIcon} ${l.vehicleName}</td>
       <td data-label="${t('th_type')}"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
       <td class="amt neg" data-label="${t('th_amount')}">${fmtMoney(l.amount)}</td>
       <td class="amt" data-label="${t('th_km')}">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
       <td class="amt" data-label="${t('th_dist')}">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
+      <td class="amt" data-label="${t('th_liters')}">${l.litersFilled!=null?fmtMoney(l.litersFilled):'—'}</td>
       <td class="amt" data-label="${t('th_kmpl')}">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
-      <td class="td-note" dir="auto" data-label="${t('th_note')}">${l.note||''}</td>
+      <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${l.note||''}</span></td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-vlog="${l.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-del-vlog="${l.id}">${t('btn_delete')}</button>
       </td>
-    </tr>`).join('') || `<tr><td colspan="8" class="empty">${LANG==='ar'?'لا توجد سجلات تطابق الفلتر':'No log entries match these filters'}</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="10" class="empty">${LANG==='ar'?'لا توجد سجلات تطابق الفلتر':'No log entries match these filters'}</td></tr>`;
 
   // Summary strip
   const totalSpend = logs.reduce((s,l)=>s+l.amount,0);
@@ -4732,7 +4744,7 @@ function openModal(kind, ctx={}){
             ${rows.map(r=>`<tr>
               <td class="td-date" data-label="">${fmtDate(r.date)}</td>
               <td data-label="${t('th_category')}">${r.label}</td>
-              <td class="td-note" dir="auto" data-label="${t('th_note')}">${r.note||''}</td>
+              <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${r.note||''}</span></td>
               <td class="amt td-actions ${isIncome?'pos':'neg'}" data-label="${t('th_amount')}">${r.currency} ${fmtMoney(r.amount)}</td>
             </tr>`).join('') || `<tr><td colspan="4" class="empty">${LANG==='ar'?'لا توجد عمليات هذا الشهر بعد':'No entries yet this month'}</td></tr>`}
           </tbody>
@@ -4857,7 +4869,7 @@ function openModal(kind, ctx={}){
             ${docs.map(d=>`<tr>
               <td class="td-date" data-label="">${d.docType}</td>
               <td data-label="${LANG==='ar'?'التجديد':'Renewal'}">${fmtDate(d.renewalDate)}</td>
-              <td class="td-note" dir="auto" data-label="${t('th_note')}">${d.note||''}</td>
+              <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${d.note||''}</span></td>
               <td class="td-actions">
                 <button class="btn ghost sm" data-edit-vdoc="${d.id}">${t('btn_edit')}</button>
                 <button class="btn ghost sm" data-del-vdoc="${d.id}">${t('btn_delete')}</button>
@@ -6180,7 +6192,7 @@ const I18N = {
     page_vehicles:'Vehicles', page_vehicles_sub:'Fuel, maintenance & mileage per vehicle',
     btn_new_vehicle:'+ New Vehicle', fuel_price_label:'92 Fuel Price (EGP / liter)',
     veh_tab_cards:'Vehicles', veh_tab_logs:'All Logs', veh_all_types:'All types', btn_reset:'Reset',
-    th_km:'KM', th_dist:'Dist.', th_kmpl:'km/L',
+    th_km:'KM', th_dist:'Dist.', th_liters:'Liters', th_kmpl:'km/L',
     veh_view_log:'View / Log Entry', veh_btn_edit:'Edit', veh_btn_delete:'Delete',
     veh_deleted:'Vehicle deleted', veh_updated:'Vehicle updated',
     page_budgets:'Budgets', page_budgets_sub:'Set a monthly limit per category',
@@ -6257,7 +6269,7 @@ const I18N = {
     page_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', page_vehicles_sub:'\u0648\u0642\u0648\u062f\u060c \u0635\u064a\u0627\u0646\u0629\u060c \u062a\u063a\u064a\u064a\u0631 \u0632\u064a\u062a \u0648\u0627\u0644\u0639\u062f\u0627\u062f \u2014 \u0644\u0643\u0644 \u0645\u0631\u0643\u0628\u0629',
     btn_new_vehicle:'+ \u0645\u0631\u0643\u0628\u0629 \u062c\u062f\u064a\u062f\u0629', fuel_price_label:'\u0633\u0639\u0631 \u0627\u0644\u0628\u0646\u0632\u064a\u0646 92 (\u062c\u0646\u064a\u0647 / \u0644\u062a\u0631)',
     veh_tab_cards:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', veh_tab_logs:'\u0643\u0644 \u0627\u0644\u0633\u062c\u0644\u0627\u062a', veh_all_types:'\u0643\u0644 \u0627\u0644\u0623\u0646\u0648\u0627\u0639', btn_reset:'\u0625\u0639\u0627\u062f\u0629',
-    th_km:'\u0643\u0645', th_dist:'\u0627\u0644\u0645\u0633\u0627\u0641\u0629', th_kmpl:'\u0643\u0645/\u0644\u062a\u0631',
+    th_km:'\u0643\u0645', th_dist:'\u0627\u0644\u0645\u0633\u0627\u0641\u0629', th_liters:'\u0627\u0644\u0644\u062a\u0631', th_kmpl:'\u0643\u0645/\u0644\u062a\u0631',
     veh_view_log:'\u0639\u0631\u0636 / \u062a\u0633\u062c\u064a\u0644', veh_btn_edit:'\u062a\u0639\u062f\u064a\u0644', veh_btn_delete:'\u062d\u0630\u0641',
     veh_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0645\u0631\u0643\u0628\u0629', veh_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     page_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', page_budgets_sub:'\u062d\u062f\u062f \u0633\u0642\u0641\u0627\u064b \u0634\u0647\u0631\u064a\u0627\u064b \u0644\u0643\u0644 \u0641\u0626\u0629',
@@ -6348,7 +6360,7 @@ function applyLang(lang){
     'th-fx-cur':'th_currency','th-fx-rate':'th_rate_egp',
     'th-txn-date':'th_date','th-txn-acc':'th_account','th-txn-cat':'th_category','th-txn-note':'th_note','th-txn-amt':'th_amount',
     'th-veh-date':'th_date','th-veh-vehicle':'th_vehicle','th-veh-type':'th_type','th-veh-amt':'th_amount',
-    'th-veh-km':'th_km','th-veh-dist':'th_dist','th-veh-kmpl':'th_kmpl','th-veh-note':'th_note',
+    'th-veh-km':'th_km','th-veh-dist':'th_dist','th-veh-liters':'th_liters','th-veh-kmpl':'th_kmpl','th-veh-note':'th_note',
     'th-rep-cat':'rep_cat_col','th-rep-thismonth':'rep_this_month_th','th-rep-month':'rep_month_th'
   };
   Object.keys(thMap).forEach(function(id){

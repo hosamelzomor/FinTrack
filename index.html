@@ -2796,11 +2796,15 @@ async function onTokenResponse(resp){
     console.error('Google OAuth error:', resp);
     localStorage.removeItem('fintrack_drive_consented');
     updateSyncStatus('error');
+    // Close drive-setup modal if still open so user can retry cleanly
+    if(document.getElementById('form-drive-setup')) closeModal();
     toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + (resp.error_description || resp.error));
     return;
   }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
+  // Close drive-setup modal now that Google auth succeeded
+  if(document.getElementById('form-drive-setup')) closeModal();
   updateSyncStatus('syncing');
   try{
     await driveInitialSync();
@@ -2814,6 +2818,7 @@ async function onTokenResponse(resp){
 
 function disconnectDrive(){
   driveAccessToken = null; driveFileId = null;
+  localStorage.removeItem('fintrack_drive_consented');
   updateSyncStatus('disconnected');
   toast(LANG==='ar'?'تم قطع الاتصال بـ Google Drive':'Disconnected from Google Drive');
 }
@@ -2978,8 +2983,19 @@ function updateSyncStatus(state){
 }
 
 document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
-  if(driveAccessToken) openModal('drive-manage');
-  else connectDrive();
+  if(driveAccessToken){
+    openModal('drive-manage');
+  } else {
+    // If a client ID exists, go straight to the OAuth flow.
+    // If not (or env not supported), open drive-setup so user can configure.
+    const clientId = getClientId();
+    const envErr = driveEnvironmentError();
+    if(!clientId || envErr){
+      openModal('drive-setup');
+    } else {
+      connectDrive();
+    }
+  }
 });
 
 // Restore an existing Drive session without ever opening the interactive
@@ -5459,6 +5475,9 @@ function wireModal(kind){
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
         openModal('vehicle-detail', {vehicleId: data.vehicleId});
+      } else if(kind === 'drive-setup'){
+        // Do NOT close: Google OAuth popup is about to open.
+        // The modal will be closed inside onTokenResponse after auth succeeds.
       } else {
         closeModal();
       }

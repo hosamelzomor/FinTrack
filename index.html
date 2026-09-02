@@ -1546,7 +1546,12 @@ Object.assign(GUIDE_CONTENT, {
             <button type="button" class="filter-select-btn" id="vlogs-filter-type-btn" aria-haspopup="listbox" aria-expanded="false" style="width:100%;text-align:inherit;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:9px 11px;font-size:13px;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;">
               <span id="vlogs-filter-type-label">All types</span><span aria-hidden="true">▾</span>
             </button>
-            <div id="vlogs-filter-type-menu" role="listbox" aria-multiselectable="true" style="display:none;position:absolute;z-index:80;top:100%;left:0;right:0;margin-top:5px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.28);"><div id="vlogs-filter-type-options"></div></div>
+            <div id="vlogs-filter-type-menu" role="listbox" aria-multiselectable="true" style="display:none;position:absolute;z-index:80;top:100%;left:0;right:0;margin-top:5px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.28);">
+              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="fuel"> <span id="vlogs-opt-fuel">⛽ Fuel</span></label>
+              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="maintenance"> <span id="vlogs-opt-maint">🔧 Maintenance</span></label>
+              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="oil"> <span id="vlogs-opt-oil">🛢 Oil Change</span></label>
+              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="asset"> <span id="vlogs-opt-asset">💰 Asset</span></label>
+            </div>
           </div>
           <div class="field" style="margin:0;flex:1;">
             <label id="vlogs-lbl-from">From</label>
@@ -2810,41 +2815,17 @@ function silentRefreshToken(){
 // has expired (401) — does ONE silent refresh + retry before giving up.
 // This is what fixes the "sync error" that used to appear silently: an
 // expired token now recovers on its own instead of failing outright.
-async function driveApiFetch(url, options, _retried, _attempt){
+async function driveApiFetch(url, options, _retried){
   options = options || {};
-  _attempt = Number(_attempt || 0);
-  if(!driveAccessToken) throw new Error(LANG==='ar' ? 'لا يوجد اتصال نشط بـ Google Drive' : 'No active Google Drive connection');
   const requestOptions = Object.assign({}, options, {
     headers: Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + driveAccessToken })
   });
   let res;
   try{ res = await fetch(url, requestOptions); }
-  catch(e){
-    if(_attempt < 2){
-      await new Promise(r=>setTimeout(r, 600 * (_attempt + 1)));
-      return driveApiFetch(url, options, _retried, _attempt + 1);
-    }
-    throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error'));
-  }
+  catch(e){ throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error')); }
   if(res.status === 401 && !_retried){
-    try{
-      await silentRefreshToken();
-      return driveApiFetch(url, options, true, _attempt);
-    }catch(refreshErr){
-      driveAccessToken = null;
-      updateSyncStatus('disconnected');
-      throw new Error(LANG==='ar'
-        ? 'انتهت جلسة Google Drive. اضغط ربط Google Drive لإعادة الاتصال.'
-        : 'The Google Drive session expired. Click Connect Google Drive to reconnect.');
-    }
-  }
-  // Retry transient Google/network failures instead of immediately showing
-  // a sync error. This covers temporary 429/5xx responses.
-  if((res.status === 429 || res.status >= 500) && _attempt < 2){
-    const retryAfter = Number(res.headers.get('Retry-After')) || 0;
-    const waitMs = Math.max(700 * (_attempt + 1), retryAfter * 1000);
-    await new Promise(r=>setTimeout(r, Math.min(waitMs, 5000)));
-    return driveApiFetch(url, options, _retried, _attempt + 1);
+    await silentRefreshToken();
+    return driveApiFetch(url, options, true);
   }
   if(!res.ok){
     let detail = '';
@@ -2976,38 +2957,8 @@ window.addEventListener('load', ()=>{
     }
     initGoogleAuth();
     if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // Reconnect silently. If Google requires a fresh interactive login,
-      // keep the local data fully usable and show a neutral disconnected state
-      // instead of a misleading sync error until the user reconnects.
-      setTimeout(async ()=>{
-        if(!tokenClient || typeof google === 'undefined' || !google.accounts) return;
-        try{
-          const resp = await new Promise((resolve,reject)=>{
-            const client = google.accounts.oauth2.initTokenClient({
-              client_id:getClientId(),
-              scope:DRIVE_SCOPE,
-              callback:(r)=> r.error ? reject(new Error(r.error_description || r.error)) : resolve(r)
-            });
-            // Silent only: never open an interactive Google login window on page load.
-            client.requestAccessToken({prompt:'none'});
-          });
-
-          // IMPORTANT: use the token we just received directly. Calling connectDrive()
-          // here would start a second OAuth request and can cause the Google window
-          // to flash open and close immediately.
-          driveAccessToken = resp.access_token;
-          localStorage.setItem('fintrack_drive_consented','1');
-          updateSyncStatus('syncing');
-          await driveInitialSync();
-          updateSyncStatus('connected');
-        }catch(e){
-          driveAccessToken = null;
-          driveFileId = null;
-          updateSyncStatus('disconnected');
-          // A silent failure simply means the user must reconnect manually.
-          console.debug('Google Drive silent reconnect skipped:', e);
-        }
-      }, 700);
+      // Reconnect silently only from a supported origin.
+      setTimeout(()=>{ if(tokenClient) connectDrive(); }, 700);
     }
   }
 });
@@ -4235,78 +4186,12 @@ function renderVehicleLogsPanel(){
   const typeMenu = document.getElementById('vlogs-filter-type-menu');
   const typeBtn = document.getElementById('vlogs-filter-type-btn');
   const typeLabel = document.getElementById('vlogs-filter-type-label');
-
-  // In Vehicle Logs, "Type" is the transaction sub-category. Build the list dynamically
-  // from the categories actually attached to vehicle logs, so every new vehicle sub-category
-  // appears automatically without a code change.
-  const typeSourceLogs = allVehicleLogsComputed().filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle);
-  const categoryForLog = (log) => {
-    if(log.linkedTransactionId){
-      const tx = DB.transactions.find(t=>t.id===log.linkedTransactionId);
-      if(tx && tx.categoryId && categoryById(tx.categoryId)) return tx.categoryId;
-    }
-    return vehicleLogCategoryId(log);
-  };
-  // Type in Vehicle Logs is the vehicle expense SUB-CATEGORY. Build it from the
-  // actual category tree every time the panel renders, so newly-created sub-categories
-  // are immediately available without hard-coded options. If a specific vehicle is
-  // selected, only that vehicle type's branch is shown.
-  const selectedVehicle = _vlVehicle==='all' ? null : vehicleById(_vlVehicle);
-  const selectedRootId = selectedVehicle ? (selectedVehicle.type==='scooter' ? 'cat_scooter' : 'cat_car') : null;
-  const isVehicleCategory = (c)=>{
-    if(!c || c.type!=='expense' || !c.parentId) return false;
-    let root = c;
-    while(root && root.parentId) root = categoryById(root.parentId);
-    return !!root && (root.id==='cat_car' || root.id==='cat_scooter') && (!selectedRootId || root.id===selectedRootId);
-  };
-  const vehicleCategoryIds = DB.categories.filter(isVehicleCategory).map(c=>c.id);
-  const typeCategoryIds = [...new Set(
-    vehicleCategoryIds.concat(typeSourceLogs.map(categoryForLog).filter(Boolean))
-  )].filter(id=>{ const c=categoryById(id); return c ? isVehicleCategory(c) : false; });
-
-  // Keep any old filter state usable, but store current selections as category IDs.
-  const legacyMap = {
-    fuel:['cat_car_fuel','cat_scooter_fuel'],
-    maintenance:['cat_car_maint','cat_scooter_maint'],
-    oil:['cat_car_oil','cat_scooter_oil'],
-    asset:['cat_car_asset','cat_scooter_asset']
-  };
-  if(_vlTypes.some(x=>legacyMap[x])){
-    _vlTypes = [...new Set(_vlTypes.flatMap(x=>legacyMap[x]||[x]))];
-  }
-  _vlTypes = _vlTypes.filter(id=>typeCategoryIds.includes(id));
-
-  const categoryLabel = (catId) => {
-    const c = categoryById(catId);
-    if(!c) return catId;
-    // The category name is the Vehicle Log Type. Keep custom names exactly as entered;
-    // translate only the built-in vehicle sub-categories for the active UI language.
-    const builtIn = {
-      cat_car_fuel: ['وقود','Fuel'], cat_car_maint: ['صيانة','Maintenance'],
-      cat_car_oil: ['تغيير زيت','Oil Change'], cat_car_asset: ['مقتنيات','Assets'],
-      cat_scooter_fuel: ['وقود','Fuel'], cat_scooter_maint: ['صيانة','Maintenance'],
-      cat_scooter_oil: ['تغيير زيت','Oil Change'], cat_scooter_asset: ['مقتنيات','Assets']
-    };
-    if(builtIn[catId]) return LANG==='ar' ? builtIn[catId][0] : builtIn[catId][1];
-    return c.name || catId;
-  };
-  const categoryIcon = (catId) => {
-    const c = categoryById(catId);
-    const n = String(c?.name||'').toLowerCase();
-    if(catId.endsWith('_fuel') || /fuel|وقود/.test(n)) return '⛽ ';
-    if(catId.endsWith('_oil') || /oil|زيت/.test(n)) return '🛢 ';
-    if(catId.endsWith('_asset') || /asset|مقتنيات/.test(n)) return '💰 ';
-    if(catId.endsWith('_maint') || /maint|صيانة/.test(n)) return '🔧 ';
-    return '🔧 ';
-  };
-  if(typeMenu){
-    typeMenu.innerHTML = typeCategoryIds.length
-      ? typeCategoryIds.map(id=>`<label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="${id}" ${_vlTypes.includes(id)?'checked':''}> <span>${categoryIcon(id)}${categoryLabel(id)}</span></label>`).join('')
-      : `<div style="padding:9px;color:var(--text-faint);font-size:12px;">${LANG==='ar'?'لا توجد أنواع مرتبطة بسجلات المركبات':'No types available for vehicle logs'}</div>`;
-  }
+  const typeChecks = typeMenu ? [...typeMenu.querySelectorAll('input[type=checkbox]')] : [];
+  typeChecks.forEach(cb=>{ cb.checked = _vlTypes.includes(cb.value); });
+  const typeNames = LANG==='ar' ? {fuel:'وقود', maintenance:'صيانة', oil:'تغيير زيت', asset:'مقتنيات'} : {fuel:'Fuel', maintenance:'Maintenance', oil:'Oil Change', asset:'Asset'};
   if(typeLabel){
-    if(!_vlTypes.length || (_vlTypes.length===typeCategoryIds.length && typeCategoryIds.length)) typeLabel.textContent = LANG==='ar' ? 'كل الأنواع' : 'All types';
-    else if(_vlTypes.length===1) typeLabel.textContent = categoryLabel(_vlTypes[0]);
+    if(!_vlTypes.length || _vlTypes.length===4) typeLabel.textContent = LANG==='ar' ? 'كل الأنواع' : 'All types';
+    else if(_vlTypes.length===1) typeLabel.textContent = typeNames[_vlTypes[0]] || _vlTypes[0];
     else typeLabel.textContent = LANG==='ar' ? `${_vlTypes.length} أنواع محددة` : `${_vlTypes.length} types selected`;
   }
   document.getElementById('vlogs-filter-from').value = _vlFrom;
@@ -4316,7 +4201,7 @@ function renderVehicleLogsPanel(){
   const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
-    .filter(l => !_vlTypes.length || _vlTypes.includes(categoryForLog(l)))
+    .filter(l => !_vlTypes.length || _vlTypes.includes(l.type))
     .filter(l => !_vlFrom || l.date>=_vlFrom)
     .filter(l => !_vlTo || l.date<=_vlTo)
     .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
@@ -4325,7 +4210,7 @@ function renderVehicleLogsPanel(){
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
       <td class="td-date" data-label="${t('th_date')}">${fmtDate(l.date)}</td>
       <td data-label="${t('th_vehicle')}">${l.vehicleIcon} ${l.vehicleName}</td>
-      <td data-label="${t('th_type')}"><span class="tag">${categoryIcon(categoryForLog(l))}${categoryLabel(categoryForLog(l))}</span></td>
+      <td data-label="${t('th_type')}"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
       <td class="amt neg" data-label="${t('th_amount')}">${fmtMoney(l.amount)}</td>
       <td class="amt" data-label="${t('th_km')}">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
       <td class="amt" data-label="${t('th_dist')}">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
@@ -4373,7 +4258,7 @@ function renderVehicleLogsPanel(){
       name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
       total: allVehicleLogsComputed()
         .filter(l=>l.vehicleId===v.id)
-        .filter(l => !_vlTypes.length || _vlTypes.includes((l.linkedTransactionId && DB.transactions.find(t=>t.id===l.linkedTransactionId)?.categoryId) || vehicleLogCategoryId(l)))
+        .filter(l => !_vlTypes.length || _vlTypes.includes(l.type))
         .filter(l => !_vlFrom || l.date>=_vlFrom)
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
@@ -4398,14 +4283,10 @@ function renderVehicleLogsPanel(){
     typeBtn.setAttribute('aria-expanded', String(!open));
   });
   typeMenu.addEventListener('click', e=>e.stopPropagation());
-  // Delegated change handler: the Type menu is rebuilt dynamically whenever vehicle/category
-  // data changes, so listeners must live on the menu rather than on one-time checkbox nodes.
-  typeMenu.addEventListener('change', e=>{
-    const cb = e.target.closest('input[type=checkbox]');
-    if(!cb) return;
+  typeMenu.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change', ()=>{
     _vlTypes = [...typeMenu.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
     renderVehicleLogsPanel();
-  });
+  }));
   document.addEventListener('click', ()=>{
     if(typeMenu.style.display !== 'none'){ typeMenu.style.display='none'; typeBtn.setAttribute('aria-expanded','false'); }
   });

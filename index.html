@@ -853,6 +853,38 @@
   tbody tr{transition:background .12s ease;}
   tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 72%,var(--accent-soft));}
   tbody tr:last-child td{padding-bottom:13px;}
+
+  /* Persistent, Excel-like column dividers */
+  .table-wrap table{table-layout:auto;}
+  .table-wrap thead th{
+    position:relative;
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  .table-wrap thead th:last-child{border-right:none;}
+  .table-wrap tbody td{
+    border-right:1px solid color-mix(in srgb,var(--border) 72%,transparent);
+    vertical-align:middle;
+  }
+  .table-wrap tbody td:last-child{border-right:none;}
+  .table-wrap tbody tr+tr td{border-top:1px solid color-mix(in srgb,var(--border) 45%,transparent);}
+  .table-wrap .ft-resizable-th{padding-right:16px;}
+  html[dir="rtl"] .table-wrap .ft-resizable-th{padding-right:14px;padding-left:16px;}
+  .table-wrap .col-resize{
+    position:absolute;top:0;right:-3px;width:7px;height:100%;
+    cursor:col-resize;z-index:5;border-radius:3px;
+    background:transparent;transition:background .12s ease,box-shadow .12s ease;
+  }
+  .table-wrap .col-resize:hover,.table-wrap .col-resize.dragging{
+    background:var(--accent);opacity:.8;box-shadow:0 0 0 1px var(--accent);
+  }
+  body.ft-col-resizing,body.ft-col-resizing *{cursor:col-resize!important;user-select:none!important;}
+  @media(max-width:760px){
+    .table-wrap thead th,.table-wrap tbody td{border-right:none;}
+    .table-wrap tbody tr+tr td{border-top:none;}
+    .table-wrap .col-resize{display:none;}
+  }
   .empty{padding:54px 24px;}
   .empty .big-ic{font-size:30px;}
 
@@ -5669,44 +5701,161 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 })();
 
 /* ================================================================
-   COLUMN RESIZE — Tables
-   All <th> elements get a resize handle on right edge.
+   COLUMN RESIZE — Tables (persistent, Excel-like)
+   - Clear vertical separators between columns.
+   - Drag the divider to resize.
+   - Widths are saved per table + column in localStorage.
+   - Double-click a divider to auto-fit that column to its content.
+   - Disabled for the mobile card layout so it never creates horizontal
+     scrolling on phones.
    ================================================================ */
 (function initColResize(){
+  const STORE_KEY='fintrack_table_column_widths_v1';
+  const MIN_W=52;
+  const MOBILE_BREAKPOINT=760;
+
+  function load(){
+    try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){return {};}
+  }
+  function save(data){
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(e){}
+  }
+  function cleanText(s){return (s||'').replace(/\s+/g,' ').trim();}
+  function hash(str){
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+    return (h>>>0).toString(36);
+  }
+  function tableKey(table){
+    if(table.dataset.ftColKey) return table.dataset.ftColKey;
+    const view=table.closest('.view');
+    const headers=[...table.querySelectorAll('thead th')].map(th=>cleanText(th.textContent));
+    const dataTables=view ? [...view.querySelectorAll('table')].filter(t=>!t.closest('.g-table-wrap')) : [...document.querySelectorAll('table')];
+    const index=Math.max(0,dataTables.indexOf(table));
+    const raw=(view?.id||'global')+'|'+index+'|'+headers.join('¦');
+    table.dataset.ftColKey='t_'+hash(raw);
+    return table.dataset.ftColKey;
+  }
+
+  function getColGroup(table,count){
+    let cg=table.querySelector(':scope > colgroup[data-ft-cols]');
+    if(!cg){
+      cg=document.createElement('colgroup');
+      cg.dataset.ftCols='1';
+      const first=table.querySelector('thead tr');
+      for(let i=0;i<count;i++) cg.appendChild(document.createElement('col'));
+      table.insertBefore(cg,table.firstChild);
+    }
+    while(cg.children.length<count) cg.appendChild(document.createElement('col'));
+    return cg;
+  }
+
+  function applyWidths(table){
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+    const ths=[...table.querySelectorAll('thead th')];
+    if(!ths.length) return;
+    const key=tableKey(table), stored=load()[key]||[];
+    const cg=getColGroup(table,ths.length);
+    ths.forEach((th,i)=>{
+      const w=Number(stored[i]);
+      if(Number.isFinite(w)&&w>=MIN_W){
+        cg.children[i].style.width=w+'px';
+        th.style.width=w+'px';
+      }
+    });
+  }
+
+  function autoFit(table,index){
+    const ths=[...table.querySelectorAll('thead th')];
+    const rows=[...table.querySelectorAll('tbody tr')];
+    if(!ths[index]) return;
+    const sample=[ths[index],...rows.slice(0,80).map(r=>r.children[index]).filter(Boolean)];
+    const probe=document.createElement('div');
+    probe.style.cssText='position:fixed;left:-10000px;top:-10000px;visibility:hidden;white-space:nowrap;display:inline-block;';
+    document.body.appendChild(probe);
+    let max=0;
+    sample.forEach(cell=>{
+      const clone=cell.cloneNode(true);
+      clone.querySelectorAll('.col-resize').forEach(x=>x.remove());
+      clone.style.cssText='display:inline-block;width:auto;max-width:none;white-space:nowrap;padding:12px 28px;font:inherit;font-size:'+getComputedStyle(cell).fontSize+';font-weight:'+getComputedStyle(cell).fontWeight+';';
+      probe.appendChild(clone);
+      max=Math.max(max,clone.scrollWidth);
+      clone.remove();
+    });
+    probe.remove();
+    const maxAllowed=Math.max(MIN_W,Math.floor(table.parentElement?.clientWidth||window.innerWidth)*0.65);
+    const width=Math.min(maxAllowed,Math.max(MIN_W,max+2));
+    const cg=getColGroup(table,ths.length);
+    cg.children[index].style.width=width+'px';
+    ths[index].style.width=width+'px';
+    const d=load(); d[tableKey(table)]=ths.map((_,i)=>{const v=parseFloat(cg.children[i].style.width);return Number.isFinite(v)?Math.round(v):null;}); save(d);
+  }
+
   function makeTableResizable(table){
-    if(table.dataset.resizable) return;
+    if(table.closest('.g-table-wrap')) return;
+    const ths=table.querySelectorAll('thead th');
+    if(!ths.length) return;
+    if(table.dataset.resizable==='1'){ applyWidths(table); return; }
     table.dataset.resizable='1';
-    const ths = table.querySelectorAll('thead th');
-    ths.forEach(th=>{
-      if(th.dataset.resizable) return;
-      th.dataset.resizable='1';
+    table.style.minWidth='0';
+    table.style.width='100%';
+    const cg=getColGroup(table,ths.length);
+    applyWidths(table);
+    ths.forEach((th,i)=>{
       th.style.position='relative';
-      const handle = document.createElement('div');
-      handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
-      handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
-      handle.onmouseleave=()=>handle.style.background='';
+      th.classList.add('ft-resizable-th');
+      const handle=document.createElement('div');
+      handle.className='col-resize';
+      handle.setAttribute('aria-label','Resize column');
+      handle.title='Drag to resize • Double-click to auto-fit';
       th.appendChild(handle);
-      let startX, startW;
-      handle.addEventListener('mousedown', ev=>{
-        ev.preventDefault(); ev.stopPropagation();
-        startX=ev.clientX; startW=th.offsetWidth;
-        const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
-        const mu=()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
+      let startX=0,startW=0,moved=false;
+      handle.addEventListener('mousedown',ev=>{
+        if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+        ev.preventDefault();ev.stopPropagation();
+        startX=ev.clientX;
+        startW=th.getBoundingClientRect().width;
+        moved=false;
+        handle.classList.add('dragging');
+        document.body.classList.add('ft-col-resizing');
+        const mm=ev2=>{
+          moved=true;
+          const newW=Math.max(MIN_W,Math.round(startW+(ev2.clientX-startX)));
+          cg.children[i].style.width=newW+'px';
+          th.style.width=newW+'px';
+        };
+        const mu=()=>{
+          document.removeEventListener('mousemove',mm);
+          document.removeEventListener('mouseup',mu);
+          handle.classList.remove('dragging');
+          document.body.classList.remove('ft-col-resizing');
+          if(moved){
+            const d=load();
+            d[tableKey(table)]=[...cg.children].map(c=>{const v=parseFloat(c.style.width);return Number.isFinite(v)?Math.round(v):null;});
+            save(d);
+          }
+        };
         document.addEventListener('mousemove',mm);
         document.addEventListener('mouseup',mu);
+      });
+      handle.addEventListener('dblclick',ev=>{
+        if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+        ev.preventDefault();ev.stopPropagation();autoFit(table,i);
       });
     });
   }
 
-  // Scan tables periodically (after renders)
   function scanTables(){
     document.querySelectorAll('table').forEach(makeTableResizable);
   }
 
-  // Observe DOM changes to catch newly rendered tables
-  const obs = new MutationObserver(()=>{ requestAnimationFrame(scanTables); });
-  obs.observe(document.body, {childList:true, subtree:true});
-  setTimeout(scanTables, 500);
+  const obs=new MutationObserver(()=>requestAnimationFrame(scanTables));
+  obs.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+    document.querySelectorAll('table[data-resizable="1"]').forEach(applyWidths);
+  });
+  setTimeout(scanTables,500);
 })();
 
 /* ---------------------------- INIT ---------------------------- */

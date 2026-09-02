@@ -809,6 +809,7 @@
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
       <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
       <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
+      <button data-view="wealth"><span class="ic">◈</span><span class="lbl">Wealth</span></button>
       <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
       <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
@@ -883,6 +884,31 @@
       </div>
     </section>
 
+    <!-- WEALTH -->
+    <section class="view" id="view-wealth">
+      <div class="topbar">
+        <div><h1 id="wealth-h1">Wealth</h1><div class="today" id="wealth-sub">Assets &amp; liabilities — your real net worth</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn secondary" data-open-modal="liability">+ Liability</button>
+          <button class="btn" data-open-modal="asset">+ Asset</button>
+        </div>
+      </div>
+      <div class="grid cols-3" id="wealth-summary"></div>
+      <div class="grid cols-2" style="margin-top:16px;">
+        <div>
+          <div class="section-title">Assets</div>
+          <div class="table-wrap"><table><thead><tr><th>Name</th><th>Type</th><th class="amt">Value</th><th></th></tr></thead><tbody id="wealth-assets-body"></tbody></table></div>
+        </div>
+        <div>
+          <div class="section-title">Liabilities</div>
+          <div class="table-wrap"><table><thead><tr><th>Name</th><th>Type</th><th class="amt">Remaining</th><th></th></tr></thead><tbody id="wealth-liabilities-body"></tbody></table></div>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:18px;">Vehicles included in Net Worth</div>
+      <div class="table-wrap"><table><thead><tr><th>Vehicle</th><th>Type</th><th class="amt">Current Value</th></tr></thead><tbody id="wealth-vehicles-body"></tbody></table></div>
+      <div class="help-text" style="margin-top:10px;">Net Worth = account balances + assets + vehicle values − manual liabilities − outstanding commitments.</div>
+    </section>
+
     <!-- TRANSACTIONS -->
     <section class="view" id="view-transactions">
       <div class="topbar">
@@ -918,6 +944,9 @@
             </div>
           </div>
         </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);white-space:nowrap;cursor:pointer;">
+          <input type="checkbox" id="txn-show-deleted" style="width:auto;"> ${tt('المحذوفة','Deleted')}
+        </label>
         <button class="btn ghost sm" id="txn-reset" title="مسح الفلاتر">↺</button>
       </div>
       <div class="pill-row" id="txn-filters"></div>
@@ -1669,9 +1698,10 @@ function accountById(id){ return DB.accounts.find(a=>a.id===id); }
 function categoryById(id){ return DB.categories.find(c=>c.id===id); }
 
 function accountBalance(acc){
+  if(!acc) return 0;
   let bal = Number(acc.openingBalance)||0;
   DB.transactions.forEach(t=>{
-    if(t.accountId !== acc.id) return;
+    if(t.accountId !== acc.id || t.deletedAt) return;
     if(t.type === 'income') bal += Number(t.amount);
     else if(t.type === 'expense') bal -= Number(t.amount);
     else if(t.type === 'transfer_out') bal -= Number(t.amount);
@@ -1685,14 +1715,24 @@ function netWorthEGP(){
 }
 
 // Outstanding commitments (installments/جمعية still owed) — assumed EGP, matching how commitments are entered.
+function commitmentPaidAmount(c){
+  return commitmentPayments(c.id).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+}
 function commitmentRemaining(c){
-  const paid = commitmentPayments(c.id).length;
-  return Math.max(0, (c.totalInstallments||0) - paid);
+  return Math.max(0, (Number(c.totalAmount)||0) - commitmentPaidAmount(c));
+}
+function commitmentRemainingInstallments(c){
+  const rem=commitmentRemaining(c), inst=Number(c.installmentAmount)||0;
+  return rem>0 && inst>0 ? Math.ceil(rem/inst) : 0;
+}
+function updateCommitmentStatus(c){
+  if(!c) return;
+  const rem=commitmentRemaining(c);
+  c.status = (rem<=0.009 && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
 }
 function totalLiabilitiesEGP(){
-  return DB.commitments
-    .filter(c=>c.status!=='completed')
-    .reduce((sum,c)=> sum + commitmentRemaining(c) * (Number(c.installmentAmount)||0), 0);
+  return DB.commitments.filter(c=>c.status!=='completed' && !c.deletedAt)
+    .reduce((sum,c)=>sum + commitmentRemaining(c), 0);
 }
 
 function monthTotals(mKey){
@@ -1701,13 +1741,13 @@ function monthTotals(mKey){
   // excludeFromNetWorth should only affect balance/net-worth calculations, not
   // monthly income/expense totals — previously this silently dropped archived-
   // account transactions whenever the month also had at least one "live" transaction.
-  const src = DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  const src = DB.transactions.filter(t=>!t.deletedAt && monthKey(t.date)===mKey);
   let income=0,expense=0;
   src.forEach(t=>{
     if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
     else if(t.type==='expense') expense+=toEGP(Number(t.amount),t.currency);
   });
-  expense+=DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
+  expense+=DB.commitmentPayments.filter(p=>!p.deletedAt && !p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
   return {income,expense,net:income-expense};
 }
 
@@ -2031,18 +2071,22 @@ function vehicleOptionsAll(selectedId){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  const txnEntries = DB.transactions.filter(t=>t.type==='expense')
+  const txnEntries = DB.transactions.filter(t=>t.type==='expense' && !t.deletedAt)
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
-  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
+  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId && !p.deletedAt)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
-  return txnEntries.concat(cmPmtEntries);
+  const vehicleEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId && !l.deletedAt)
+    .map(l=>({categoryId:vehicleLogCategoryId(l),amount:l.amount,currency:(accountById(l.accountId)||{}).currency||'EGP',date:l.date,source:'vehicle',note:l.note}));
+  return txnEntries.concat(cmPmtEntries, vehicleEntries);
 }
 function liveExpenseEntries(){
   const txnEntries = liveTransactions().filter(t=>t.type==='expense')
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
-  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
+  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId && !p.deletedAt)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
-  return txnEntries.concat(cmPmtEntries);
+  const vehicleEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId && !l.deletedAt && !isArchiveTxn({accountId:l.accountId}))
+    .map(l=>({categoryId:vehicleLogCategoryId(l),amount:l.amount,currency:(accountById(l.accountId)||{}).currency||'EGP',date:l.date,source:'vehicle',note:l.note}));
+  return txnEntries.concat(cmPmtEntries, vehicleEntries);
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -2340,7 +2384,7 @@ function renderDashboard(){
 
   const nw = netWorthEGP();
   const liabilities = totalLiabilitiesEGP();
-  const netPosition = nw - liabilities;
+  const netPosition = nw;
   const mt = monthTotals(thisMonthKey());
   const nAccs = DB.accounts.filter(a=>!a.excludeFromNetWorth).length;
 
@@ -2570,7 +2614,7 @@ function renderTransactions(){
 
   // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
   // Newest transaction date first; when dates are equal, newest registration first.
-  let list = [...DB.transactions].sort((a,b)=>{
+  let list = [...DB.transactions].filter(t=>txnShowDeleted ? !!t.deletedAt : !t.deletedAt).sort((a,b)=>{
     const dateCmp = (b.date||'').localeCompare(a.date||'');
     if(dateCmp !== 0) return dateCmp;
     return (b.createdAt||'').localeCompare(a.createdAt||'');
@@ -2619,8 +2663,7 @@ function renderTransactions(){
       <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button>
-        <button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>
+        ${tx.deletedAt ? `<button class="btn ghost sm" data-restore-txn="${tx.id}">${tt('استرجاع','Restore')}</button>` : `<button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>`}
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
@@ -2669,6 +2712,8 @@ document.getElementById('txn-pagination').addEventListener('click', e=>{
   const btn = e.target.closest('[data-txnpage]'); if(!btn) return;
   txnPage = parseInt(btn.dataset.txnpage); renderTransactions();
 });
+document.getElementById('txn-show-deleted')?.addEventListener('change', e=>{ txnShowDeleted=e.target.checked; txnPage=0; renderTransactions(); });
+
 document.getElementById('txn-reset').addEventListener('click', ()=>{
   txnFilter='all'; txnSearchQuery=''; txnMonthFilterVal=''; txnAccountFilterVal=''; txnDateFromVal=''; txnDateToVal=''; txnPage=0;
   document.getElementById('txn-search').value='';
@@ -2689,6 +2734,25 @@ function confirmIfLinked(txnId, action){
   if(action==='delete') return confirm(tt('حذف المعاملة دي؟ الإجراء ده مش قابل للتراجع.','Delete this transaction? This can\'t be undone.'));
   return true;
 }
+document.getElementById('view-transactions').addEventListener('click', e=>{}, true);
+document.getElementById('view-transactions').addEventListener('click', e=>{
+  const restoreId=e.target.closest('[data-restore-txn]')?.dataset.restoreTxn;
+  if(restoreId){ const tx=DB.transactions.find(t=>t.id===restoreId); if(tx){ delete tx.deletedAt; saveDB(); renderAll(); toast(tt('تم استرجاع المعاملة','Transaction restored')); } e.stopImmediatePropagation(); }
+}, true);
+document.getElementById('view-transactions').addEventListener('click', e=>{
+  const delId=e.target.closest('[data-del-txn]')?.dataset.delTxn;
+  if(!delId) return;
+  if(!confirm(tt('نقل المعاملة إلى المحذوفة؟ يمكن استرجاعها لاحقاً.','Move this transaction to Deleted? You can restore it later.'))) { e.stopImmediatePropagation(); return; }
+  const tx=DB.transactions.find(t=>t.id===delId);
+  if(tx){
+    tx.deletedAt=new Date().toISOString();
+    const p=DB.commitmentPayments.find(p=>p.linkedTransactionId===delId); if(p) p.deletedAt=tx.deletedAt;
+    const l=DB.vehicleLogs.find(l=>l.linkedTransactionId===delId); if(l) l.deletedAt=tx.deletedAt;
+    if(p){ const c=DB.commitments.find(c=>c.id===p.commitmentId); updateCommitmentStatus(c); }
+    saveDB(); renderAll(); toast(tt('اتنقلت المعاملة للمحذوفة','Transaction moved to Deleted'));
+  }
+  e.stopImmediatePropagation();
+}, true);
 document.getElementById('view-transactions').addEventListener('click', e=>{
   const editId = e.target.dataset.editTxn;
   if(editId){
@@ -2705,8 +2769,7 @@ document.getElementById('view-transactions').addEventListener('click', e=>{
     const c = DB.commitments.find(x=>x.id===linkedPmt.commitmentId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.id!==linkedPmt.id);
     if(c){
-      const paidCount = commitmentPayments(c.id).length;
-      c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+      updateCommitmentStatus(c);
     }
   }
   if(linkedVehicleLog) DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==linkedVehicleLog.id);
@@ -2755,7 +2818,8 @@ document.getElementById('view-categories').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
 function renderCommitments(){
-  if(!DB.commitments.length){
+  const activeCommitments = DB.commitments.filter(c=>!c.deletedAt);
+  if(!activeCommitments.length){
     document.getElementById('commitments-grid').innerHTML = `
       <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
         <div class="big-ic">◷</div>
@@ -2763,13 +2827,15 @@ function renderCommitments(){
       </div>`;
     return;
   }
-  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
-    const paid = commitmentPayments(c.id).length;
-    const remaining = Math.max(0, c.totalInstallments - paid);
-    const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
-    const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
-    const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
-
+  document.getElementById('commitments-grid').innerHTML = activeCommitments.map(c=>{
+    updateCommitmentStatus(c);
+    const paidAmount = commitmentPaidAmount(c);
+    const remainingAmount = commitmentRemaining(c);
+    const paidCount = commitmentPayments(c.id).length;
+    const remaining = commitmentRemainingInstallments(c);
+    const pct = Number(c.totalAmount)>0 ? Math.min(100, Math.round(paidAmount/Number(c.totalAmount)*100)) : 0;
+    const nextDue = remaining>0 ? addMonths(c.startDate, paidCount) : null;
+    const isDone = remainingAmount<=0.009 && (c.type!=='rotating_saving' || c.payoutReceived);
     let extra = '';
     if(c.type==='rotating_saving'){
       extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
@@ -2777,29 +2843,20 @@ function renderCommitments(){
         ${c.payoutReceived ? `<span class="tag income" style="margin-left:6px;">${LANG==='ar'?'تم الاستلام':'Received'}</span>` : `${LANG==='ar'?'متوقع':'expected'} ${fmtDate(c.payoutDate)}`}
       </div>`;
     }
-
     return `<div class="commit-card">
-      <div class="top">
-        <div>
-          <div class="name">${c.name}</div>
-          <div class="meta">${c.type==='rotating_saving' ? (LANG==='ar'?'جمعية':'جمعية (Rotating Savings)') : (LANG==='ar'?'أقساط':'Installment')} · ${tt('بدأ في','started')} ${fmtDate(c.startDate)}</div>
-        </div>
-        <span class="tag ${isDone?'income':''}">${isDone?(LANG==='ar'?'مكتمل':'Completed'):(LANG==='ar'?'نشط':'Active')}</span>
-      </div>
+      <div class="top"><div><div class="name">${c.name}</div><div class="meta">${c.type==='rotating_saving' ? (LANG==='ar'?'جمعية':'جمعية (Rotating Savings)') : (LANG==='ar'?'أقساط':'Installment')} · ${tt('بدأ في','started')} ${fmtDate(c.startDate)}</div></div>
+      <span class="tag ${isDone?'income':''}">${isDone?(LANG==='ar'?'مكتمل':'Completed'):(LANG==='ar'?'نشط':'Active')}</span></div>
       <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
-      <div class="stats">
-        <span>${paid}/${c.totalInstallments} ${LANG==='ar'?'مدفوع':'paid'}</span>
-        <span class="num">${remaining} ${LANG==='ar'?'متبقي':'left'}</span>
-      </div>
+      <div class="stats"><span>${fmtMoney(paidAmount)} / ${fmtMoney(c.totalAmount)} ${LANG==='ar'?'مدفوع':'paid'}</span><span class="num">${fmtMoney(remainingAmount)} ${LANG==='ar'?'متبقي':'left'}</span></div>
+      <div class="meta" style="margin-top:6px;">${paidCount} ${LANG==='ar'?'دفعات مسجلة':'payments recorded'} · ${remaining} ${LANG==='ar'?'دفعات متوقعة':'scheduled payments left'}</div>
       ${nextDue ? `<div class="meta" style="margin-top:6px;">${LANG==='ar'?'الموعد القادم':'Next due'}: ${fmtDate(nextDue)}</div>` : ''}
       ${extra}
       <div class="actions">
-        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">${LANG==='ar'?'تسجيل دفعة':'Record Payment'}</button>` : ''}
+        ${remainingAmount>0.009 ? `<button class="btn secondary sm" data-record-payment="${c.id}">${LANG==='ar'?'تسجيل دفعة':'Record Payment'}</button>` : ''}
         ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">${LANG==='ar'?'تسجيل استلام الجمعية':'Mark Payout Received'}</button>` : ''}
         <button class="btn ghost sm" data-edit-commit="${c.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-del-commit="${c.id}">${t('btn_delete')}</button>
-      </div>
-    </div>`;
+      </div></div>`;
   }).join('');
 }
 document.getElementById('view-commitments').addEventListener('click', e=>{
@@ -4029,6 +4086,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="car">
         </div>
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
+        <div class="field"><label>${tt('القيمة الحالية للمركبة (اختياري)','Current market value (optional)')}</label><input type="number" step="0.01" name="currentValue" placeholder="${tt('مثال: 450000','e.g. 450000')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
@@ -4055,6 +4113,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="${v.type}">
         </div>
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" value="${v.plateNote||''}" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
+        <div class="field"><label>${tt('القيمة الحالية للمركبة','Current market value')}</label><input type="number" step="0.01" name="currentValue" value="${v.currentValue||0}" placeholder="${tt('مثال: 450000','e.g. 450000')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" value="${v.oilIntervalKm||''}" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
         <div class="field"><label>${tt('مدى الخزان (كم لكل تانك كامل، اختياري)','Tank range (km per full tank, optional)')}</label><input type="number" step="10" name="tankRangeKm" value="${v.tankRangeKm||''}" placeholder="${tt('مثال: 550','e.g. 550')}"></div>
         <div class="modal-actions">
@@ -4589,6 +4648,8 @@ const submitHandlers = {
       amount: Math.abs(diff), currency: a.currency,
       note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
     });
+    DB.reconciliations = DB.reconciliations || [];
+    DB.reconciliations.push({id:uid('rec'),date:todayLocalISO(),accountId:a.id,systemBalance:computed,actualBalance:actual,difference:diff,source:'single'});
     saveDB(); toast(tt('اتسجل التعديل — الرصيد بقى مطابق','Adjustment recorded — balance now matches'));
   },
   'reconcile-all'(data){
@@ -4603,11 +4664,13 @@ const submitHandlers = {
       const diff = Number(data[key]) - computed;
       if(Math.abs(diff) < 0.01) return;
       DB.transactions.push({
-        id: uid('txn'), date: today, accountId: a.id,
+        id: uid('txn'), date: today, createdAt:new Date().toISOString(), accountId: a.id,
         categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
         amount: Math.abs(diff), currency: a.currency,
         note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
       });
+      DB.reconciliations = DB.reconciliations || [];
+      DB.reconciliations.push({id:uid('rec'),date:today,accountId:a.id,systemBalance:computed,actualBalance:Number(data[key]),difference:diff,source:'all'});
       recorded++;
     });
     if(recorded===0){ toast(tt('مفيش فروق للتسجيل','No differences to record')); return; }
@@ -4662,6 +4725,15 @@ const submitHandlers = {
       t.note = data.note;
       t.type = data.type;
 
+      const linkedVehicleLog = DB.vehicleLogs.find(l=>l.linkedTransactionId===t.id && !l.deletedAt);
+      if(linkedVehicleLog){
+        linkedVehicleLog.date = data.date;
+        linkedVehicleLog.accountId = data.accountId;
+        linkedVehicleLog.amount = Number(data.amount);
+        linkedVehicleLog.note = data.note || linkedVehicleLog.note || '';
+        if(linkedVehicleLog.type==='fuel') linkedVehicleLog.litersFilled = computeLitersFromAmount(data.amount);
+      }
+
       if(linkedPmt){
         linkedPmt.date = data.date;
         linkedPmt.amount = Number(data.amount);
@@ -4680,8 +4752,7 @@ const submitHandlers = {
       }
       const c = commitmentId ? DB.commitments.find(x=>x.id===commitmentId) : null;
       if(c){
-        const paidCount = commitmentPayments(c.id).length;
-        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+        updateCommitmentStatus(c);
       }
       saveDB(); toast(tt('اتحدثت المعاملة','Transaction updated'));
       return;
@@ -4716,8 +4787,7 @@ const submitHandlers = {
           id:uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
           method:data.method || 'cash', accountId:data.accountId, linkedTransactionId:txnId
         });
-        const paidCount = commitmentPayments(c.id).length;
-        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+        updateCommitmentStatus(c);
       } else {
         const txnId = uid('txn');
         DB.transactions.push({
@@ -4795,8 +4865,7 @@ const submitHandlers = {
       method:data.method || 'cash', accountId:acc.id, linkedTransactionId:txnId
     });
 
-    const paidCount = commitmentPayments(c.id).length;
-    c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+    updateCommitmentStatus(c);
     saveDB(); toast(tt('اتسجلت الدفعة والمعاملة المرتبطة','Payment and linked transaction recorded'));
   },
   payout(data){
@@ -4804,14 +4873,14 @@ const submitHandlers = {
     const acc = accountById(data.accountId);
     DB.transactions.push({id:uid('txn'), date:data.date, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
     c.payoutReceived = true;
-    const paidCount = commitmentPayments(c.id).length;
-    if(paidCount >= c.totalInstallments) c.status='completed';
+    updateCommitmentStatus(c);
     saveDB(); toast(tt('اتسجل استلام الدور','Payout recorded'));
   },
   vehicle(data){
     DB.vehicles.push({
       id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || '',
-      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
+      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null,
+      currentValue: Number(data.currentValue)||0
     });
     saveDB(); toast(tt('اتعملت المركبة','Vehicle created'));
   },
@@ -4822,6 +4891,7 @@ const submitHandlers = {
     v.type = data.type;
     v.plateNote = data.plateNote || '';
     v.oilIntervalKm = data.oilIntervalKm ? Number(data.oilIntervalKm) : null;
+    v.currentValue = Number(data.currentValue)||0;
     v.tankRangeKm = data.tankRangeKm ? Number(data.tankRangeKm) : null;
     saveDB(); toast(tt('اتحدثت المركبة','Vehicle updated'));
   },
@@ -5572,6 +5642,193 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
   const panel = document.getElementById('guide-tab-' + tab);
   if (panel) panel.classList.add('active');
 });
+
+
+
+/* ================================================================
+   FinTrack V2 — Wealth layer, soft-delete, reconciliation history,
+   commitment amount accounting, vehicle valuation, and Drive conflict guard.
+   Excluded by request: validation module, historical FX, IndexedDB migration,
+   audit trail, opening-balance locking, advanced budgets, recurring transactions.
+   ================================================================ */
+(function initFinTrackV2(){
+  function ensureV2(){
+    DB.assets = Array.isArray(DB.assets) ? DB.assets : [];
+    DB.liabilities = Array.isArray(DB.liabilities) ? DB.liabilities : [];
+    DB.reconciliations = Array.isArray(DB.reconciliations) ? DB.reconciliations : [];
+    (DB.vehicles||[]).forEach(v=>{ if(v.currentValue===undefined) v.currentValue=0; });
+    (DB.assets||[]).forEach(a=>{ if(a.currency===undefined) a.currency='EGP'; if(a.value===undefined) a.value=0; });
+    (DB.liabilities||[]).forEach(l=>{ if(l.currency===undefined) l.currency='EGP'; if(l.remainingAmount===undefined) l.remainingAmount=l.amount||0; });
+  }
+  ensureV2();
+
+  // True net worth: liquid account balances + manually tracked assets + vehicle market values
+  // minus manual liabilities and outstanding commitments.
+  const _oldNetWorth = netWorthEGP;
+  netWorthEGP = function(){
+    ensureV2();
+    const accounts = DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((s,a)=>s+toEGP(accountBalance(a),a.currency),0);
+    const assets = DB.assets.filter(a=>!a.deletedAt).reduce((s,a)=>s+toEGP(Number(a.value)||0,a.currency||'EGP'),0);
+    const vehicles = DB.vehicles.filter(v=>!v.deletedAt).reduce((s,v)=>s+(Number(v.currentValue)||0),0);
+    const manualLiab = DB.liabilities.filter(l=>!l.deletedAt).reduce((s,l)=>s+toEGP(Number(l.remainingAmount)||0,l.currency||'EGP'),0);
+    return accounts + assets + vehicles - manualLiab;
+  };
+
+  const _oldTotalLiabilities = totalLiabilitiesEGP;
+  totalLiabilitiesEGP = function(){
+    ensureV2();
+    const commitments = DB.commitments.filter(c=>c.status!=='completed' && !c.deletedAt).reduce((s,c)=>s+commitmentRemaining(c),0);
+    const manual = DB.liabilities.filter(l=>!l.deletedAt).reduce((s,l)=>s+toEGP(Number(l.remainingAmount)||0,l.currency||'EGP'),0);
+    return commitments + manual;
+  };
+
+  // Ensure all calculations ignore soft-deleted transactions.
+  liveTransactions = function(){ return DB.transactions.filter(t=>!t.deletedAt && !isArchiveTxn(t)); };
+  archiveTransactions = function(){ return DB.transactions.filter(t=>!t.deletedAt && isArchiveTxn(t)); };
+
+  // Improve Drive sync with a remote-modification conflict guard.
+  let driveLocalDirty=false;
+  let driveLastRemoteModified=null;
+  let driveConflictRemote=null;
+  let driveConflictBusy=false;
+  const _origSaveDB = saveDB;
+  saveDB = function(){
+    ensureV2();
+    driveLocalDirty=true;
+    _origSaveDB();
+  };
+  const _origSaveLocalOnly = saveLocalOnly;
+  saveLocalOnly = function(){ _origSaveLocalOnly(); driveLocalDirty=false; };
+
+  const _origDriveInitialSync = driveInitialSync;
+  driveInitialSync = async function(){
+    await _origDriveInitialSync();
+    try{ const f=driveFileId?{id:driveFileId}:await driveFindFile(); if(f) driveLastRemoteModified=f.modifiedTime||null; }catch(e){}
+    driveLocalDirty=false;
+  };
+  const _origDrivePullOverwriteLocal = drivePullOverwriteLocal;
+  drivePullOverwriteLocal = async function(){
+    await _origDrivePullOverwriteLocal();
+    try{ const f=driveFileId?{id:driveFileId}:await driveFindFile(); if(f) driveLastRemoteModified=f.modifiedTime||null; }catch(e){}
+    driveLocalDirty=false;
+  };
+  const _origDrivePushNow = drivePushNow;
+  drivePushNow = async function(){
+    if(!driveAccessToken) throw new Error('Not connected');
+    const f=driveFileId?{id:driveFileId}:await driveFindFile();
+    if(f){
+      const latest=await driveFindFile();
+      if(latest && driveLocalDirty && driveLastRemoteModified && latest.modifiedTime && latest.modifiedTime!==driveLastRemoteModified){
+        driveConflictRemote=latest;
+        openModal('drive-conflict');
+        throw new Error('Drive conflict detected');
+      }
+    }
+    await _origDrivePushNow();
+    try{ const latest=await driveFindFile(); driveLastRemoteModified=latest?.modifiedTime||driveLastRemoteModified; }catch(e){}
+    driveLocalDirty=false;
+  };
+  clearTimeout(pushTimer);
+  queueDrivePush = function(){
+    if(!driveAccessToken || !driveFileId) return;
+    updateSyncStatus('syncing'); clearTimeout(pushTimer);
+    pushTimer=setTimeout(async()=>{
+      try{ await drivePushNow(); updateSyncStatus('connected'); }
+      catch(e){ if(e.message==='Drive conflict detected') return; console.error(e); updateSyncStatus('error'); toast(tt('تعذرت مزامنة Drive','Drive sync failed')); }
+    },1500);
+  };
+
+  // Soft-delete UI is already wired at capture phase; keep deleted records out of category/report totals.
+  const _oldIncInRange=_incInRange;
+  _incInRange=function(from,to,catIds){
+    const incCatIds=catIds?new Set([...catIds].filter(id=>{const cat=DB.categories.find(c=>c.id===id);return !cat||cat.type==='income';})):null;
+    const useFilter=incCatIds&&incCatIds.size>0;
+    return DB.transactions.filter(t=>!t.deletedAt && t.type==='income').filter(t=>{const mk=monthKey(t.date);if(from&&mk<from)return false;if(to&&mk>to)return false;if(useFilter&&!incCatIds.has(t.categoryId))return false;return true;}).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  };
+
+  function renderWealth(){
+    ensureV2();
+    const acc = DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((s,a)=>s+toEGP(accountBalance(a),a.currency),0);
+    const assets = DB.assets.filter(a=>!a.deletedAt).reduce((s,a)=>s+toEGP(Number(a.value)||0,a.currency||'EGP'),0);
+    const vehicles = DB.vehicles.filter(v=>!v.deletedAt).reduce((s,v)=>s+(Number(v.currentValue)||0),0);
+    const manualLiab = DB.liabilities.filter(l=>!l.deletedAt).reduce((s,l)=>s+toEGP(Number(l.remainingAmount)||0,l.currency||'EGP'),0);
+    const commitments = DB.commitments.filter(c=>c.status!=='completed'&&!c.deletedAt).reduce((s,c)=>s+commitmentRemaining(c),0);
+    const net=acc+assets+vehicles-manualLiab-commitments;
+    const el=document.getElementById('wealth-summary'); if(!el) return;
+    el.innerHTML=[
+      [tt('الأرصدة','Accounts'),acc],
+      [tt('الأصول','Assets'),assets+vehicles],
+      [tt('الالتزامات','Liabilities'),manualLiab+commitments],
+    ].map(x=>`<div class="card"><div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${x[0]}</div><div class="num" style="font-size:17px;font-weight:700;">EGP ${fmtMoney(x[1])}</div></div>`).join('')+
+      `<div class="card" style="grid-column:1/-1;"><div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${tt('صافي الثروة الحقيقي','True Net Worth')}</div><div class="num" style="font-size:26px;font-weight:800;color:${net>=0?'var(--positive)':'var(--negative)'};">EGP ${fmtMoney(net)}</div><div class="help-text">${tt('يشمل الحسابات والأصول والمركبات ويخصم الالتزامات والأقساط المتبقية.','Includes accounts, assets and vehicles, less liabilities and outstanding commitments.')}</div></div>`;
+    document.getElementById('wealth-assets-body').innerHTML=DB.assets.filter(a=>!a.deletedAt).map(a=>`<tr><td>${a.name}</td><td>${a.type||'—'}</td><td class="amt">${a.currency||'EGP'} ${fmtMoney(a.value)}</td><td class="td-actions"><button class="btn ghost sm" data-edit-asset="${a.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-asset="${a.id}">${t('btn_delete')}</button></td></tr>`).join('')||`<tr><td colspan="4" class="empty">${tt('لا توجد أصول مسجلة','No assets recorded')}</td></tr>`;
+    document.getElementById('wealth-liabilities-body').innerHTML=DB.liabilities.filter(l=>!l.deletedAt).map(l=>`<tr><td>${l.name}</td><td>${l.type||'—'}</td><td class="amt">${l.currency||'EGP'} ${fmtMoney(l.remainingAmount)}</td><td class="td-actions"><button class="btn ghost sm" data-edit-liability="${l.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-liability="${l.id}">${t('btn_delete')}</button></td></tr>`).join('')||`<tr><td colspan="4" class="empty">${tt('لا توجد التزامات إضافية','No additional liabilities')}</td></tr>`;
+    document.getElementById('wealth-vehicles-body').innerHTML=DB.vehicles.filter(v=>!v.deletedAt).map(v=>`<tr><td>${v.name}</td><td>${v.type==='scooter'?'🛵':'🚗'} ${v.type}</td><td class="amt">EGP ${fmtMoney(v.currentValue||0)}</td></tr>`).join('')||`<tr><td colspan="3" class="empty">${tt('لا توجد مركبات','No vehicles')}</td></tr>`;
+  }
+
+  // Add/modify wealth modals without duplicating the large existing modal function.
+  const _origOpenModal = openModal;
+  openModal = function(kind,ctx={}){
+    if(kind==='asset' || kind==='liability'){
+      ensureV2(); const editing=ctx.id ? (kind==='asset'?DB.assets.find(a=>a.id===ctx.id):DB.liabilities.find(l=>l.id===ctx.id)) : null;
+      const isAsset=kind==='asset'; const title=isAsset?(editing?tt('تعديل أصل','Edit Asset'):tt('أصل جديد','New Asset')):(editing?tt('تعديل التزام','Edit Liability'):tt('التزام جديد','New Liability'));
+      document.getElementById('modal-root').innerHTML=`<div class="modal-backdrop" id="modal-backdrop"><div class="modal"><h2>${title}</h2><form id="form-wealth-item"><input type="hidden" name="kind" value="${kind}">${editing?`<input type="hidden" name="id" value="${editing.id}">`:''}<div class="field"><label>${tt('الاسم','Name')}</label><input name="name" required value="${editing?.name||''}" placeholder="${isAsset?tt('مثال: ذهب، أثاث، عقار','e.g. gold, furniture, property'):tt('مثال: قرض شخصي','e.g. personal loan')}"></div><div class="field"><label>${tt('النوع','Type')}</label><input name="type" value="${editing?.type||''}" placeholder="${isAsset?tt('ذهب / عقار / أثاث / أخرى','Gold / Property / Furniture / Other'):tt('قرض / بطاقة / دين / أخرى','Loan / Card / Debt / Other')}"></div><div class="field-row"><div class="field"><label>${tt('العملة','Currency')}</label><select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${(editing?.currency||'EGP')===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select></div><div class="field"><label>${isAsset?tt('القيمة الحالية','Current Value'):tt('المبلغ المتبقي','Remaining Amount')}</label><input type="number" step="0.01" min="0" name="value" required value="${isAsset?(editing?.value||0):(editing?.remainingAmount||0)}"></div></div><div class="modal-actions"><button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button><button type="submit" class="btn">${tt('حفظ','Save')}</button></div></form></div></div>`;
+      const mb=document.getElementById('modal-backdrop'); mb.querySelector('[data-close]')?.addEventListener('click',closeModal); mb.addEventListener('click',e=>{if(e.target===mb)closeModal();}); return;
+    }
+    if(kind==='drive-conflict'){
+      document.getElementById('modal-root').innerHTML=`<div class="modal-backdrop" id="modal-backdrop"><div class="modal"><h2>${tt('تعارض في Google Drive','Google Drive Conflict')}</h2><div class="help-text">${tt('اتغير ملف FinTrack على Drive من جهاز آخر بعد آخر مزامنة. عشان ما نخسرش بيانات، النظام وقف الرفع التلقائي. اختار إما جلب نسخة Drive أو إجبار الرفع المحلي.','The FinTrack file changed on Drive after your last sync. To prevent data loss, automatic upload was stopped. Choose Pull Drive or Force Push Local.')}</div><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;"><button class="btn secondary" id="btn-conflict-pull">⬇ ${tt('جلب من Drive','Pull Drive')}</button><button class="btn danger" id="btn-conflict-push">⬆ ${tt('فرض الرفع المحلي','Force Push Local')}</button><button class="btn ghost" data-close>${tt('إلغاء','Cancel')}</button></div></div></div>`;
+      document.getElementById('btn-conflict-pull').onclick=async()=>{try{await _origDrivePullOverwriteLocal();driveLocalDirty=false;driveLastRemoteModified=driveConflictRemote?.modifiedTime||null;document.getElementById('modal-backdrop')?.remove();renderAll();toast(tt('تم جلب نسخة Drive','Drive version pulled'));}catch(e){toast(e.message)}};
+      document.getElementById('btn-conflict-push').onclick=async()=>{try{const f=driveConflictRemote;await driveUpdate(driveFileId,DB);driveLastRemoteModified=f?.modifiedTime||null;driveLocalDirty=false;document.getElementById('modal-backdrop')?.remove();updateSyncStatus('connected');toast(tt('تم فرض الرفع المحلي','Local version pushed'));}catch(e){toast(e.message)}};
+      return;
+    }
+    return _origOpenModal(kind,ctx);
+  };
+
+  // Wealth form submission hook through the existing modal submit dispatcher.
+  const wealthSubmit = document.addEventListener('submit', e=>{
+    if(e.target.id!=='form-wealth-item') return;
+    e.preventDefault();
+    const data=Object.fromEntries(new FormData(e.target).entries()); ensureV2();
+    const arr=data.kind==='asset'?DB.assets:DB.liabilities; const item=data.id?arr.find(x=>x.id===data.id):null;
+    if(item){ item.name=data.name.trim();item.type=data.type.trim();item.currency=data.currency;if(data.kind==='asset')item.value=Number(data.value)||0;else item.remainingAmount=Number(data.value)||0; }
+    else arr.push(data.kind==='asset'?{id:uid('asset'),name:data.name.trim(),type:data.type.trim(),currency:data.currency,value:Number(data.value)||0}:{id:uid('liab'),name:data.name.trim(),type:data.type.trim(),currency:data.currency,remainingAmount:Number(data.value)||0});
+    saveDB();document.getElementById('modal-backdrop')?.remove();renderAll();toast(tt('تم الحفظ','Saved'));
+  });
+
+  document.getElementById('view-wealth')?.addEventListener('click',e=>{
+    const ea=e.target.closest('[data-edit-asset]')?.dataset.editAsset, da=e.target.closest('[data-del-asset]')?.dataset.delAsset;
+    const el=e.target.closest('[data-edit-liability]')?.dataset.editLiability, dl=e.target.closest('[data-del-liability]')?.dataset.delLiability;
+    if(ea)return openModal('asset',{id:ea}); if(el)return openModal('liability',{id:el});
+    if(da){const x=DB.assets.find(a=>a.id===da);if(confirm(tt(`حذف ${x?.name||'الأصل'}؟`,`Delete ${x?.name||'this asset'}?`))){DB.assets=DB.assets.filter(a=>a.id!==da);saveDB();renderAll();}};
+    if(dl){const x=DB.liabilities.find(a=>a.id===dl);if(confirm(tt(`حذف ${x?.name||'الالتزام'}؟`,`Delete ${x?.name||'this liability'}?`))){DB.liabilities=DB.liabilities.filter(a=>a.id!==dl);saveDB();renderAll();}};
+  });
+
+  // Commitment amount logic for newly-created/edited commitments.
+  const _origCommitmentSubmit=submitHandlers.commitment;
+  submitHandlers.commitment=function(data){ _origCommitmentSubmit(data); const c=data.commitId?DB.commitments.find(x=>x.id===data.commitId):DB.commitments[DB.commitments.length-1]; updateCommitmentStatus(c); saveDB(); };
+
+  // Reconciliation history display.
+  const _origRenderAccounts=renderAccounts;
+  renderAccounts=function(){ _origRenderAccounts(); ensureV2(); const host=document.getElementById('view-accounts'); if(!host)return; let box=document.getElementById('reconciliation-history-box'); if(!box){box=document.createElement('div');box.id='reconciliation-history-box';host.appendChild(box);} const rows=DB.reconciliations.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10); box.innerHTML=`<div class="section-title" style="margin-top:18px;">${tt('آخر عمليات المطابقة','Recent Reconciliations')}</div><div class="table-wrap"><table><thead><tr><th>${tt('التاريخ','Date')}</th><th>${tt('الحساب','Account')}</th><th>${tt('النظام','System')}</th><th>${tt('الفعلي','Actual')}</th><th class="amt">${tt('الفرق','Difference')}</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${accountById(r.accountId)?.name||'—'}</td><td>${r.systemBalance?.toFixed(2)||'0.00'}</td><td>${r.actualBalance?.toFixed(2)||'0.00'}</td><td class="amt">${r.difference>=0?'+':''}${fmtMoney(r.difference)}</td></tr>`).join('')||`<tr><td colspan="5" class="empty">${tt('لا توجد عمليات مطابقة بعد','No reconciliation sessions yet')}</td></tr>`}</tbody></table></div>`; };
+
+  const _origRenderAll=renderAll;
+  renderAll=function(){ _origRenderAll(); renderWealth(); };
+
+  const _origApplyLangV2=applyLang;
+  applyLang=function(lang){
+    _origApplyLangV2(lang);
+    const wh=document.getElementById('wealth-h1'); if(wh) wh.textContent=tt('الثروة','Wealth');
+    const ws=document.getElementById('wealth-sub'); if(ws) ws.textContent=tt('الأصول والالتزامات — صافي ثروتك الحقيقي','Assets & liabilities — your real net worth');
+    const wv=document.querySelector('#view-wealth .section-title'); if(wv) wv.textContent=tt('الأصول','Assets');
+    const wt=document.querySelectorAll('#view-wealth .section-title')[1]; if(wt) wt.textContent=tt('الالتزامات','Liabilities');
+    const wvt=document.querySelectorAll('#view-wealth .section-title')[2]; if(wvt) wvt.textContent=tt('المركبات الداخلة في صافي الثروة','Vehicles included in Net Worth');
+    const wb=document.querySelector('#view-wealth .topbar .btn'); if(wb) wb.textContent=tt('+ أصل','+ Asset');
+    const wl=document.querySelector('#view-wealth .topbar .btn.secondary'); if(wl) wl.textContent=tt('+ التزام','+ Liability');
+  };
+  // Re-run once so the new view/fields are immediately available.
+  renderAll();
+  applyLang(LANG);
+})();
 
 </script>
 </body>

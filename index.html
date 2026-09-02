@@ -2354,7 +2354,9 @@ function vehicleLogsRaw(vehicleId){
 // IMPORTANT: for fuel rows, "distance" (and therefore km/L) is measured since the *previous fuel
 // entry specifically* — not since the previous log entry of any type. Otherwise a maintenance or
 // oil-change entry logged in between two fill-ups (very common) would shrink the distance used for
-// the km/L math down to "since that unrelated entry", producing an artificially tiny, wrong km/L
+// the km/L math down to "since that unrelated entry", producing an artificially tiny, wrong km/L.
+// Oil-change rows are also measured against the previous oil-change row specifically, so the
+// distance shown for an oil change answers: "how many km since the last oil change?".
 // (e.g. a full tank divided by a 60km gap to an oil change instead of the real distance since the
 // last refuel). Non-fuel rows keep the old "since previous entry of any type" distance, since that's
 // still a useful general trip-odometer indicator for them.
@@ -2395,13 +2397,18 @@ function _scooterKmLBaseline(rawValues){
 }
 function vehicleLogsComputed(vehicleId){
   const v = vehicleById(vehicleId);
-  let prevOdo = null, prevFuelOdo = null;
+  let prevOdo = null, prevFuelOdo = null, prevOilOdo = null;
   const rows = vehicleLogsRaw(vehicleId).map(l=>{
     let distance = null, kmPerLiter = null, kmPerLiterRaw = null;
     if(l.odometerKm != null){
       if(l.type === 'fuel'){
         if(prevFuelOdo != null) distance = l.odometerKm - prevFuelOdo;
         prevFuelOdo = l.odometerKm;
+      } else if(l.type === 'oil'){
+        // Oil-change distance is specifically the km driven since the PREVIOUS oil change
+        // for this vehicle, not since the previous arbitrary vehicle log (fuel/maintenance/etc.).
+        if(prevOilOdo != null) distance = l.odometerKm - prevOilOdo;
+        prevOilOdo = l.odometerKm;
       } else if(prevOdo != null){
         distance = l.odometerKm - prevOdo;
       }

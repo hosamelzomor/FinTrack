@@ -645,20 +645,20 @@
   .g-badge.blue{background:var(--accent-soft);color:var(--accent-bright);}
 
   /* table */
-  .g-table-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:0 0 16px;}
-  .g-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto;}
+  .g-table-wrap{border:1px solid var(--border);border-radius:10px;overflow-x:auto;overflow-y:hidden;max-width:100%;margin:0 0 16px;}
+  .g-table-wrap table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;}
   .g-table-wrap thead th{
-    position:relative;text-align:right;font-size:11px;color:var(--text-faint);text-transform:uppercase;
+    position:relative;text-align:center !important;font-size:11px;color:var(--text-faint);text-transform:uppercase;
     letter-spacing:.05em;padding:9px 14px;border-bottom:1px solid var(--border);
-    border-right:1px solid var(--border);font-weight:700;background:var(--surface-2);
+    border-inline-end:1px solid var(--border);font-weight:700;background:var(--surface-2);
   }
-  .g-table-wrap thead th:last-child{border-right:none;}
+  .g-table-wrap thead th:last-child{border-inline-end:none;}
   .g-table-wrap tbody td{
     padding:10px 14px;border-bottom:1px solid var(--border);
-    border-right:1px solid color-mix(in srgb,var(--border) 72%,transparent);
+    border-inline-end:1px solid color-mix(in srgb,var(--border) 72%,transparent);
     font-size:13px;color:var(--text-muted);vertical-align:middle;
   }
-  .g-table-wrap tbody td:last-child{border-right:none;}
+  .g-table-wrap tbody td:last-child{border-inline-end:none;}
   .g-table-wrap tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 72%,var(--accent-soft));}
   .g-table-wrap .ft-resizable-th{padding-right:16px;}
   html[dir="rtl"] .g-table-wrap .ft-resizable-th{padding-right:14px;padding-left:16px;}
@@ -718,8 +718,8 @@
   html[lang="ar"] .nav button { text-align: right; }
   html[lang="ar"] .sidebar-toggle-btn { left: auto; right: 206px; }
   html[lang="ar"] .app.sidebar-collapsed .sidebar-toggle-btn { right: 6px; }
-  html[lang="ar"] th { text-align: right; }
-  html[lang="ar"] .g-table-wrap thead th { text-align: right; }
+  html[lang="ar"] th { text-align: center !important; }
+  html[lang="ar"] .g-table-wrap thead th { text-align: center !important; }
 
   /* Guide page: two full-content blocks per tab, one per language.
      Only the block matching the current <html lang> is shown. */
@@ -869,34 +869,40 @@
   tbody tr:last-child td{padding-bottom:13px;}
 
   /* Persistent, Excel-like column dividers */
-  .table-wrap table{table-layout:auto;}
+  .table-wrap{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;}
+  .table-wrap table{
+    width:max-content;
+    min-width:100%;
+    table-layout:fixed;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+  .table-wrap th,.table-wrap td{
+    border-inline-end:1px solid var(--border);
+  }
+  .table-wrap th:last-child,.table-wrap td:last-child{border-inline-end:none;}
   .table-wrap thead th{
     position:relative;
-    border-right:1px solid var(--border);
-    border-bottom:1px solid var(--border);
+    text-align:center !important;
+    vertical-align:middle;
     white-space:nowrap;
   }
-  .table-wrap thead th:last-child{border-right:none;}
-  .table-wrap tbody td{
-    border-right:1px solid color-mix(in srgb,var(--border) 72%,transparent);
-    vertical-align:middle;
-  }
-  .table-wrap tbody td:last-child{border-right:none;}
-  .table-wrap tbody tr+tr td{border-top:1px solid color-mix(in srgb,var(--border) 45%,transparent);}
-  .table-wrap .ft-resizable-th{padding-right:16px;}
-  html[dir="rtl"] .table-wrap .ft-resizable-th{padding-right:14px;padding-left:16px;}
+  .table-wrap tbody td{vertical-align:middle;}
+  .table-wrap .ft-resizable-th{padding-right:16px;padding-left:16px;}
   .table-wrap .col-resize{
-    position:absolute;top:0;right:-3px;width:7px;height:100%;
-    cursor:col-resize;z-index:5;border-radius:3px;
-    background:transparent;transition:background .12s ease,box-shadow .12s ease;
+    position:absolute;top:0;right:-4px;width:9px;height:100%;
+    cursor:col-resize;z-index:5;border-radius:3px;background:transparent;
+    transition:background .12s ease,box-shadow .12s ease;
   }
+  html[dir="rtl"] .table-wrap .col-resize{right:auto;left:-4px;}
   .table-wrap .col-resize:hover,.table-wrap .col-resize.dragging{
-    background:var(--accent);opacity:.8;box-shadow:0 0 0 1px var(--accent);
+    background:var(--accent);opacity:.85;box-shadow:0 0 0 1px var(--accent);
   }
   body.ft-col-resizing,body.ft-col-resizing *{cursor:col-resize!important;user-select:none!important;}
   @media(max-width:760px){
-    .table-wrap thead th,.table-wrap tbody td{border-right:none;}
-    .table-wrap tbody tr+tr td{border-top:none;}
+    .table-wrap{overflow-x:hidden;}
+    .table-wrap table{width:100%;min-width:0;table-layout:auto;}
+    .table-wrap th,.table-wrap td{border-inline-end:none;}
     .table-wrap .col-resize{display:none;}
   }
   .empty{padding:54px 24px;}
@@ -1144,13 +1150,14 @@
     #view-wealth .topbar > div:last-child{grid-template-columns:1fr;}
   }
 
-  /* Guide tables: consistent centered headers and mobile-safe sizing. */
+  /* Guide tables: same persistent resize system as every other table. */
+  #guide-root .g-table-wrap { max-width:100%; overflow-x:auto; overflow-y:hidden; }
+  #guide-root .g-table-wrap table { width:max-content; min-width:100%; table-layout:fixed; }
   #guide-root .g-table-wrap th { text-align:center !important; vertical-align:middle; }
   #guide-root .g-table-wrap td { vertical-align:middle; }
-  #guide-root .g-table-wrap table { width:100%; table-layout:auto; }
   @media(max-width:600px){
     #guide-root .g-table-wrap { overflow-x:hidden; }
-    #guide-root .g-table-wrap table { min-width:0 !important; }
+    #guide-root .g-table-wrap table { width:100%; min-width:0 !important; table-layout:fixed; }
     #guide-root .g-table-wrap th, #guide-root .g-table-wrap td { white-space:normal; overflow-wrap:anywhere; word-break:normal; }
   }
 </style>
@@ -5793,21 +5800,23 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 })();
 
 /* ================================================================
-   COLUMN RESIZE — Tables (persistent, Excel-like)
-   - Clear vertical separators between columns.
-   - Drag the divider to resize.
-   - Widths are saved per table + column in localStorage.
-   - Double-click a divider to auto-fit that column to its content.
-   - Disabled for the mobile card layout so it never creates horizontal
-     scrolling on phones.
+   COLUMN RESIZE — All Tables (persistent, Excel-like)
+   - Clear vertical separators between every column.
+   - Drag a divider to resize the column.
+   - Double-click a divider to auto-fit the column.
+   - Widths are persisted per logical table, independent of language.
+   - Existing v1 saved widths are migrated on first use when possible.
+   - Dynamic tables are detected automatically after every render.
+   - Disabled on mobile card layouts.
    ================================================================ */
 (function initColResize(){
   const STORE_KEY='fintrack_table_column_widths_v1';
   const MIN_W=52;
   const MOBILE_BREAKPOINT=760;
+  const migrated={};
 
   function load(){
-    try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){return {};}
+    try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){return {};} 
   }
   function save(data){
     try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(e){}
@@ -5818,36 +5827,69 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
     return (h>>>0).toString(36);
   }
+  function viewIdFor(table){return table.closest('.view')?.id||'global';}
+  function tableIndexFor(table){
+    const view=table.closest('.view');
+    const tables=view ? [...view.querySelectorAll('table')] : [...document.querySelectorAll('table')];
+    return Math.max(0,tables.indexOf(table));
+  }
   function tableKey(table){
     if(table.dataset.ftColKey) return table.dataset.ftColKey;
+    const viewId=viewIdFor(table);
+    const index=tableIndexFor(table);
+    const headers=[...table.querySelectorAll('thead th')];
+    const raw=viewId+'|table-'+index+'|cols-'+headers.length;
+    table.dataset.ftColKey='t_'+hash(raw);
+    return table.dataset.ftColKey;
+  }
+  // Legacy key used by the previous implementation, allowing already-saved widths to survive.
+  function legacyTableKey(table){
     const view=table.closest('.view');
     const headers=[...table.querySelectorAll('thead th')].map(th=>cleanText(th.textContent));
     const dataTables=view ? [...view.querySelectorAll('table')] : [...document.querySelectorAll('table')];
     const index=Math.max(0,dataTables.indexOf(table));
     const raw=(view?.id||'global')+'|'+index+'|'+headers.join('¦');
-    table.dataset.ftColKey='t_'+hash(raw);
-    return table.dataset.ftColKey;
+    return 't_'+hash(raw);
   }
-
   function getColGroup(table,count){
     let cg=table.querySelector(':scope > colgroup[data-ft-cols]');
     if(!cg){
       cg=document.createElement('colgroup');
       cg.dataset.ftCols='1';
-      const first=table.querySelector('thead tr');
       for(let i=0;i<count;i++) cg.appendChild(document.createElement('col'));
       table.insertBefore(cg,table.firstChild);
     }
     while(cg.children.length<count) cg.appendChild(document.createElement('col'));
+    while(cg.children.length>count) cg.removeChild(cg.lastElementChild);
     return cg;
   }
-
+  function getStored(table){
+    const d=load();
+    const key=tableKey(table);
+    if(Array.isArray(d[key])) return d[key];
+    const legacy=legacyTableKey(table);
+    if(Array.isArray(d[legacy])){
+      d[key]=d[legacy];
+      save(d);
+      migrated[key]=true;
+      return d[key];
+    }
+    return [];
+  }
+  function saveWidths(table,cg){
+    const d=load();
+    d[tableKey(table)]=[...cg.children].map(c=>{
+      const v=parseFloat(c.style.width);
+      return Number.isFinite(v)?Math.round(v):null;
+    });
+    save(d);
+  }
   function applyWidths(table){
     if(window.innerWidth<=MOBILE_BREAKPOINT) return;
     const ths=[...table.querySelectorAll('thead th')];
     if(!ths.length) return;
-    const key=tableKey(table), stored=load()[key]||[];
     const cg=getColGroup(table,ths.length);
+    const stored=getStored(table);
     ths.forEach((th,i)=>{
       const w=Number(stored[i]);
       if(Number.isFinite(w)&&w>=MIN_W){
@@ -5856,42 +5898,42 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
       }
     });
   }
-
   function autoFit(table,index){
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
     const ths=[...table.querySelectorAll('thead th')];
-    const rows=[...table.querySelectorAll('tbody tr')];
     if(!ths[index]) return;
-    const sample=[ths[index],...rows.slice(0,80).map(r=>r.children[index]).filter(Boolean)];
+    const rows=[...table.querySelectorAll('tbody tr')];
+    const sample=[ths[index],...rows.slice(0,120).map(r=>r.children[index]).filter(Boolean)];
     const probe=document.createElement('div');
-    probe.style.cssText='position:fixed;left:-10000px;top:-10000px;visibility:hidden;white-space:nowrap;display:inline-block;';
+    probe.style.cssText='position:fixed;left:-10000px;top:-10000px;visibility:hidden;white-space:nowrap;display:inline-block;pointer-events:none;';
     document.body.appendChild(probe);
     let max=0;
     sample.forEach(cell=>{
       const clone=cell.cloneNode(true);
       clone.querySelectorAll('.col-resize').forEach(x=>x.remove());
-      clone.style.cssText='display:inline-block;width:auto;max-width:none;white-space:nowrap;padding:12px 28px;font:inherit;font-size:'+getComputedStyle(cell).fontSize+';font-weight:'+getComputedStyle(cell).fontWeight+';';
+      const cs=getComputedStyle(cell);
+      clone.style.cssText='display:inline-block;width:auto;max-width:none;white-space:nowrap;padding:12px 16px;font-family:'+cs.fontFamily+';font-size:'+cs.fontSize+';font-weight:'+cs.fontWeight+';letter-spacing:'+cs.letterSpacing+';box-sizing:border-box;';
       probe.appendChild(clone);
       max=Math.max(max,clone.scrollWidth);
       clone.remove();
     });
     probe.remove();
-    const maxAllowed=Math.max(MIN_W,Math.floor(table.parentElement?.clientWidth||window.innerWidth)*0.65);
-    const width=Math.min(maxAllowed,Math.max(MIN_W,max+2));
+    const parentW=table.parentElement?.clientWidth||window.innerWidth;
+    const maxAllowed=Math.max(MIN_W,Math.floor(parentW*0.8));
+    const width=Math.min(maxAllowed,Math.max(MIN_W,max+4));
     const cg=getColGroup(table,ths.length);
     cg.children[index].style.width=width+'px';
     ths[index].style.width=width+'px';
-    const d=load(); d[tableKey(table)]=ths.map((_,i)=>{const v=parseFloat(cg.children[i].style.width);return Number.isFinite(v)?Math.round(v):null;}); save(d);
+    saveWidths(table,cg);
   }
-
   function makeTableResizable(table){
-    const ths=table.querySelectorAll('thead th');
+    const ths=[...table.querySelectorAll('thead th')];
     if(!ths.length) return;
-    if(table.dataset.resizable==='1'){ applyWidths(table); return; }
-    table.dataset.resizable='1';
-    table.style.minWidth='0';
-    table.style.width='100%';
     const cg=getColGroup(table,ths.length);
     applyWidths(table);
+    if(table.dataset.resizable==='1') return;
+    table.dataset.resizable='1';
+    table.classList.add('ft-resizable-table');
     ths.forEach((th,i)=>{
       th.style.position='relative';
       th.classList.add('ft-resizable-th');
@@ -5911,7 +5953,9 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
         document.body.classList.add('ft-col-resizing');
         const mm=ev2=>{
           moved=true;
-          const newW=Math.max(MIN_W,Math.round(startW+(ev2.clientX-startX)));
+          const direction=(document.documentElement.dir==='rtl')?-1:1;
+          const delta=(ev2.clientX-startX)*direction;
+          const newW=Math.max(MIN_W,Math.round(startW+delta));
           cg.children[i].style.width=newW+'px';
           th.style.width=newW+'px';
         };
@@ -5920,11 +5964,7 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
           document.removeEventListener('mouseup',mu);
           handle.classList.remove('dragging');
           document.body.classList.remove('ft-col-resizing');
-          if(moved){
-            const d=load();
-            d[tableKey(table)]=[...cg.children].map(c=>{const v=parseFloat(c.style.width);return Number.isFinite(v)?Math.round(v):null;});
-            save(d);
-          }
+          if(moved) saveWidths(table,cg);
         };
         document.addEventListener('mousemove',mm);
         document.addEventListener('mouseup',mu);
@@ -5935,18 +5975,21 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
       });
     });
   }
-
-  function scanTables(){
-    document.querySelectorAll('table').forEach(makeTableResizable);
-  }
-
-  const obs=new MutationObserver(()=>requestAnimationFrame(scanTables));
+  function scanTables(){document.querySelectorAll('table').forEach(makeTableResizable);}
+  let scanQueued=false;
+  const queueScan=()=>{
+    if(scanQueued) return;
+    scanQueued=true;
+    requestAnimationFrame(()=>{scanQueued=false;scanTables();});
+  };
+  const obs=new MutationObserver(queueScan);
   obs.observe(document.body,{childList:true,subtree:true});
   window.addEventListener('resize',()=>{
-    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
-    document.querySelectorAll('table[data-resizable="1"]').forEach(applyWidths);
+    document.querySelectorAll('table[data-resizable="1"]').forEach(table=>{
+      if(window.innerWidth>MOBILE_BREAKPOINT) applyWidths(table);
+    });
   });
-  setTimeout(scanTables,500);
+  setTimeout(scanTables,300);
 })();
 
 /* ---------------------------- INIT ---------------------------- */

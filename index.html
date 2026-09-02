@@ -2160,17 +2160,51 @@ function initGoogleAuth(){
   });
 }
 
+function driveOriginSupported(){
+  return location.protocol === 'https:' || (location.protocol === 'http:' && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(location.host));
+}
+
+function driveEnvironmentError(){
+  if(location.protocol === 'file:') return LANG==='ar'
+    ? 'Google Drive لا يعمل عند فتح الملف مباشرة من الجهاز (file://). شغّل FinTrack على HTTPS أو localhost أولاً.'
+    : 'Google Drive cannot work when the HTML file is opened directly (file://). Run FinTrack over HTTPS or localhost first.';
+  if(!driveOriginSupported()) return LANG==='ar'
+    ? 'Google Drive يحتاج HTTPS (أو localhost أثناء الاختبار). افتح النظام من رابط آمن ثم أعد المحاولة.'
+    : 'Google Drive requires HTTPS (or localhost for testing). Open FinTrack from a secure URL and try again.';
+  return '';
+}
+
 function connectDrive(){
   const clientId = getClientId();
   if(!clientId){ openModal('drive-setup'); return; }
+  const envError = driveEnvironmentError();
+  if(envError){ updateSyncStatus('error'); toast(envError); openModal('drive-setup'); return; }
   if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
+  if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
   const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
   tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
 }
 
+function describeDriveError(e){
+  const msg = e && e.message ? e.message : String(e || 'Unknown error');
+  if(/403/.test(msg)) return LANG==='ar'
+    ? msg + ' — تأكد أن Google Drive API مفعّل وأن الـ OAuth Client ID تابع لنفس المشروع.'
+    : msg + ' — make sure Google Drive API is enabled and the OAuth Client ID belongs to the same project.';
+  if(/origin|redirect|disallowed_useragent|unauthorized_client|invalid_client/i.test(msg)) return LANG==='ar'
+    ? msg + ' — راجع Authorized JavaScript origins في Google Cloud.'
+    : msg + ' — check Authorized JavaScript origins in Google Cloud.';
+  return msg;
+}
+
 async function onTokenResponse(resp){
-  if(resp.error){ toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + resp.error); updateSyncStatus('error'); return; }
+  if(resp.error){
+    console.error('Google OAuth error:', resp);
+    localStorage.removeItem('fintrack_drive_consented');
+    updateSyncStatus('error');
+    toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + (resp.error_description || resp.error));
+    return;
+  }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
   updateSyncStatus('syncing');
@@ -2178,7 +2212,9 @@ async function onTokenResponse(resp){
     await driveInitialSync();
     updateSyncStatus('connected');
   }catch(e){
-    console.error(e); toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + e.message); updateSyncStatus('error');
+    console.error('Drive sync error:', e);
+    toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + describeDriveError(e));
+    updateSyncStatus('error');
   }
 }
 
@@ -2194,17 +2230,22 @@ function disconnectDrive(){
 // (e.g. the user needs to reconnect manually).
 function silentRefreshToken(){
   return new Promise((resolve, reject)=>{
+    if(!driveOriginSupported()){ reject(new Error(driveEnvironmentError() || 'Unsupported origin')); return; }
     if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
-    if(!tokenClient) initGoogleAuth();
-    if(!tokenClient){ reject(new Error('No client ID configured')); return; }
-    const prevCallback = tokenClient.callback;
-    tokenClient.callback = (resp)=>{
-      tokenClient.callback = prevCallback;
-      if(resp.error){ reject(new Error(resp.error)); return; }
-      driveAccessToken = resp.access_token;
-      resolve(resp.access_token);
-    };
-    tokenClient.requestAccessToken({ prompt: '' });
+    const clientId = getClientId();
+    if(!clientId){ reject(new Error('No client ID configured')); return; }
+    // Use a separate token client so a background refresh cannot overwrite
+    // the callback used by the interactive sign-in flow.
+    const refreshClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      callback: (resp)=>{
+        if(resp.error){ reject(new Error(resp.error_description || resp.error)); return; }
+        driveAccessToken = resp.access_token;
+        resolve(resp.access_token);
+      }
+    });
+    refreshClient.requestAccessToken({ prompt: 'none' });
   });
 }
 
@@ -2214,26 +2255,37 @@ function silentRefreshToken(){
 // expired token now recovers on its own instead of failing outright.
 async function driveApiFetch(url, options, _retried){
   options = options || {};
-  options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + driveAccessToken });
-  const res = await fetch(url, options);
+  const requestOptions = Object.assign({}, options, {
+    headers: Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + driveAccessToken })
+  });
+  let res;
+  try{ res = await fetch(url, requestOptions); }
+  catch(e){ throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error')); }
   if(res.status === 401 && !_retried){
     await silentRefreshToken();
     return driveApiFetch(url, options, true);
+  }
+  if(!res.ok){
+    let detail = '';
+    try{
+      const body = await res.clone().json();
+      detail = body?.error?.message ? ': ' + body.error.message : '';
+    }catch(_){}
+    throw new Error('Drive API ' + res.status + detail);
   }
   return res;
 }
 
 async function driveFindFile(){
-  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
-  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`);
-  if(!res.ok) throw new Error('Drive list failed (' + res.status + ')');
+  const escapedName = DRIVE_FILE_NAME.replace(/'/g, "\\'");
+  const q = encodeURIComponent(`name='${escapedName}' and trashed=false`);
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&pageSize=10&fields=files(id,name,modifiedTime,mimeType)`);
   const data = await res.json();
   return (data.files && data.files[0]) ? data.files[0] : null;
 }
 
 async function driveDownload(fileId){
-  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
-  if(!res.ok) throw new Error('Drive download failed (' + res.status + ')');
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`);
   return res.json();
 }
 
@@ -2335,9 +2387,15 @@ document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
 
 window.addEventListener('load', ()=>{
   if(getClientId()){
+    if(!driveOriginSupported()){
+      // Do not repeatedly trigger Google OAuth errors when the user opened
+      // the HTML file directly via file://.
+      updateSyncStatus('error');
+      return;
+    }
     initGoogleAuth();
     if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // Give Google Identity Services a moment to finish loading, then try a silent (no-prompt) reconnect.
+      // Reconnect silently only from a supported origin.
       setTimeout(()=>{ if(tokenClient) connectDrive(); }, 700);
     }
   }
@@ -2571,6 +2629,7 @@ let txnMonthFilterVal = '';
 let txnAccountFilterVal = '';
 let txnDateFromVal = '';
 let txnDateToVal = '';
+let txnShowDeleted = false;
 let txnPage = 0;
 const TXN_PG = 100;
 let _txnTreeCtrl = null;
@@ -4315,8 +4374,8 @@ function openModal(kind, ctx={}){
       ? `<div style="background:rgba(226,114,124,.12);border:1px solid rgba(226,114,124,.3);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--negative);">
           <strong>⚠ تحذير مهم / Important:</strong><br>
           ${LANG==='ar'
-            ? 'الملف مفتوح كـ file:// — Google OAuth لا يعمل مع البروتوكول ده. لازم ترفع الملف على HTTPS (GitHub Pages, Netlify, Vercel) عشان الاتصال يشتغل.'
-            : 'File is open as file:// — Google OAuth does NOT work with this protocol. You must host the file on HTTPS (GitHub Pages, Netlify, Vercel) for Drive to connect.'
+            ? 'الملف مفتوح كـ file:// — Google OAuth لا يعمل مع فتح HTML مباشرة. شغّله على HTTPS أو localhost أولاً، ثم أضف نفس الـ Origin في Google Cloud.'
+            : 'File is open as file:// — Google OAuth does NOT work when the HTML is opened directly. Run it over HTTPS or localhost, then add the same Origin in Google Cloud.'
           }
         </div>`
       : (!isHttps
@@ -5653,6 +5712,18 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
    ================================================================ */
 (function initFinTrackV2(){
   function ensureV2(){
+    DB = DB && typeof DB === 'object' ? DB : {};
+    DB.accounts = Array.isArray(DB.accounts) ? DB.accounts : [];
+    DB.transactions = Array.isArray(DB.transactions) ? DB.transactions : [];
+    DB.categories = Array.isArray(DB.categories) ? DB.categories : [];
+    DB.commitments = Array.isArray(DB.commitments) ? DB.commitments : [];
+    DB.commitmentPayments = Array.isArray(DB.commitmentPayments) ? DB.commitmentPayments : [];
+    DB.fxRates = Array.isArray(DB.fxRates) && DB.fxRates.length ? DB.fxRates : [{currency:'EGP',rateToEGP:1}];
+    DB.budgets = Array.isArray(DB.budgets) ? DB.budgets : [];
+    DB.vehicles = Array.isArray(DB.vehicles) ? DB.vehicles : [];
+    DB.vehicleLogs = Array.isArray(DB.vehicleLogs) ? DB.vehicleLogs : [];
+    DB.vehicleDocs = Array.isArray(DB.vehicleDocs) ? DB.vehicleDocs : [];
+    DB.vehicleParts = Array.isArray(DB.vehicleParts) ? DB.vehicleParts : [];
     DB.assets = Array.isArray(DB.assets) ? DB.assets : [];
     DB.liabilities = Array.isArray(DB.liabilities) ? DB.liabilities : [];
     DB.reconciliations = Array.isArray(DB.reconciliations) ? DB.reconciliations : [];

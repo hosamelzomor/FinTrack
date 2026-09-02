@@ -2995,31 +2995,57 @@ async function driveUpdate(fileId, content){
 // made after authentication started. If local data changed during the pull,
 // preserve it and push that newer local state to Drive instead.
 async function driveInitialSync(){
-  const localSnapshotBeforeSync = JSON.stringify(DB);
+  // Never replace the in-memory/local database with Drive data during the
+  // initial connection. The local database is the authoritative working copy.
+  // This prevents a transaction entered immediately after Google login from
+  // disappearing when the initial Drive download finishes.
+  const localAtStart = JSON.stringify(DB);
   const file = await driveFindFile();
-  if(file){
-    driveFileId = file.id;
-    const remote = await driveDownload(file.id);
-
-    // If nothing changed locally while the remote file was being downloaded,
-    // it is safe to hydrate the app from Drive. Otherwise, the local state is
-    // newer (e.g. a transaction was just entered) and MUST NOT be discarded.
-    const localChangedDuringSync = JSON.stringify(DB) !== localSnapshotBeforeSync;
-    if(localChangedDuringSync){
-      await driveUpdate(file.id, DB);
-      updateSyncStatus('syncing');
-      toast(LANG==='ar'
-        ? 'تم الحفاظ على التغييرات المحلية ورفعها إلى Google Drive'
-        : 'Local changes were preserved and pushed to Google Drive');
-    } else {
-      DB = migrateDB(remote);
-      saveLocalOnly();
-      renderAll();
-      toast(LANG==='ar'?'تم جلب البيانات من Google Drive':'Pulled latest data from Google Drive');
-    }
-  } else {
+  if(!file){
     driveFileId = await driveCreate(DB);
-    toast(LANG==='ar'?'تم الاتصال — تم إنشاء ملف البيانات في Google Drive':'Connected — created FinTrack data file in Drive');
+    return;
+  }
+
+  driveFileId = file.id;
+  driveLastRemoteModified = file.modifiedTime || null;
+  const remote = await driveDownload(file.id);
+
+  // If the local DB changed while Drive was downloading, local data wins.
+  // Even when it did not, prefer local as the working copy; Drive is a backup
+  // and sync target, not a reason to silently erase local data.
+  const localChanged = JSON.stringify(DB) !== localAtStart;
+  if(localChanged){
+    await driveUpdate(file.id, DB);
+    return;
+  }
+
+  // Only import Drive automatically when the local database is genuinely empty.
+  const localHasData = (DB.accounts?.length || DB.transactions?.length || DB.vehicles?.length || DB.assets?.length || DB.liabilities?.length);
+  const remoteHasData = (remote?.accounts?.length || remote?.transactions?.length || remote?.vehicles?.length || remote?.assets?.length || remote?.liabilities?.length);
+  if(!localHasData && remoteHasData){
+    DB = migrateDB(remote);
+    saveLocalOnly();
+    renderAll();
+    return;
+  }
+
+  // Both sides contain data: merge transaction/commitment/vehicle records by id
+  // without deleting anything local. Local values win on an id collision.
+  if(localHasData && remoteHasData){
+    const mergeById=(local,remote)=>{
+      const out=Array.isArray(local)?local.slice():[];
+      const ids=new Set(out.map(x=>x?.id));
+      (Array.isArray(remote)?remote:[]).forEach(x=>{ if(x?.id && !ids.has(x.id)){ out.push(x); ids.add(x.id); } });
+      return out;
+    };
+    const merged = migrateDB(JSON.parse(JSON.stringify(DB)));
+    ['accounts','transactions','categories','commitments','commitmentPayments','fxRates','budgets','vehicles','vehicleLogs','vehicleDocs','vehicleParts','assets','liabilities','reconciliations'].forEach(k=>{
+      if(Array.isArray(merged[k]) && Array.isArray(remote[k])) merged[k]=mergeById(merged[k],remote[k]);
+    });
+    DB = merged;
+    saveLocalOnly();
+    renderAll();
+    await driveUpdate(file.id, DB);
   }
 }
 
@@ -3096,53 +3122,46 @@ document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
 // saveDB()/transaction saves must never trigger authentication UI.
 function autoReconnectDriveSilently(){
   if(!getClientId() || !driveOriginSupported()) return;
+  if(driveInteractiveAuthInFlight || window.__ftDriveSilentInFlight) return;
   if(typeof google === 'undefined' || !google.accounts) return;
+  window.__ftDriveSilentInFlight = true;
   const clientId = getClientId();
   try{
     const silentClient = google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: DRIVE_SCOPE,
       callback: async (resp)=>{
+        window.__ftDriveSilentInFlight = false;
         if(resp.error){
-          // Silent reconnect can legitimately fail when the Google session
-          // has expired. Do NOT show a login popup or error toast here.
           driveAccessToken = null;
+          updateSyncStatus('disconnected');
           return;
         }
         driveAccessToken = resp.access_token;
         saveTokenToSession(resp.access_token, resp.expires_in || 3600);
         try{
-          // Do not pull/overwrite local data during automatic reconnect.
-          // The user can explicitly use Drive Sync > Pull when needed.
           const f = await driveFindFile();
-          if(f){
-            driveFileId = f.id;
-            driveLastRemoteModified = f.modifiedTime || null;
-          }
+          if(f){ driveFileId=f.id; driveLastRemoteModified=f.modifiedTime||null; }
           updateSyncStatus('connected');
         }catch(e){
-          console.error('Silent Drive reconnect failed:', e);
+          console.error('Silent Drive reconnect failed:',e);
           updateSyncStatus('error');
         }
       }
     });
     silentClient.requestAccessToken({prompt:'none'});
   }catch(e){
-    console.error('Silent Drive reconnect setup failed:', e);
+    window.__ftDriveSilentInFlight = false;
+    console.error('Silent Drive reconnect setup failed:',e);
   }
 }
 
-// Attempt to restore the Drive session on page load.
-// Strategy (in order of preference):
-//   1. sessionStorage cached token (valid, not expired) → instant restore, no Google call.
-//      This is what makes F5 refresh work seamlessly.
-//   2. Google silent token (prompt:'none') → works when Google browser session is active.
-//   3. Nothing → stay disconnected, user clicks to re-auth interactively.
 async function tryRestoreDriveSession(){
   if(!getClientId() || !driveOriginSupported()) return;
   if(localStorage.getItem('fintrack_drive_consented') !== '1') return;
+  if(driveInteractiveAuthInFlight) return;
 
-  // ── Path 1: cached token in sessionStorage ──────────────────────────────
+  // 1) Reuse a still-valid token from this tab first.
   const cached = loadTokenFromSession();
   if(cached){
     driveAccessToken = cached;
@@ -3151,21 +3170,19 @@ async function tryRestoreDriveSession(){
       const f = await driveFindFile();
       if(f){ driveFileId = f.id; driveLastRemoteModified = f.modifiedTime || null; }
       updateSyncStatus('connected');
+      return;
     }catch(e){
-      // Token may have been revoked server-side even though it wasn't expired locally.
-      console.warn('Cached token rejected by Drive API:', e);
+      console.warn('Cached Drive token rejected:', e);
       clearTokenFromSession();
       driveAccessToken = null;
-      // Do not start another OAuth request automatically. The user can
-      // reconnect explicitly; this prevents background OAuth from racing the popup.
-      updateSyncStatus('disconnected');
     }
-    return;
   }
 
-  // No cached token: stay disconnected and wait for an explicit user click.
-  // Background prompt:'none' was intentionally removed because it could race
-  // with the manual OAuth popup after a refresh/session expiry.
+  // 2) Restore the previous Google authorization silently. This must NEVER
+  // pull/overwrite application data and must never race a manual click.
+  if(typeof google !== 'undefined' && google.accounts){
+    autoReconnectDriveSilently();
+  }
 }
 
 // Called by the Google GSI script exactly once when the library is ready.
@@ -3173,6 +3190,7 @@ async function tryRestoreDriveSession(){
 function onGoogleLibraryLoad(){
   if(!getClientId() || !driveOriginSupported()) return;
   initGoogleAuth();
+  tryRestoreDriveSession();
 }
 
 window.addEventListener('load', ()=>{
@@ -6934,6 +6952,7 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
   const _origSaveDB = saveDB;
   saveDB = function(){
     ensureV2();
+    window.__ftDriveLocalChangeSeq = (window.__ftDriveLocalChangeSeq || 0) + 1;
     driveLocalDirty=true;
     _origSaveDB();
   };
@@ -6942,9 +6961,12 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
 
   const _origDriveInitialSync = driveInitialSync;
   driveInitialSync = async function(){
+    const seqBefore = window.__ftDriveLocalChangeSeq || 0;
     await _origDriveInitialSync();
     try{ const f=driveFileId?{id:driveFileId}:await driveFindFile(); if(f) driveLastRemoteModified=f.modifiedTime||null; }catch(e){}
-    driveLocalDirty=false;
+    // A local change made while sync was running must remain dirty until its
+    // queued upload completes; never reset that flag blindly.
+    if((window.__ftDriveLocalChangeSeq || 0) === seqBefore) driveLocalDirty=false;
   };
   const _origDrivePullOverwriteLocal = drivePullOverwriteLocal;
   drivePullOverwriteLocal = async function(){

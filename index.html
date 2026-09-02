@@ -298,6 +298,10 @@
   /* Reports grid responsive */
   #rep-main-grid{grid-template-columns:3fr 2fr;}
   @media(max-width:900px){#rep-main-grid{grid-template-columns:1fr!important;}}
+  /* Archived/hidden accounts panel */
+  .hidden-accounts-panel{margin-top:14px;}
+  .hidden-accounts-panel .section-title{margin-bottom:10px;}
+  #toggle-hidden-accounts{white-space:nowrap;}
   /* Column resize handle */
   .col-resize{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize;z-index:2;}
   .col-resize:hover,.col-resize.dragging{background:var(--accent);opacity:.5;}
@@ -645,17 +649,35 @@
   .g-badge.blue{background:var(--accent-soft);color:var(--accent-bright);}
 
   /* table */
-  .g-table-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:0 0 16px;}
-  .g-table-wrap table{width:100%;border-collapse:collapse;}
+  .g-table-wrap{border:1px solid var(--border);border-radius:10px;overflow-x:auto;overflow-y:hidden;max-width:100%;margin:0 0 16px;}
+  .g-table-wrap table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;}
   .g-table-wrap thead th{
-    text-align:right;font-size:11px;color:var(--text-faint);text-transform:uppercase;
+    position:relative;text-align:center !important;font-size:11px;color:var(--text-faint);text-transform:uppercase;
     letter-spacing:.05em;padding:9px 14px;border-bottom:1px solid var(--border);
-    font-weight:700;background:var(--surface-2);
+    border-right:1px solid var(--border);font-weight:700;background:var(--surface-2);
   }
+  html[dir="rtl"] .g-table-wrap thead th{border-right:none;border-left:1px solid var(--border);}
+  .g-table-wrap thead th:last-child{border-right:none;}
+  html[dir="rtl"] .g-table-wrap thead th:last-child{border-left:none;}
   .g-table-wrap tbody td{
     padding:10px 14px;border-bottom:1px solid var(--border);
-    font-size:13px;color:var(--text-muted);
+    border-right:1px solid color-mix(in srgb,var(--border) 72%,transparent);
+    font-size:13px;color:var(--text-muted);vertical-align:middle;
   }
+  html[dir="rtl"] .g-table-wrap tbody td{border-right:none;border-left:1px solid color-mix(in srgb,var(--border) 72%,transparent);}
+  .g-table-wrap tbody td:last-child{border-right:none;}
+  html[dir="rtl"] .g-table-wrap tbody td:last-child{border-left:none;}
+  .g-table-wrap tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 72%,var(--accent-soft));}
+  .g-table-wrap .ft-resizable-th{padding-right:16px;}
+  html[dir="rtl"] .g-table-wrap .ft-resizable-th{padding-right:14px;padding-left:16px;}
+  .g-table-wrap .col-resize{
+    position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;
+    border-radius:3px;background:transparent;transition:background .12s ease,box-shadow .12s ease;
+  }
+  .g-table-wrap .col-resize:hover,.g-table-wrap .col-resize.dragging{
+    background:var(--accent);opacity:.8;box-shadow:0 0 0 1px var(--accent);
+  }
+  .g-table-wrap tbody tr:last-child td{border-bottom:none;}
   .g-table-wrap tbody tr:last-child td{border-bottom:none;}
   .g-table-wrap tbody td strong{color:var(--text);font-weight:600;}
   .g-table-wrap tbody td code{font-family:monospace;font-size:11.5px;background:var(--surface-3);padding:1px 6px;border-radius:4px;color:var(--accent-bright);}
@@ -704,8 +726,8 @@
   html[lang="ar"] .nav button { text-align: right; }
   html[lang="ar"] .sidebar-toggle-btn { left: auto; right: 206px; }
   html[lang="ar"] .app.sidebar-collapsed .sidebar-toggle-btn { right: 6px; }
-  html[lang="ar"] th { text-align: right; }
-  html[lang="ar"] .g-table-wrap thead th { text-align: right; }
+  html[lang="ar"] th { text-align: center !important; }
+  html[lang="ar"] .g-table-wrap thead th { text-align: center !important; }
 
   /* Guide page: two full-content blocks per tab, one per language.
      Only the block matching the current <html lang> is shown. */
@@ -719,16 +741,469 @@
   html[lang="en"] [data-glang="en"] .g-faq,
   html[lang="ar"] [data-glang="ar"] .g-faq { display: flex !important; }
 
+
+
+  /* ============================================================
+     FinTrack UI/UX Refresh — visual-only layer
+     Purpose: improve hierarchy, spacing, consistency and usability
+     without changing data, business logic, IDs or event handlers.
+  ============================================================ */
+  :root{
+    --radius-sm:10px;
+    --radius-md:14px;
+    --radius-lg:18px;
+    --shadow-sm:0 2px 10px rgba(0,0,0,.10);
+    --shadow-md:0 10px 30px rgba(0,0,0,.16);
+    --focus-ring:0 0 0 3px var(--accent-soft);
+  }
+  body.light{
+    --shadow-sm:0 2px 10px rgba(20,30,45,.07);
+    --shadow-md:0 12px 32px rgba(20,30,45,.10);
+  }
+
+  body{letter-spacing:-.005em;}
+  .app{background:var(--bg);}
+
+  /* Sidebar */
+  .sidebar{
+    width:238px;
+    padding:22px 0 18px;
+    box-shadow:inset -1px 0 0 var(--border);
+  }
+  .brand{padding:2px 22px 22px;margin-bottom:16px;}
+  .brand .mark{font-size:20px;gap:9px;}
+  .brand .mark .dot{width:9px;height:9px;}
+  .brand .sub{font-size:10px;letter-spacing:.08em;margin-top:5px;}
+  .nav{padding:0 12px;gap:4px;}
+  .nav button{
+    min-height:42px;
+    padding:9px 13px;
+    border:1px solid transparent;
+    border-radius:11px;
+    gap:11px;
+    transition:background .16s ease,border-color .16s ease,color .16s ease,transform .12s ease;
+  }
+  .nav button:hover{border-color:var(--border);transform:translateX(1px);}
+  .nav button.active{border-color:rgba(99,191,176,.18);font-weight:600;}
+  .nav button .ic{width:18px;font-size:15px;}
+  .nav-footer{padding:15px 22px 0;margin-top:16px;}
+  .nav-footer button{border-radius:10px;padding:9px 11px;}
+
+  /* Main content */
+  .content{
+    padding:28px clamp(22px,3vw,46px) 48px;
+  }
+  .content > .views-wrapper{max-width:1540px;width:100%;margin:0 auto;}
+  .global-toolbar{
+    position:relative;
+    z-index:20;
+    width:max-content;
+    max-width:100%;
+    margin:0 0 18px auto;
+    padding:6px;
+    gap:6px;
+    border:1px solid var(--border);
+    border-radius:15px;
+    background:color-mix(in srgb,var(--surface) 92%,transparent);
+    box-shadow:var(--shadow-sm);
+  }
+  .gt-btn{
+    width:36px;height:36px;
+    border-radius:10px;
+    background:transparent;
+    border-color:transparent;
+    font-size:15px;
+  }
+  .gt-btn:hover{background:var(--surface-2);border-color:var(--border);transform:none;}
+  .gt-btn.connected,.gt-btn.syncing,.gt-btn.error{background:var(--surface-2);}
+  .gt-btn .gt-dot{top:3px;right:3px;width:8px;height:8px;}
+  html[lang="ar"] .gt-btn .gt-dot{right:auto;left:3px;}
+
+  .topbar{
+    min-height:48px;
+    margin-bottom:22px;
+    gap:16px;
+  }
+  .topbar h1{font-size:25px;line-height:1.2;}
+  .topbar .today{font-size:12px;margin-top:6px;}
+  .topbar > .btn,.topbar > div:last-child .btn{box-shadow:0 4px 12px rgba(76,154,142,.16);}
+
+  /* Buttons */
+  .btn{
+    min-height:38px;
+    border-radius:10px;
+    padding:9px 16px;
+    transition:transform .12s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.12);}
+  .btn:active{transform:translateY(0);}
+  .btn.secondary:hover,.btn.ghost:hover{box-shadow:none;}
+  .btn:focus-visible,.gt-btn:focus-visible,.nav button:focus-visible,
+  .filter-pill:focus-visible,.guide-tab:focus-visible{outline:none;box-shadow:var(--focus-ring);}
+
+  /* Cards */
+  .grid{gap:18px;}
+  .card{
+    border-radius:14px;
+    padding:19px 20px;
+    box-shadow:var(--shadow-sm);
+    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+  }
+  .card:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--border));box-shadow:var(--shadow-md);}
+  .card h3{font-size:11px;letter-spacing:.07em;}
+  .card .big{font-size:27px;line-height:1.2;margin-top:8px;}
+  .section-title{
+    font-size:16px;
+    margin:30px 0 12px;
+    min-height:24px;
+  }
+  .section-title .hint{font-size:11px;}
+
+  /* Tables */
+  .table-wrap{
+    border-radius:14px;
+    box-shadow:var(--shadow-sm);
+  }
+  .table-wrap .head-row{padding:15px 18px;background:var(--surface-2);}
+  .table-wrap .head-row h3{font-size:13.5px;}
+  thead th{
+    padding:10px 14px;
+    font-size:10.5px;
+    background:var(--surface-2);
+  }
+  tbody td{padding:12px 14px;font-size:13px;}
+  tbody tr{transition:background .12s ease;}
+  tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 72%,var(--accent-soft));}
+  tbody tr:last-child td{padding-bottom:13px;}
+
+  /* Persistent, Excel-like column dividers */
+  .table-wrap{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;}
+  .table-wrap table{
+    width:max-content;
+    min-width:100%;
+    table-layout:fixed;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+  .table-wrap th,.table-wrap td{
+    border-right:1px solid var(--border);
+  }
+  html[dir="rtl"] .table-wrap th,html[dir="rtl"] .table-wrap td{
+    border-right:none;
+    border-left:1px solid var(--border);
+  }
+  .table-wrap th:last-child,.table-wrap td:last-child{border-right:none;}
+  html[dir="rtl"] .table-wrap th:last-child,html[dir="rtl"] .table-wrap td:last-child{border-left:none;}
+  .table-wrap thead th{
+    position:relative;
+    text-align:center !important;
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+  .table-wrap tbody td{vertical-align:middle;white-space:normal;overflow-wrap:anywhere;word-break:normal;}
+  .table-wrap tbody td.amt{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
+  .table-wrap tbody td.td-actions{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
+  .table-wrap tbody td.td-note > span{unicode-bidi:plaintext;}
+  .table-wrap .ft-resizable-th{padding-right:16px;padding-left:16px;}
+  .table-wrap .col-resize{
+    position:absolute;top:0;right:-4px;width:9px;height:100%;
+    cursor:col-resize;z-index:5;border-radius:3px;background:transparent;
+    transition:background .12s ease,box-shadow .12s ease;
+  }
+  html[dir="rtl"] .table-wrap .col-resize{right:auto;left:-4px;}
+  .table-wrap .col-resize:hover,.table-wrap .col-resize.dragging{
+    background:var(--accent);opacity:.85;box-shadow:0 0 0 1px var(--accent);
+  }
+  body.ft-col-resizing,body.ft-col-resizing *{cursor:col-resize!important;user-select:none!important;}
+  @media(max-width:760px){
+    .table-wrap{overflow-x:hidden;}
+    .table-wrap table{width:100%;min-width:0;table-layout:auto;}
+    .table-wrap th,.table-wrap td{border-right:none;border-left:none;}
+    .table-wrap .col-resize{display:none;}
+  }
+  .empty{padding:54px 24px;}
+  .empty .big-ic{font-size:30px;}
+
+  /* Filters */
+  #txn-filter-bar,#rep-filter-bar,#vlogs-filter-bar{
+    padding:10px;
+    border:1px solid var(--border);
+    border-radius:13px;
+    background:var(--surface);
+    box-shadow:var(--shadow-sm);
+    margin-bottom:14px !important;
+  }
+  #txn-filter-bar input,#txn-filter-bar select,
+  #rep-filter-bar input,#rep-filter-bar select,
+  #vlogs-filter-bar input,#vlogs-filter-bar select{
+    min-height:36px;
+    border-radius:9px !important;
+  }
+  .pill-row{gap:7px;margin-bottom:14px;}
+  .filter-pill{padding:7px 12px;border-radius:10px;transition:.15s ease;}
+  .filter-pill:hover{border-color:var(--accent);color:var(--text);}
+
+  /* Form controls */
+  .field{margin-bottom:15px;}
+  .field label{font-size:11.5px;margin-bottom:6px;}
+  .field input,.field select,.field textarea{
+    min-height:40px;
+    border-radius:9px;
+    padding:9px 11px;
+    transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+  }
+  .field textarea{min-height:88px;resize:vertical;}
+  .field input:hover,.field select:hover,.field textarea:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--border));}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:var(--focus-ring);}
+  .radio-group{gap:8px;}
+  .radio-opt{min-height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+
+  /* Modal */
+  .modal-backdrop{background:rgba(5,6,10,.66);backdrop-filter:blur(5px);}
+  .modal{
+    width:480px;
+    border-radius:16px;
+    padding:24px 26px 22px;
+    box-shadow:0 24px 70px rgba(0,0,0,.35);
+  }
+  .modal h2{font-size:19px;margin-bottom:18px;}
+  .modal-actions{margin-top:20px;padding-top:15px;border-top:1px solid var(--border);}
+
+  /* Commitment cards */
+  .commit-card{
+    border-radius:14px;
+    padding:17px 18px;
+    box-shadow:var(--shadow-sm);
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+  }
+  .commit-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-color:color-mix(in srgb,var(--accent) 30%,var(--border));}
+  .progress-bar{height:7px;border-radius:10px;margin:12px 0 7px;}
+  .commit-card .actions{flex-wrap:wrap;}
+
+  /* Wealth page */
+  #view-wealth .topbar > div:last-child{gap:8px !important;}
+  #view-wealth .topbar > div:last-child .btn{min-width:105px;}
+  #wealth-summary .card{min-height:108px;display:flex;flex-direction:column;justify-content:center;}
+  #view-wealth .table-wrap{min-height:86px;}
+  #view-wealth .help-text{
+    padding:11px 13px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-top:12px !important;
+  }
+
+  /* Reports */
+  #rep-main-grid > *{min-width:0;}
+  #rep-main-grid .card,#rep-main-grid .table-wrap{height:100%;}
+
+  /* Sync status */
+  .sync-status{padding:7px 9px;margin-bottom:10px;border-radius:8px;background:var(--surface-2);}
+
+  /* Toast */
+  .toast{border-radius:11px;padding:11px 15px;box-shadow:0 12px 32px rgba(0,0,0,.28);}
+
+  /* Footer */
+  .app-footer{padding:16px 24px;background:var(--surface);}
+
+  /* Desktop density */
+  @media(min-width:1100px){
+    .content > .views-wrapper{padding-bottom:8px;}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+  }
+
+  /* Mobile: retain the existing responsive architecture, only polish spacing. */
+  @media(max-width:760px){
+    .global-toolbar{width:100%;justify-content:center;margin:0 0 14px;padding:5px;}
+    .gt-btn{width:35px;height:35px;}
+    .content{padding-left:12px;padding-right:12px;}
+    .topbar{gap:11px;margin-bottom:16px;}
+    .topbar h1{font-size:19px;}
+    .topbar > button.btn{min-height:40px;}
+    .card{border-radius:12px;}
+    .section-title{margin-top:22px;}
+  }
+  @media(max-width:600px){
+    .brand{padding-left:14px;padding-right:14px;}
+    .nav{padding-left:5px;padding-right:5px;}
+    .modal{border-radius:14px;padding:19px 15px 16px;}
+    .modal-actions{flex-direction:column-reverse;}
+    .modal-actions .btn{width:100%;}
+    #view-wealth .topbar > div:last-child{display:grid !important;grid-template-columns:1fr 1fr;}
+    #view-wealth .topbar > div:last-child .btn{min-width:0;width:100%;}
+  }
+
+
+  /* ============================================================
+     FINTRACK RESPONSIVE UI/UX V2 — desktop + mobile refinement
+     Visual/layout only: no data model, IDs, handlers or calculations changed.
+     ============================================================ */
+  html, body { max-width:100%; overflow-x:hidden; }
+  body { overscroll-behavior-x:none; }
+  .app, .content, .views-wrapper, .view { min-width:0; max-width:100%; }
+  img, svg, canvas, video { max-width:100%; }
+  button, input, select, textarea { max-width:100%; }
+
+  /* Desktop: cleaner reading width and consistent rhythm */
+  @media (min-width: 761px){
+    .content{padding-top:24px;padding-bottom:40px;}
+    .content > .views-wrapper{max-width:1480px;}
+    .topbar{gap:20px;}
+    .topbar > div:first-child{min-width:0;}
+    .topbar h1,.topbar .today{overflow:hidden;text-overflow:ellipsis;}
+    .grid{gap:18px;}
+    .card{min-width:0;}
+    .table-wrap{min-width:0;}
+    .global-toolbar{flex-wrap:wrap;}
+  }
+
+  /* Tablet */
+  @media (min-width: 601px) and (max-width: 1100px){
+    .content{padding-left:22px;padding-right:22px;}
+    .grid.cols-3{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .grid.cols-2{grid-template-columns:minmax(0,1fr) minmax(280px,.7fr);}
+  }
+
+  /* Phone: prioritize one-column flow and thumb-friendly controls */
+  @media (max-width:760px){
+    html,body{width:100%;overflow-x:hidden;}
+    .app{width:100%;overflow-x:hidden;}
+    .content{width:100%;max-width:100%;padding:62px 10px calc(86px + env(safe-area-inset-bottom,0px));overflow-x:hidden;}
+    .content > .views-wrapper{width:100%;max-width:100%;overflow-x:hidden;}
+    .view{width:100%;max-width:100%;overflow-x:hidden;}
+
+    .global-toolbar{
+      width:100%;max-width:100%;
+      display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+      gap:5px;margin:0 0 12px;padding:5px;
+      box-sizing:border-box;
+    }
+    .gt-btn{width:100%;min-width:0;height:36px;}
+
+    .topbar{width:100%;min-width:0;}
+    .topbar > div:first-child{min-width:0;}
+    .topbar h1{font-size:18px;line-height:1.25;overflow-wrap:anywhere;}
+    .topbar .today{overflow-wrap:anywhere;}
+    .topbar > button.btn,
+    .topbar > div:last-child .btn{width:100%;min-width:0;}
+
+    .section-title{line-height:1.35;}
+    .section-title .hint{display:block;margin-top:3px;}
+
+    .grid,.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:minmax(0,1fr)!important;width:100%;}
+    .card{width:100%;min-width:0;padding:14px;overflow:hidden;}
+    .card h3{overflow-wrap:anywhere;}
+    .card .big{font-size:21px;overflow-wrap:anywhere;}
+
+    /* Keep action groups usable without creating horizontal overflow */
+    .actions,.btn-row,.toolbar,.filter-bar,.modal-actions{max-width:100%;min-width:0;}
+    .btn-row,.actions{flex-wrap:wrap;}
+    .btn,.btn.sm{min-height:38px;white-space:normal;line-height:1.2;}
+
+    /* Form controls */
+    .field{min-width:0;}
+    .field input,.field select,.field textarea{width:100%;min-width:0;max-width:100%;}
+    .field-row{width:100%;min-width:0;}
+
+    /* Filter areas: no tiny controls forced side-by-side */
+    #txn-filter-bar,#rep-filter-bar,#vlogs-filter-bar{
+      width:100%;max-width:100%;grid-template-columns:minmax(0,1fr)!important;
+    }
+    #txn-filter-bar > *,#rep-filter-bar > *,#vlogs-filter-bar > *{min-width:0!important;width:100%;}
+    .filter-wide{grid-column:1/-1;width:100%;}
+
+    /* Dropdowns stay inside the viewport */
+    #txn-cat-dropdown,#rep-cat-dropdown{
+      left:0!important;right:0!important;width:auto!important;max-width:100%;
+      max-height:52vh;box-sizing:border-box;
+    }
+
+    /* Mobile table cards: compact, readable, no sideways scrolling */
+    .table-wrap{width:100%;max-width:100%;overflow:visible;border-radius:12px;}
+    .table-wrap .head-row{gap:8px;align-items:flex-start;flex-wrap:wrap;padding:12px;}
+    .table-wrap .head-row > *{min-width:0;}
+    .table-wrap tbody tr{width:100%;max-width:100%;margin-bottom:8px;padding:10px;gap:5px 10px;overflow:hidden;}
+    .table-wrap tbody td{max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
+    .table-wrap tbody td.td-actions{flex-wrap:wrap;justify-content:flex-start;}
+    .table-wrap tbody td.td-actions .btn{flex:1 1 auto;min-width:92px;}
+    .table-wrap tbody td.td-date{overflow-wrap:anywhere;}
+    .table-wrap tbody td[data-label]::before{max-width:42%;}
+
+    /* Wealth: two primary actions, then normal single-column content */
+    #view-wealth .topbar > div:last-child{width:100%;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+    #view-wealth .topbar > div:last-child .btn{width:100%;min-width:0;}
+
+    /* Vehicle filters / summaries */
+    #vlogs-summary-strip{width:100%;max-width:100%;overflow:hidden;}
+    #vlogs-summary-strip > div{width:100%;min-width:0!important;}
+
+    /* Guide tabs: horizontally scroll only the tab strip, never the page */
+    #guide-tabs{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:3px;}
+    .guide-tabs{flex-wrap:nowrap;}
+    .guide-tab{flex:0 0 auto;white-space:nowrap;}
+    .g-table-wrap{max-width:100%;overflow:hidden;}
+    .g-table-wrap table{width:100%;min-width:0;table-layout:fixed;}
+    .g-table-wrap th,.g-table-wrap td{white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
+    .g-table-wrap .col-resize{display:none;}
+
+    /* Prevent long IDs, notes and URLs from breaking the layout */
+    code,pre,.mono,.num{overflow-wrap:anywhere;word-break:break-word;}
+    pre{max-width:100%;overflow:auto;}
+  }
+
+  /* Small phones: reduce density without shrinking touch targets */
+  @media (max-width:420px){
+    .content{padding-left:8px;padding-right:8px;}
+    .global-toolbar{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;}
+    .gt-btn{height:34px;font-size:13px;}
+    .topbar h1{font-size:17px;}
+    .card{padding:12px;}
+    .card .big{font-size:20px;}
+    .btn{padding:9px 11px;}
+    .table-wrap tbody tr{padding:9px;}
+    .table-wrap tbody td{font-size:12px;}
+    .table-wrap tbody td.td-actions .btn{min-width:82px;font-size:10.5px;}
+    #view-wealth .topbar > div:last-child{grid-template-columns:1fr;}
+  }
+
+  /* Guide tables: same persistent resize system as every other table. */
+  #guide-root .g-table-wrap { max-width:100%; overflow-x:auto; overflow-y:hidden; }
+  #guide-root .g-table-wrap table { width:max-content; min-width:100%; table-layout:fixed; }
+  #guide-root .g-table-wrap th { text-align:center !important; vertical-align:middle; }
+  #guide-root .g-table-wrap td { vertical-align:middle; }
+  @media(max-width:600px){
+    #guide-root .g-table-wrap { overflow-x:hidden; }
+    #guide-root .g-table-wrap table { width:100%; min-width:0 !important; table-layout:fixed; }
+    #guide-root .g-table-wrap th, #guide-root .g-table-wrap td { white-space:normal; overflow-wrap:anywhere; word-break:normal; }
+  }
+
+  /* Vehicle All Logs multi-select checkboxes must not inherit the global .field input width rules. */
+  #vlogs-filter-type-menu .vlog-type-option .vlog-type-checkbox{
+    width:14px !important;
+    min-width:14px !important;
+    max-width:14px !important;
+    height:14px !important;
+    min-height:14px !important;
+    margin:0 !important;
+    padding:0 !important;
+    flex:0 0 14px !important;
+    appearance:auto;
+    cursor:pointer;
+  }
+  #vlogs-filter-type-menu .vlog-type-option{
+    line-height:1.25;
+    white-space:normal;
+  }
 </style>
 <script>
   // Match guide-tab button labels (icon + text) to the current language.
   var GUIDE_TAB_LABELS = {
     en: {overview:'🧭 Overview', accounts:'🏦 Accounts', transactions:'💸 Transactions',
       categories:'🏷️ Categories', commitments:'🔄 Commitments', vehicles:'🚗 Vehicles',
-      budgets:'🎯 Budgets', reports:'📈 Reports', drive:'☁️ Google Drive'},
+      budgets:'🎯 Budgets', reports:'📈 Reports', wealth:'◈ Wealth', drive:'☁️ Google Drive'},
     ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', transactions:'💸 المعاملات',
       categories:'🏷️ الفئات', commitments:'🔄 الالتزامات', vehicles:'🚗 المركبات',
-      budgets:'🎯 الميزانيات', reports:'📈 التقارير', drive:'☁️ Google Drive'}
+      budgets:'🎯 الميزانيات', reports:'📈 التقارير', wealth:'◈ الثروة', drive:'☁️ Google Drive'}
   };
 
   // Full bilingual guide content, keyed by tab. Each entry maps DOM ids to
@@ -782,6 +1257,68 @@
     }
   };
 </script>
+
+<script>
+/* FinTrack Guide V2 — reviewed, current, and fully localized. */
+Object.assign(GUIDE_CONTENT, {
+  overview: {
+    ar: {
+      'guide-ov-hero-sub':'نظام إدارة مالية شخصية — دليل الاستخدام',
+      'guide-ov-desc':'FinTrack يساعدك على تسجيل أموالك، متابعة الحسابات والالتزامات والمركبات، تحليل الإنفاق، وقياس صافي ثروتك الحقيقي. يعمل محلياً في المتصفح، مع إمكانية المزامنة الاختيارية مع Google Drive.',
+      'guide-ov-pills':'<span class="g-pill">💾 يعمل بدون إنترنت</span><span class="g-pill">📱 كمبيوتر وموبايل</span><span class="g-pill">☁️ مزامنة اختيارية مع Google Drive</span><span class="g-pill">📊 تقارير وتحليل مالي</span>',
+      'guide-ov-rest':'<div class="g-section-title">هيكل النظام</div><div class="g-table-wrap"><table><thead><tr><th>القسم</th><th>الاستخدام</th><th>الأهمية</th></tr></thead><tbody><tr><td><strong>الحسابات</strong></td><td>إدارة الكاش والحسابات البنكية والمحافظ الإلكترونية والأرصدة</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>المعاملات</strong></td><td>تسجيل الدخل والمصروفات والتحويلات بين حساباتك</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الفئات</strong></td><td>تنظيم الدخل والمصروفات في فئات رئيسية وفرعية</td><td><span class="g-badge green">أساسي</span></td></tr><tr><td><strong>الالتزامات</strong></td><td>متابعة الأقساط والجمعيات والمدفوعات المرتبطة بها</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>المركبات</strong></td><td>متابعة الوقود والصيانة والزيت والعداد والمستندات وقيمة المركبة</td><td><span class="g-badge blue">مهم</span></td></tr><tr><td><strong>الميزانيات</strong></td><td>وضع حدود شهرية للفئات ومقارنة الإنفاق بها</td><td><span class="g-badge">اختياري</span></td></tr><tr><td><strong>التقارير</strong></td><td>تحليل الإنفاق حسب الفترة والفئة والشهر</td><td><span class="g-badge">اختياري</span></td></tr><tr><td><strong>الثروة</strong></td><td>متابعة الأصول والالتزامات وقيمة المركبات وصافي الثروة الحقيقي</td><td><span class="g-badge blue">مهم</span></td></tr></tbody></table></div><div class="g-section-title">الترتيب الموصى به للبدء</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أضف الحسابات</div><div class="g-step-desc">أضف كل حساب فعلي تستخدمه وحدد الرصيد الافتتاحي الصحيح لكل حساب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">راجع الفئات</div><div class="g-step-desc">راجع الفئات الجاهزة وعدّلها بما يناسب طريقة تصنيفك للمصروفات والدخل.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف المركبات والأصول والالتزامات</div><div class="g-step-desc">إذا كان لديك مركبات أو أصول أو التزامات خارج الحسابات، سجلها حتى يكون صافي الثروة أكثر دقة.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">ابدأ تسجيل المعاملات</div><div class="g-step-desc">سجّل كل دخل ومصروف وتحويل في نفس يوم حدوثه قدر الإمكان.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">راجع التقارير وصافي الثروة</div><div class="g-step-desc">استخدم التقارير لمعرفة أين يذهب المال، وصفحة الثروة لمعرفة وضعك المالي الكلي.</div></div></div><div class="g-step"><div class="g-step-n">6</div><div class="g-step-b"><div class="g-step-title">اربط Google Drive عند الحاجة</div><div class="g-step-desc">استخدم المزامنة للحفاظ على نسخة بياناتك ومتابعة النظام من أكثر من جهاز، مع الانتباه إلى متطلبات Google OAuth.</div></div></div></div><div class="g-callout tip">💡 أفضل نتيجة تحصل عليها عندما تسجل العملية مرة واحدة فقط من المصدر الصحيح: المصروف العادي من المعاملات، ومصروف المركبة من سجل المركبة عند الحاجة لتتبع العداد، والالتزام من صفحة الالتزامات.</div>'
+    },
+    en: {
+      'guide-ov-hero-sub':'Personal Finance Management — User Guide',
+      'guide-ov-desc':'FinTrack helps you record money movements, manage accounts and commitments, track vehicles, analyze spending, and measure your true net worth. It runs locally in the browser, with optional Google Drive synchronization.',
+      'guide-ov-pills':'<span class="g-pill">💾 Works offline</span><span class="g-pill">📱 Desktop and mobile</span><span class="g-pill">☁️ Optional Google Drive sync</span><span class="g-pill">📊 Financial reports and analysis</span>',
+      'guide-ov-rest':'<div class="g-section-title">System Layout</div><div class="g-table-wrap"><table><thead><tr><th>Section</th><th>What it does</th><th>Importance</th></tr></thead><tbody><tr><td><strong>Accounts</strong></td><td>Manage cash, bank accounts, e-wallets, and balances</td><td><span class="g-badge green">Essential</span></td></tr><tr><td><strong>Transactions</strong></td><td>Record income, expenses, and transfers between your accounts</td><td><span class="g-badge green">Essential</span></td></tr><tr><td><strong>Categories</strong></td><td>Organize income and expenses with parent and child categories</td><td><span class="g-badge green">Essential</span></td></tr><tr><td><strong>Commitments</strong></td><td>Track installments, rotating savings, and their payments</td><td><span class="g-badge blue">Important</span></td></tr><tr><td><strong>Vehicles</strong></td><td>Track fuel, maintenance, oil, odometer readings, documents, and vehicle value</td><td><span class="g-badge blue">Important</span></td></tr><tr><td><strong>Budgets</strong></td><td>Set monthly category limits and compare spending against them</td><td><span class="g-badge">Optional</span></td></tr><tr><td><strong>Reports</strong></td><td>Analyze spending by period, category, and month</td><td><span class="g-badge">Optional</span></td></tr><tr><td><strong>Wealth</strong></td><td>Track assets, liabilities, vehicle values, and true net worth</td><td><span class="g-badge blue">Important</span></td></tr></tbody></table></div><div class="g-section-title">Recommended Order to Get Started</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Add your accounts</div><div class="g-step-desc">Add every real account you use and enter the correct opening balance for each one.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Review categories</div><div class="g-step-desc">Review the built-in categories and adjust them to match the way you classify income and expenses.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Add vehicles, assets, and liabilities</div><div class="g-step-desc">If you own vehicles or other assets, or have liabilities outside your normal account balances, record them for a more accurate net worth.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">Start recording transactions</div><div class="g-step-desc">Record every income, expense, and transfer as close to the actual date as possible.</div></div></div><div class="g-step"><div class="g-step-n">5</div><div class="g-step-b"><div class="g-step-title">Review reports and net worth</div><div class="g-step-desc">Use Reports to understand where money goes and Wealth to understand your overall financial position.</div></div></div><div class="g-step"><div class="g-step-n">6</div><div class="g-step-b"><div class="g-step-title">Connect Google Drive when needed</div><div class="g-step-desc">Use synchronization for an additional copy of your data and multi-device access, while following Google OAuth requirements.</div></div></div></div><div class="g-callout tip">💡 The cleanest workflow is to record each event once in the correct place: normal spending in Transactions, vehicle spending in Vehicles when odometer tracking matters, and commitments in Commitments.</div>'
+    }
+  },
+  accounts: {
+    ar: {'guide-content-accounts':'<div class="g-section-title">🏦 الحسابات</div><p class="g-p">الحساب يمثل مكاناً فعلياً توجد فيه أموالك، مثل الكاش أو البنك أو المحفظة الإلكترونية. كل معاملة مالية مرتبطة بحساب، لذلك صحة الحسابات والأرصدة هي أساس دقة النظام.</p><div class="g-section-title">أنواع الحسابات</div><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 كاش</div><div class="g-card-body">الأموال الموجودة معك أو في المنزل. مثال: محفظتي أو كاش البيت.</div></div><div class="g-card"><div class="g-card-title">🏛️ بنك</div><div class="g-card-body">حساباتك البنكية. يمكنك إضافة أكثر من حساب وأكثر من بنك.</div></div><div class="g-card"><div class="g-card-title">📱 محفظة إلكترونية</div><div class="g-card-body">مثل Vodafone Cash وOrange Money وInstaPay.</div></div></div><div class="g-section-title">إضافة حساب</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">افتح صفحة الحسابات</div><div class="g-step-desc">من القائمة الجانبية اختر الحسابات ثم اضغط إضافة حساب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أدخل البيانات</div><div class="g-step-desc">اكتب اسم الحساب، وحدد نوع الحساب والعملة.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">حدد الرصيد الافتتاحي</div><div class="g-step-desc">أدخل الرصيد الحقيقي الموجود في الحساب في تاريخ بداية استخدامك للنظام.</div></div></div></div><div class="g-callout warning">⚠️ الرصيد الافتتاحي نقطة مرجعية للحساب. إذا كان غير صحيح، سيؤثر الخطأ على الرصيد الحالي وكل التقارير المرتبطة بالحساب.</div><div class="g-section-title">مطابقة الرصيد</div><p class="g-p">استخدم مطابقة الرصيد عندما تريد مقارنة رصيد النظام بالرصيد الفعلي. إذا وُجد فرق، يسجل النظام معاملة تعديل بدلاً من تغيير الرصيد بطريقة مخفية.</p><div class="g-section-title">العملات</div><p class="g-p">يمكن للحساب أن يستخدم عملة مختلفة. أسعار الصرف المستخدمة حالياً هي الأسعار الموجودة في النظام، ويستخدمها النظام لتحويل القيم إلى الجنيه المصري في الإجماليات والتقارير.</p>'},
+    en: {'guide-content-accounts':'<div class="g-section-title">🏦 Accounts</div><p class="g-p">An account represents a real place where your money exists, such as cash, a bank account, or an e-wallet. Every financial transaction belongs to an account, so accurate account setup is the foundation of reliable balances and reports.</p><div class="g-section-title">Account Types</div><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash</div><div class="g-card-body">Money you hold or keep at home, such as your wallet or home cash.</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank</div><div class="g-card-body">Your bank accounts. You can add multiple accounts and banks.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">E-wallets such as Vodafone Cash, Orange Money, and InstaPay.</div></div></div><div class="g-section-title">Adding an Account</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open Accounts</div><div class="g-step-desc">Use the sidebar to open Accounts, then choose Add Account.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Enter the details</div><div class="g-step-desc">Enter the account name, type, and currency.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Set the opening balance</div><div class="g-step-desc">Enter the real balance available in the account at the point you start using the system.</div></div></div></div><div class="g-callout warning">⚠️ The opening balance is the account’s starting reference. If it is wrong, the error will flow into the current balance and related reports.</div><div class="g-section-title">Reconciliation</div><p class="g-p">Use Reconcile when you want to compare the system balance with the real balance. If there is a difference, the system records an adjustment transaction instead of silently changing the balance.</p><div class="g-section-title">Currencies</div><p class="g-p">An account can use a different currency. Current exchange rates are the rates stored in the system and are used to convert values to EGP in totals and reports.</p>'}
+  },
+  transactions: {
+    ar: {'guide-content-transactions':'<div class="g-section-title">💸 المعاملات</div><p class="g-p">المعاملة هي تسجيل حركة مالية فعلية. استخدمها لكل دخل أو مصروف أو تحويل بين حساباتك. تسجيل الحركة مرة واحدة وبالمعلومات الصحيحة يمنع تضارب الأرصدة والتقارير.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">مصروف</span></div><div class="g-card-body">مبلغ خرج من أحد حساباتك، مثل الطعام أو الفواتير أو الإيجار.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">دخل</span></div><div class="g-card-body">مبلغ دخل إلى أحد حساباتك، مثل الراتب أو إيراد أو مبلغ مستلم.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">تحويل</span></div><div class="g-card-body">نقل أموال بين حساباتك أنت. لا يعتبر دخلاً ولا مصروفاً.</div></div></div><div class="g-section-title">الحقول الأساسية</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الاستخدام</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>مصروف أو دخل أو تحويل</td><td>اختره قبل استكمال البيانات</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ حدوث الحركة</td><td>يمكن أن يكون تاريخاً سابقاً</td></tr><tr><td><strong>المبلغ</strong></td><td>قيمة الحركة بعملة الحساب</td><td>أدخل القيمة الفعلية</td></tr><tr><td><strong>الحساب</strong></td><td>الحساب الذي خرجت منه أو دخلت إليه الأموال</td><td>مطلوب</td></tr><tr><td><strong>الفئة</strong></td><td>تصنيف المصروف أو الدخل</td><td>لا تستخدم في التحويلات</td></tr><tr><td><strong>الملاحظة</strong></td><td>وصف اختياري للعملية</td><td>مفيد للبحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 عند اختيار فئة مرتبطة بمركبة، يمكن للنظام ربط الحركة بسجل المركبة وتسجيل بيانات مثل العداد حسب نوع العملية. استخدم ذلك عندما تريد أن تكون المصروفات المالية وسجل المركبة متطابقين.</div><div class="g-section-title">البحث والفلترة</div><p class="g-p">استخدم البحث للعثور على المعاملات، وفلترة النوع والحساب والتاريخ لتضييق النتائج. المعاملات المحذوفة منطقياً يمكن إظهارها من خيار المحذوفة لاسترجاعها عند الحاجة.</p><div class="g-callout warning">⚠️ لا تسجل التحويل بين حساباتك كمصروف. استخدم نوع تحويل حتى لا يزيد إجمالي مصروفاتك بشكل وهمي.</div>'},
+    en: {'guide-content-transactions':'<div class="g-section-title">💸 Transactions</div><p class="g-p">A transaction records a real financial movement. Use it for every income, expense, or transfer between your own accounts. Recording each event once with accurate details keeps balances and reports consistent.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span></div><div class="g-card-body">Money leaving one of your accounts, such as food, bills, or rent.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span></div><div class="g-card-body">Money entering one of your accounts, such as salary, revenue, or money received.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span></div><div class="g-card-body">Moving money between your own accounts. It is neither income nor an expense.</div></div></div><div class="g-section-title">Core Fields</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Purpose</th><th>Note</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense, income, or transfer</td><td>Choose it first</td></tr><tr><td><strong>Date</strong></td><td>Date the movement happened</td><td>Can be a past date</td></tr><tr><td><strong>Amount</strong></td><td>Value in the account currency</td><td>Use the actual amount</td></tr><tr><td><strong>Account</strong></td><td>Where the money came from or went to</td><td>Required</td></tr><tr><td><strong>Category</strong></td><td>Classifies income or expense</td><td>Not used for transfers</td></tr><tr><td><strong>Note</strong></td><td>Optional description</td><td>Useful for later searches</td></tr></tbody></table></div><div class="g-callout tip">🚗 When you choose a vehicle-related category, the system can connect the movement to a vehicle log and capture details such as the odometer when applicable. Use this when you want financial and vehicle records to stay aligned.</div><div class="g-section-title">Search and Filters</div><p class="g-p">Use search to find transactions and filter by type, account, and date to narrow the results. Soft-deleted transactions can be shown from the Deleted option and restored when needed.</p><div class="g-callout warning">⚠️ Do not record a transfer between your own accounts as an expense. Use Transfer so your spending totals are not artificially inflated.</div>'}
+  },
+  categories: {
+    ar: {'guide-content-categories':'<div class="g-section-title">🏷️ الفئات</div><p class="g-p">الفئات تنظّم الدخل والمصروفات حتى تستطيع معرفة أين يذهب المال. يمكنك استخدام فئة رئيسية مع فئات فرعية أكثر تفصيلاً.</p><div class="g-section-title">هيكل الفئات</div><div class="g-table-wrap"><table><thead><tr><th>المستوى</th><th>الاستخدام</th><th>مثال</th></tr></thead><tbody><tr><td>فئة رئيسية</td><td>تجميع مجموعة كبيرة من المصروفات</td><td>المنزل</td></tr><tr><td>فئة فرعية</td><td>تحديد نوع المصروف داخل الفئة الرئيسية</td><td>كهرباء، مياه، إنترنت</td></tr></tbody></table></div><div class="g-section-title">إدارة الفئات</div><p class="g-p">من صفحة الفئات يمكنك إضافة فئة، تعديل اسمها أو علاقتها بالفئة الرئيسية، وإدارة الفئات المستخدمة في المعاملات. استخدم أسماء واضحة وثابتة حتى تكون التقارير مفيدة.</p><div class="g-callout tip">💡 لا تكثر من الفئات بدون حاجة. الأفضل أن يكون لديك تصنيف يمكن استخدامه باستمرار، مع فئات فرعية فقط عندما تحتاج إلى تحليل أدق.</div>'},
+    en: {'guide-content-categories':'<div class="g-section-title">🏷️ Categories</div><p class="g-p">Categories organize income and expenses so you can understand where money goes. You can use parent categories with more detailed child categories.</p><div class="g-section-title">Category Structure</div><div class="g-table-wrap"><table><thead><tr><th>Level</th><th>Purpose</th><th>Example</th></tr></thead><tbody><tr><td>Parent category</td><td>Groups a broad area of spending</td><td>Home</td></tr><tr><td>Child category</td><td>Provides more detail within the parent</td><td>Electricity, water, internet</td></tr></tbody></table></div><div class="g-section-title">Managing Categories</div><p class="g-p">From Categories you can add categories, rename them, and manage parent-child relationships. Use clear, consistent names so your reports remain useful over time.</p><div class="g-callout tip">💡 Avoid creating categories you will not use consistently. A smaller, stable classification system is usually more useful than a long list of overlapping categories.</div>'}
+  },
+  commitments: {
+    ar: {'guide-content-commitments':'<div class="g-section-title">🔄 الالتزامات</div><p class="g-p">الالتزام يمثل مبلغاً أو خطة سداد مستمرة مثل القسط أو الجمعية. صفحة الالتزامات تفصل بين أصل الالتزام والمدفوعات التي تمت عليه.</p><div class="g-section-title">كيف تستخدم الالتزام؟</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أنشئ الالتزام</div><div class="g-step-desc">أدخل اسم الالتزام وقيمته وإعدادات السداد المطلوبة.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">سجل كل دفعة</div><div class="g-step-desc">سجل المبلغ الفعلي الذي دفعته وتاريخ الدفع والحساب المستخدم.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع المتبقي</div><div class="g-step-desc">النظام يستخدم المدفوعات المرتبطة لحساب ما تم سداده وما تبقى.</div></div></div></div><div class="g-callout warning">⚠️ إذا كانت الدفعة أقل أو أكبر من القسط المعتاد، سجّل المبلغ الفعلي. عدد الدفعات وحده لا يعبّر عن القيمة التي تم سدادها.</div><div class="g-section-title">الربط بالمعاملات</div><p class="g-p">عندما تكون الدفعة مرتبطة بمعاملة، يحافظ النظام على العلاقة بين سجل الدفع والحركة المالية. إذا تم حذف معاملة مرتبطة، يتم التعامل مع السجل المرتبط حتى لا تظهر بيانات متناقضة.</p>'},
+    en: {'guide-content-commitments':'<div class="g-section-title">🔄 Commitments</div><p class="g-p">A commitment represents an ongoing amount or payment plan such as an installment or rotating savings arrangement. The page separates the commitment itself from the payments made against it.</p><div class="g-section-title">How to Use Commitments</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Create the commitment</div><div class="g-step-desc">Enter the commitment name, total value, and payment settings.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Record each payment</div><div class="g-step-desc">Record the actual amount paid, payment date, and account used.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Track what remains</div><div class="g-step-desc">The system uses linked payments to determine what has been paid and what remains.</div></div></div></div><div class="g-callout warning">⚠️ If a payment is smaller or larger than the normal installment, record the actual amount. Payment count alone does not describe the amount repaid.</div><div class="g-section-title">Transaction Linking</div><p class="g-p">When a payment is linked to a transaction, the system keeps the payment and financial movement connected. If a linked transaction is deleted, the related record is handled so the data does not become inconsistent.</p>'}
+  },
+  vehicles: {
+    ar: {'guide-content-vehicles':'<div class="g-section-title">🚗 المركبات</div><p class="g-p">صفحة المركبات تجمع بين متابعة المصروفات ومعلومات الاستخدام الفعلي للمركبة. يمكنك تسجيل الوقود والصيانة والزيت والمقتنيات وقراءة العداد والمستندات.</p><div class="g-table-wrap"><table><thead><tr><th>النوع</th><th>ماذا تسجل</th><th>النتيجة</th></tr></thead><tbody><tr><td>وقود</td><td>المبلغ، التاريخ، العداد، والكمية عند توفرها</td><td>متابعة الإنفاق وكفاءة الوقود</td></tr><tr><td>صيانة</td><td>نوع الصيانة، المبلغ، التاريخ والعداد</td><td>تاريخ صيانة المركبة</td></tr><tr><td>زيت</td><td>تغيير الزيت والعداد</td><td>متابعة موعد تغيير الزيت</td></tr><tr><td>مقتنيات</td><td>أصل أو إضافة مرتبطة بالمركبة</td><td>سجل أفضل لتكاليف المركبة</td></tr></tbody></table></div><div class="g-section-title">سجل المركبة والمعاملات</div><p class="g-p">إذا كان سجل المركبة مرتبطاً بمعاملة، يحافظ النظام على العلاقة حتى يظهر المصروف في التحليل المالي وسجل المركبة بدون تسجيله مرتين.</p><div class="g-section-title">قيمة المركبة</div><p class="g-p">يمكنك تحديد القيمة الحالية للمركبة من صفحة الثروة. هذه القيمة تستخدم ضمن الأصول عند حساب صافي الثروة الحقيقي.</p><div class="g-callout tip">💡 للحصول على كفاءة وقود دقيقة، سجّل قراءات العداد بانتظام ولا تدخل قراءة أقل من القراءة السابقة.</div>'},
+    en: {'guide-content-vehicles':'<div class="g-section-title">🚗 Vehicles</div><p class="g-p">Vehicles combines expense tracking with real usage information. You can record fuel, maintenance, oil changes, vehicle items, odometer readings, and documents.</p><div class="g-table-wrap"><table><thead><tr><th>Type</th><th>What to record</th><th>Result</th></tr></thead><tbody><tr><td>Fuel</td><td>Amount, date, odometer, and quantity when available</td><td>Spending and fuel-efficiency tracking</td></tr><tr><td>Maintenance</td><td>Service type, amount, date, and odometer</td><td>Vehicle service history</td></tr><tr><td>Oil</td><td>Oil change and odometer</td><td>Oil-change tracking</td></tr><tr><td>Vehicle item</td><td>An item or addition associated with the vehicle</td><td>Better vehicle cost history</td></tr></tbody></table></div><div class="g-section-title">Vehicle Logs and Transactions</div><p class="g-p">When a vehicle log is linked to a transaction, the system keeps the relationship so the expense can appear in financial analysis and vehicle history without being entered twice.</p><div class="g-section-title">Vehicle Value</div><p class="g-p">You can set the current vehicle value from Wealth. This value is included as an asset when calculating true net worth.</p><div class="g-callout tip">💡 For reliable fuel-efficiency calculations, record odometer readings consistently and never enter a reading lower than the previous reading.</div>'}
+  },
+  budgets: {
+    ar: {'guide-content-budgets':'<div class="g-section-title">🎯 الميزانيات</div><p class="g-p">الميزانية تحدد حداً شهرياً للإنفاق في فئة معينة. الهدف منها ليس منع الإنفاق، بل كشف الانحراف مبكراً قبل انتهاء الشهر.</p><div class="g-section-title">طريقة الاستخدام</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اختر الفئة</div><div class="g-step-desc">حدد الفئة التي تريد مراقبة إنفاقها.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">حدد الحد الشهري</div><div class="g-step-desc">أدخل المبلغ الذي تعتبره سقفاً مناسباً للشهر.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">راجع الفعلي مقابل الميزانية</div><div class="g-step-desc">تابع الإنفاق الفعلي والنسبة المستخدمة والمتبقي.</div></div></div></div><div class="g-callout tip">💡 استخدم الميزانية كأداة قرار. إذا كانت فئة تقترب من الحد مبكراً في الشهر، راجع السبب قبل أن يتحول التجاوز إلى نمط متكرر.</div>'},
+    en: {'guide-content-budgets':'<div class="g-section-title">🎯 Budgets</div><p class="g-p">A budget sets a monthly spending limit for a category. Its purpose is not to prevent spending, but to reveal overspending early enough to act.</p><div class="g-section-title">How to Use It</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Choose a category</div><div class="g-step-desc">Select the category whose spending you want to control.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Set the monthly limit</div><div class="g-step-desc">Enter the amount you consider an appropriate monthly ceiling.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Compare actual vs. budget</div><div class="g-step-desc">Watch actual spending, the percentage used, and the remaining amount.</div></div></div></div><div class="g-callout tip">💡 Treat budgets as a decision tool. If a category reaches its limit unusually early, investigate the reason before it becomes a recurring pattern.</div>'}
+  },
+  reports: {
+    ar: {'guide-content-reports':'<div class="g-section-title">📈 التقارير</div><p class="g-p">التقارير تحول المعاملات المسجلة إلى صورة تحليلية تساعدك على فهم حجم الإنفاق واتجاهه والفئات التي تستحوذ على أكبر جزء منه.</p><div class="g-table-wrap"><table><thead><tr><th>الأداة</th><th>الاستخدام</th></tr></thead><tbody><tr><td>الفترة</td><td>اختيار كل البيانات أو فترة محددة مثل هذا الشهر أو آخر 3 أو 6 أشهر أو فترة مخصصة</td></tr><tr><td>الفئة</td><td>تحليل فئة معينة أو مجموعة فئات</td></tr><tr><td>الرسم البياني</td><td>عرض اتجاه الإنفاق شهرياً بالطريقة المتاحة في التقرير</td></tr><tr><td>التفصيل الشهري</td><td>مقارنة إجمالي الإنفاق من شهر إلى آخر</td></tr></tbody></table></div><div class="g-section-title">كيف تقرأ التقرير؟</div><p class="g-p">ابدأ بفترة زمنية مناسبة، ثم راقب إجمالي الإنفاق، وبعدها حدد الفئات الأعلى تكلفة. قارن النتائج بالميزانيات لمعرفة هل المشكلة في حجم الإنفاق أم في فئة محددة.</p><div class="g-callout warning">⚠️ التقارير تعتمد على البيانات المسجلة. إذا نسيت تسجيل دخل أو مصروف، فلن يستطيع التقرير استنتاج العملية المفقودة.</div>'},
+    en: {'guide-content-reports':'<div class="g-section-title">📈 Reports</div><p class="g-p">Reports turn recorded transactions into an analytical view of spending size, trends, and the categories consuming the largest share.</p><div class="g-table-wrap"><table><thead><tr><th>Tool</th><th>Purpose</th></tr></thead><tbody><tr><td>Period</td><td>Choose all data or a defined range such as this month, the last 3 or 6 months, or a custom range</td></tr><tr><td>Category</td><td>Analyze a specific category or group of categories</td></tr><tr><td>Chart</td><td>Visualize the monthly spending trend using the available chart view</td></tr><tr><td>Monthly breakdown</td><td>Compare total spending from month to month</td></tr></tbody></table></div><div class="g-section-title">How to Read Reports</div><p class="g-p">Start with an appropriate period, review total spending, then identify the highest-cost categories. Compare the results with budgets to determine whether the issue is overall spending or a specific category.</p><div class="g-callout warning">⚠️ Reports depend on recorded data. If an income or expense was never recorded, the report cannot infer the missing event.</div>'}
+  },
+  wealth: {
+    ar: {'guide-content-wealth':'<div class="g-section-title">◈ الثروة</div><p class="g-p">صفحة الثروة هي المستوى الذي يجمع بين السيولة والأصول والالتزامات لعرض صافي ثروتك الحقيقي، بدلاً من النظر إلى رصيد الحسابات فقط.</p><div class="g-table-wrap"><table><thead><tr><th>العنصر</th><th>ما الذي يمثله؟</th><th>أثره على صافي الثروة</th></tr></thead><tbody><tr><td>الحسابات</td><td>الأموال السائلة في الحسابات</td><td>يُضاف</td></tr><tr><td>الأصول</td><td>ذهب، عقار، أثاث، أو أصول أخرى تسجلها يدوياً</td><td>تُضاف</td></tr><tr><td>المركبات</td><td>القيمة الحالية للمركبات المسجلة</td><td>تُضاف</td></tr><tr><td>الالتزامات الإضافية</td><td>قروض أو ديون أو بطاقات مسجلة يدوياً</td><td>تُخصم</td></tr><tr><td>الالتزامات القائمة</td><td>المبالغ المتبقية في الالتزامات المسجلة في النظام</td><td>تُخصم</td></tr></tbody></table></div><div class="g-section-title">إضافة أصل أو التزام</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اختر نوع العنصر</div><div class="g-step-desc">اضغط إضافة أصل أو إضافة التزام من أعلى الصفحة.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أدخل الاسم والنوع</div><div class="g-step-desc">استخدم اسماً واضحاً ونوعاً يساعدك على فهم العنصر لاحقاً.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أدخل العملة والقيمة الحالية</div><div class="g-step-desc">الأصل يستخدم القيمة الحالية، والالتزام يستخدم المبلغ المتبقي.</div></div></div></div><div class="g-callout tip">💡 صافي الثروة ليس هو الرصيد النقدي. قد يكون لديك رصيد بنكي محدود مع أصول كبيرة، أو رصيد كبير مع ديون كبيرة؛ صفحة الثروة تجمع الصورة كاملة.</div><div class="g-callout warning">⚠️ قيمة الأصل هنا قيمة حالية تقديرية تدخلها أنت. النظام لا يقوم بتقييم السوق تلقائياً.</div>'},
+    en: {'guide-content-wealth':'<div class="g-section-title">◈ Wealth</div><p class="g-p">Wealth combines liquid balances, assets, and liabilities to show your true net worth instead of looking only at account balances.</p><div class="g-table-wrap"><table><thead><tr><th>Item</th><th>What it represents</th><th>Effect on net worth</th></tr></thead><tbody><tr><td>Accounts</td><td>Liquid money held in your accounts</td><td>Added</td></tr><tr><td>Assets</td><td>Gold, property, furniture, or other manually tracked assets</td><td>Added</td></tr><tr><td>Vehicles</td><td>Current values of your registered vehicles</td><td>Added</td></tr><tr><td>Manual liabilities</td><td>Loans, debts, or cards recorded manually</td><td>Deducted</td></tr><tr><td>Outstanding commitments</td><td>Remaining amounts on commitments recorded in the system</td><td>Deducted</td></tr></tbody></table></div><div class="g-section-title">Adding an Asset or Liability</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Choose the item type</div><div class="g-step-desc">Click Add Asset or Add Liability at the top of the page.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Enter the name and type</div><div class="g-step-desc">Use a clear name and a useful type so the item is easy to understand later.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Enter currency and current value</div><div class="g-step-desc">An asset uses its current value; a liability uses its remaining amount.</div></div></div></div><div class="g-callout tip">💡 Net worth is not the same as cash. You may have limited bank balances but significant assets, or large balances but significant debt. Wealth brings these pieces together.</div><div class="g-callout warning">⚠️ Asset values are estimates you enter manually. The system does not perform automatic market valuation.</div>'}
+  },
+  drive: {
+    ar: {'guide-content-drive':'<div class="g-section-title">☁️ Google Drive</div><p class="g-p">Google Drive يمكن أن يوفر نسخة إضافية من بيانات FinTrack ويسمح بالمزامنة بين الأجهزة، بينما يظل النظام قادراً على العمل محلياً بدون اتصال مستمر.</p><div class="g-callout warning">⚠️ يجب تشغيل النظام من HTTPS أو من localhost أثناء الاختبار. فتح ملف HTML مباشرة باستخدام file:// لا يدعم Google OAuth بشكل صحيح.</div><div class="g-section-title">الإعداد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">أنشئ مشروعاً في Google Cloud</div><div class="g-step-desc">أنشئ مشروعاً جديداً ثم فعّل Google Drive API.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">جهّز OAuth</div><div class="g-step-desc">أنشئ شاشة موافقة OAuth، وأضف حساب الاختبار إذا كان المشروع في وضع الاختبار، ثم أنشئ OAuth Client ID من نوع Web Application.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">أضف عنوان الموقع المصرح به</div><div class="g-step-desc">في Authorized JavaScript origins استخدم عنوان الموقع الذي تستضيف عليه FinTrack.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">اربط FinTrack</div><div class="g-step-desc">من أدوات النظام اختر ربط Google Drive، أدخل Client ID ثم أكمل نافذة الموافقة.</div></div></div></div><div class="g-section-title">حالات المزامنة</div><div class="g-table-wrap"><table><thead><tr><th>الحالة</th><th>المعنى</th><th>ماذا تفعل؟</th></tr></thead><tbody><tr><td>متصل</td><td>المزامنة متاحة</td><td>استخدم النظام بشكل طبيعي</td></tr><tr><td>جارٍ المزامنة</td><td>يوجد رفع أو جلب للبيانات</td><td>انتظر حتى تكتمل العملية</td></tr><tr><td>خطأ</td><td>تعذر تنفيذ عملية المزامنة</td><td>راجع الاتصال وإعدادات Google OAuth</td></tr><tr><td>تعارض</td><td>نسخة Drive ونسخة الجهاز تغيرتا بشكل مستقل</td><td>اختر الجلب من Drive أو الرفع الإجباري للنسخة المحلية</td></tr></tbody></table></div><div class="g-callout warning">⚠️ عند وجود تعارض، لا ترفع نسخة فوق الأخرى تلقائياً. راجع النسخة التي تريد الاحتفاظ بها ثم اختر الإجراء المناسب.</div>'},
+    en: {'guide-content-drive':'<div class="g-section-title">☁️ Google Drive</div><p class="g-p">Google Drive can provide an additional copy of your FinTrack data and support multi-device synchronization, while the system can still operate locally without a continuous connection.</p><div class="g-callout warning">⚠️ Run the system over HTTPS or on localhost for testing. Opening the HTML file directly with file:// does not support Google OAuth correctly.</div><div class="g-section-title">Setup</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Create a Google Cloud project</div><div class="g-step-desc">Create a new project and enable the Google Drive API.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Configure OAuth</div><div class="g-step-desc">Set up the OAuth consent screen, add your test account if the project is in testing mode, then create a Web Application OAuth Client ID.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Add the authorized origin</div><div class="g-step-desc">In Authorized JavaScript origins, use the exact site origin where FinTrack is hosted.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">Connect FinTrack</div><div class="g-step-desc">From the system tools, choose Connect Google Drive, enter the Client ID, and complete the consent flow.</div></div></div></div><div class="g-section-title">Sync States</div><div class="g-table-wrap"><table><thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead><tbody><tr><td>Connected</td><td>Synchronization is available</td><td>Use the system normally</td></tr><tr><td>Syncing</td><td>Data is being uploaded or pulled</td><td>Wait for the operation to finish</td></tr><tr><td>Error</td><td>A synchronization operation failed</td><td>Check connectivity and Google OAuth settings</td></tr><tr><td>Conflict</td><td>The Drive copy and local copy changed independently</td><td>Choose Pull from Drive or Force Push Local</td></tr></tbody></table></div><div class="g-callout warning">⚠️ When a conflict is detected, do not overwrite one copy blindly. Decide which copy you want to keep, then choose the appropriate action.</div>'}
+  }
+});
+</script>
+
+
+<style>
+  /* Consistent table header alignment across the entire application. */
+  table thead th, table thead th.amt { text-align:center !important; vertical-align:middle !important; }
+</style>
 </head>
 <body>
 <script>
@@ -809,6 +1346,7 @@
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
       <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
       <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
+      <button data-view="wealth"><span class="ic">◈</span><span class="lbl">Wealth</span></button>
       <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
       <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
@@ -861,17 +1399,27 @@
     </section>
 
     <!-- ACCOUNTS -->
+    <!-- Opening Balance is intentionally hidden from the account list; it remains stored and is still used in accountBalance(). -->
     <section class="view" id="view-accounts">
       <div class="topbar">
         <div><h1>Accounts</h1><div class="today">Cash, banks &amp; wallets across all currencies</div></div>
         <button class="btn" data-open-modal="account">+ New Account</button>
       </div>
       <div class="table-wrap">
-        <div class="head-row"><h3 id="acc-all-heading">All Accounts</h3></div>
+        <div class="head-row"><h3 id="acc-all-heading">All Accounts</h3><button class="btn ghost sm" id="toggle-hidden-accounts" type="button" style="display:none;"></button></div>
         <table>
-          <thead><tr><th id="th-acc-name">Name</th><th id="th-acc-type">Type</th><th id="th-acc-cur">Currency</th><th class="amt" id="th-acc-opening">Opening</th><th class="amt" id="th-acc-curbal">Current Balance</th><th></th></tr></thead>
+          <thead><tr><th id="th-acc-name">Name</th><th id="th-acc-type">Type</th><th id="th-acc-cur">Currency</th><th class="amt" id="th-acc-curbal">Current Balance</th><th></th></tr></thead>
           <tbody id="accounts-body"></tbody>
         </table>
+      </div>
+      <div id="hidden-accounts-panel" class="hidden-accounts-panel" style="display:none;">
+        <div class="section-title" id="hidden-accounts-title">Archived / Hidden Accounts</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th id="th-hidden-acc-name">Name</th><th id="th-hidden-acc-type">Type</th><th id="th-hidden-acc-cur">Currency</th><th class="amt" id="th-hidden-acc-curbal">Current Balance</th><th></th></tr></thead>
+            <tbody id="hidden-accounts-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="section-title" id="exchange-rates-title">Exchange Rates<span class="hint" id="exchange-rates-hint">used to convert balances to EGP</span></div>
@@ -881,6 +1429,31 @@
           <tbody id="fx-body"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- WEALTH -->
+    <section class="view" id="view-wealth">
+      <div class="topbar">
+        <div><h1 id="wealth-h1">Wealth</h1><div class="today" id="wealth-sub">Assets &amp; liabilities — your real net worth</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn secondary" data-open-modal="liability">+ Liability</button>
+          <button class="btn" data-open-modal="asset">+ Asset</button>
+        </div>
+      </div>
+      <div class="grid cols-3" id="wealth-summary"></div>
+      <div class="grid cols-2" style="margin-top:16px;">
+        <div>
+          <div class="section-title" id="wealth-assets-title">Assets</div>
+          <div class="table-wrap"><table><thead><tr><th data-wealth-th="asset-name">Name</th><th data-wealth-th="asset-type">Type</th><th class="amt" data-wealth-th="asset-value">Value</th><th data-wealth-th="asset-actions"></th></tr></thead><tbody id="wealth-assets-body"></tbody></table></div>
+        </div>
+        <div>
+          <div class="section-title" id="wealth-liabilities-title">Liabilities</div>
+          <div class="table-wrap"><table><thead><tr><th data-wealth-th="liab-name">Name</th><th data-wealth-th="liab-type">Type</th><th class="amt" data-wealth-th="liab-remaining">Remaining</th><th data-wealth-th="liab-actions"></th></tr></thead><tbody id="wealth-liabilities-body"></tbody></table></div>
+        </div>
+      </div>
+      <div class="section-title" id="wealth-vehicles-title" style="margin-top:18px;">Vehicles included in Net Worth</div>
+      <div class="table-wrap"><table><thead><tr><th data-wealth-th="vehicle-name">Vehicle</th><th data-wealth-th="vehicle-type">Type</th><th class="amt" data-wealth-th="vehicle-value">Current Value</th></tr></thead><tbody id="wealth-vehicles-body"></tbody></table></div>
+      <div class="help-text" id="wealth-formula" style="margin-top:10px;">Net Worth = account balances + assets + vehicle values − manual liabilities − outstanding commitments.</div>
     </section>
 
     <!-- TRANSACTIONS -->
@@ -918,12 +1491,16 @@
             </div>
           </div>
         </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);white-space:nowrap;cursor:pointer;">
+          <input type="checkbox" id="txn-show-deleted" style="width:auto;"> <span id="txn-show-deleted-label">Deleted</span>
+        </label>
         <button class="btn ghost sm" id="txn-reset" title="مسح الفلاتر">↺</button>
       </div>
       <div class="pill-row" id="txn-filters"></div>
+      <div id="txn-account-balance-hint" style="display:none;margin:8px 0 10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text-muted);font-size:12px;"></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th></th></tr></thead>
+          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th class="amt" id="th-txn-running" style="display:none;"></th><th></th></tr></thead>
           <tbody id="txn-body"></tbody>
         </table>
       </div>
@@ -982,15 +1559,12 @@
             <label id="vlogs-lbl-vehicle">Vehicle</label>
             <select id="vlogs-filter-vehicle"></select>
           </div>
-          <div class="field" style="margin:0;min-width:150px;flex:1;">
+          <div class="field" style="margin:0;min-width:150px;flex:1;position:relative;">
             <label id="vlogs-lbl-type">Type</label>
-            <select id="vlogs-filter-type">
-              <option value="all" id="vlogs-opt-all">All types</option>
-              <option value="fuel" id="vlogs-opt-fuel">⛽ Fuel</option>
-              <option value="maintenance" id="vlogs-opt-maint">🔧 Maintenance</option>
-              <option value="oil" id="vlogs-opt-oil">🛢 Oil Change</option>
-              <option value="asset" id="vlogs-opt-asset">💰 Asset</option>
-            </select>
+            <button type="button" class="filter-select-btn" id="vlogs-filter-type-btn" aria-haspopup="listbox" aria-expanded="false" style="width:100%;text-align:inherit;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:9px 11px;font-size:13px;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;">
+              <span id="vlogs-filter-type-label">All types</span><span aria-hidden="true">▾</span>
+            </button>
+            <div id="vlogs-filter-type-menu" role="listbox" aria-multiselectable="true" style="display:none;position:absolute;z-index:80;top:100%;left:0;right:0;margin-top:5px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.28);max-height:320px;overflow:auto;"></div>
           </div>
           <div class="field" style="margin:0;flex:1;">
             <label id="vlogs-lbl-from">From</label>
@@ -1016,7 +1590,7 @@
 
         <div class="table-wrap" style="margin-bottom:18px;">
           <table>
-            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
+            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-liters">Liters</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
             <tbody id="vlogs-table-body"></tbody>
           </table>
         </div>
@@ -1131,6 +1705,7 @@
           <button class="guide-tab" data-tab="vehicles">🚗 المركبات</button>
           <button class="guide-tab" data-tab="budgets">🎯 الميزانيات</button>
           <button class="guide-tab" data-tab="reports">📈 التقارير</button>
+          <button class="guide-tab" data-tab="wealth">◈ الثروة</button>
           <button class="guide-tab" data-tab="drive">☁️ Google Drive</button>
         </div>
 
@@ -1376,6 +1951,9 @@
         </div>
 
         <!-- ===== TAB: GOOGLE DRIVE ===== -->
+        <div class="guide-panel" id="guide-tab-wealth">
+          <div id="guide-content-wealth"></div>
+        </div>
         <div class="guide-panel" id="guide-tab-drive">
           <div id="guide-content-drive">
           <div class="g-section-title">☁️ لماذا ربط Google Drive؟</div>
@@ -1514,7 +2092,10 @@ function migrateDB(db){
   db.vehicleLogs = db.vehicleLogs || [];
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
-  (db.accounts||[]).forEach(a=>{ if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false; });
+  (db.accounts||[]).forEach(a=>{
+    if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false;
+    if(a.hiddenFromAccountsList===undefined && String(a.name||'').trim().toLowerCase()==='liquidity') a.hiddenFromAccountsList = true;
+  });
   const catIds = new Set((db.categories||[]).map(c=>c.id));
   const defaultCats = [
     { id:'cat_car', name:'مصاريف العربية (Car Expenses)', type:'expense', parentId:null },
@@ -1669,9 +2250,10 @@ function accountById(id){ return DB.accounts.find(a=>a.id===id); }
 function categoryById(id){ return DB.categories.find(c=>c.id===id); }
 
 function accountBalance(acc){
+  if(!acc) return 0;
   let bal = Number(acc.openingBalance)||0;
   DB.transactions.forEach(t=>{
-    if(t.accountId !== acc.id) return;
+    if(t.accountId !== acc.id || t.deletedAt) return;
     if(t.type === 'income') bal += Number(t.amount);
     else if(t.type === 'expense') bal -= Number(t.amount);
     else if(t.type === 'transfer_out') bal -= Number(t.amount);
@@ -1685,29 +2267,45 @@ function netWorthEGP(){
 }
 
 // Outstanding commitments (installments/جمعية still owed) — assumed EGP, matching how commitments are entered.
+function commitmentPaidAmount(c){
+  return commitmentPayments(c.id).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+}
 function commitmentRemaining(c){
-  const paid = commitmentPayments(c.id).length;
-  return Math.max(0, (c.totalInstallments||0) - paid);
+  return Math.max(0, (Number(c.totalAmount)||0) - commitmentPaidAmount(c));
+}
+function commitmentRemainingInstallments(c){
+  const rem=commitmentRemaining(c), inst=Number(c.installmentAmount)||0;
+  return rem>0 && inst>0 ? Math.ceil(rem/inst) : 0;
+}
+function updateCommitmentStatus(c){
+  if(!c) return;
+  const rem=commitmentRemaining(c);
+  c.status = (rem<=0.009 && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
 }
 function totalLiabilitiesEGP(){
-  return DB.commitments
-    .filter(c=>c.status!=='completed')
-    .reduce((sum,c)=> sum + commitmentRemaining(c) * (Number(c.installmentAmount)||0), 0);
+  return DB.commitments.filter(c=>c.status!=='completed' && !c.deletedAt)
+    .reduce((sum,c)=>sum + commitmentRemaining(c), 0);
+}
+
+function isReconciliationAdjustment(t){
+  // Reconciliation entries correct an existing account balance; they are NOT
+  // operating income or expense and therefore must not inflate monthly cash-flow
+  // KPIs, reports, category totals, or month-detail breakdowns. They still remain
+  // normal transactions for account-balance/reconciliation purposes.
+  return !!t && (t.categoryId==='cat_adjustment' || t.categoryId==='cat_adjustment_inc');
 }
 
 function monthTotals(mKey){
-  // Match Reports page: income/expense cash-flow totals include ALL transactions,
-  // regardless of whether the account is excluded from net worth (archived).
-  // excludeFromNetWorth should only affect balance/net-worth calculations, not
-  // monthly income/expense totals — previously this silently dropped archived-
-  // account transactions whenever the month also had at least one "live" transaction.
-  const src = DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  // Income/expense cash-flow totals include real transactions, but exclude
+  // reconciliation adjustments because those are balance corrections rather than
+  // new income/expense. Account balances still include them via accountBalance().
+  const src = DB.transactions.filter(t=>!t.deletedAt && !isReconciliationAdjustment(t) && monthKey(t.date)===mKey);
   let income=0,expense=0;
   src.forEach(t=>{
     if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
     else if(t.type==='expense') expense+=toEGP(Number(t.amount),t.currency);
   });
-  expense+=DB.commitmentPayments.filter(p=>!p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
+  expense+=DB.commitmentPayments.filter(p=>!p.deletedAt && !p.linkedTransactionId&&monthKey(p.date)===mKey).reduce((s,p)=>s+Number(p.amount),0);
   return {income,expense,net:income-expense};
 }
 
@@ -1754,7 +2352,7 @@ function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)
 /* ---------------------------- VEHICLES ---------------------------- */
 // State for the full-page "All Logs" panel (Vehicles > All Logs tab) — persists across
 // re-renders within the current page session.
-let _vlVehicle='all', _vlType='all', _vlFrom='', _vlTo='', _vlSort='desc', _vlSubtab='cards';
+let _vlVehicle='all', _vlTypes=[], _vlFrom='', _vlTo='', _vlSort='desc', _vlSubtab='cards';
 function vehicleById(id){ return DB.vehicles.find(v=>v.id===id); }
 function vehicleLogsRaw(vehicleId){
   // DB.vehicleLogs is always appended to (push) and never reordered by edits, so its array index
@@ -1771,7 +2369,9 @@ function vehicleLogsRaw(vehicleId){
 // IMPORTANT: for fuel rows, "distance" (and therefore km/L) is measured since the *previous fuel
 // entry specifically* — not since the previous log entry of any type. Otherwise a maintenance or
 // oil-change entry logged in between two fill-ups (very common) would shrink the distance used for
-// the km/L math down to "since that unrelated entry", producing an artificially tiny, wrong km/L
+// the km/L math down to "since that unrelated entry", producing an artificially tiny, wrong km/L.
+// Oil-change rows are also measured against the previous oil-change row specifically, so the
+// distance shown for an oil change answers: "how many km since the last oil change?".
 // (e.g. a full tank divided by a 60km gap to an oil change instead of the real distance since the
 // last refuel). Non-fuel rows keep the old "since previous entry of any type" distance, since that's
 // still a useful general trip-odometer indicator for them.
@@ -1812,13 +2412,18 @@ function _scooterKmLBaseline(rawValues){
 }
 function vehicleLogsComputed(vehicleId){
   const v = vehicleById(vehicleId);
-  let prevOdo = null, prevFuelOdo = null;
+  let prevOdo = null, prevFuelOdo = null, prevOilOdo = null;
   const rows = vehicleLogsRaw(vehicleId).map(l=>{
     let distance = null, kmPerLiter = null, kmPerLiterRaw = null;
     if(l.odometerKm != null){
       if(l.type === 'fuel'){
         if(prevFuelOdo != null) distance = l.odometerKm - prevFuelOdo;
         prevFuelOdo = l.odometerKm;
+      } else if(l.type === 'oil'){
+        // Oil-change distance is specifically the km driven since the PREVIOUS oil change
+        // for this vehicle, not since the previous arbitrary vehicle log (fuel/maintenance/etc.).
+        if(prevOilOdo != null) distance = l.odometerKm - prevOilOdo;
+        prevOilOdo = l.odometerKm;
       } else if(prevOdo != null){
         distance = l.odometerKm - prevOdo;
       }
@@ -1987,6 +2592,10 @@ function categoryAndDescendantIds(catId){
 function vehicleLogCategoryId(log){
   const v = vehicleById(log.vehicleId);
   if(!v) return null;
+  // New logs/edit operations may carry an explicit categoryId. Always prefer it so
+  // custom vehicle sub-categories remain attached to the log instead of being
+  // silently converted back to the built-in Fuel/Maintenance/Oil category.
+  if(log.categoryId && categoryById(log.categoryId)) return log.categoryId;
   const sets = {
     car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
     scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
@@ -1994,11 +2603,29 @@ function vehicleLogCategoryId(log){
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
 }
+
+// All expense categories belonging to this vehicle's category tree. This includes
+// built-in categories and every custom sub-category added later.
+function vehicleCategoryOptions(vehicleId, selected){
+  const v = vehicleById(vehicleId);
+  if(!v) return '';
+  const rootId = v.type==='scooter' ? 'cat_scooter' : 'cat_car';
+  const cats = DB.categories.filter(c=>c.type==='expense' && (c.id===rootId || c.parentId===rootId));
+  const root = cats.find(c=>c.id===rootId);
+  const children = cats.filter(c=>c.parentId===rootId);
+  let html = '';
+  if(root) html += `<option value="${root.id}" ${selected===root.id?'selected':''}>${root.name} (${tt('كل البنود','all items')})</option>`;
+  children.forEach(c=>{ html += `<option value="${c.id}" ${selected===c.id?'selected':''}>└ ${c.name}</option>`; });
+  return html;
+}
 // Reverse of vehicleLogCategoryId: given a category id picked in the regular Transaction form,
 // tells us it's a vehicle-tracked category and what vehicle type / log type it implies.
 // Returns null for any non-vehicle category (so the vehicle fields stay hidden).
 function categoryVehicleInfo(categoryId){
-  const map = {
+  // Built-in vehicle categories keep their exact semantics. Custom sub-categories created
+  // underneath the Car/Scooter parent are also vehicle-tracked (as maintenance by default),
+  // so they remain usable when editing older transactions.
+  const direct = {
     cat_car_fuel: {vehicleType:'car', logType:'fuel'},
     cat_car_maint: {vehicleType:'car', logType:'maintenance'},
     cat_car_oil: {vehicleType:'car', logType:'oil'},
@@ -2006,7 +2633,14 @@ function categoryVehicleInfo(categoryId){
     cat_scooter_maint: {vehicleType:'scooter', logType:'maintenance'},
     cat_scooter_oil: {vehicleType:'scooter', logType:'oil'}
   };
-  return map[categoryId] || null;
+  if(direct[categoryId]) return direct[categoryId];
+  const c = categoryById(categoryId);
+  if(!c || c.type!=='expense') return null;
+  let parent = c;
+  while(parent && parent.parentId) parent = categoryById(parent.parentId);
+  if(parent?.id==='cat_car') return {vehicleType:'car', logType:'maintenance'};
+  if(parent?.id==='cat_scooter') return {vehicleType:'scooter', logType:'maintenance'};
+  return null;
 }
 // The single source of truth for computing liters from money spent: amount ÷ the global fuel
 // price on the Vehicles page. Always used at save time for fuel-type logs, regardless of what a
@@ -2031,18 +2665,22 @@ function vehicleOptionsAll(selectedId){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  const txnEntries = DB.transactions.filter(t=>t.type==='expense')
+  const txnEntries = DB.transactions.filter(t=>t.type==='expense' && !t.deletedAt && !isReconciliationAdjustment(t))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
-  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
+  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId && !p.deletedAt)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
-  return txnEntries.concat(cmPmtEntries);
+  const vehicleEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId && !l.deletedAt)
+    .map(l=>({categoryId:vehicleLogCategoryId(l),amount:l.amount,currency:(accountById(l.accountId)||{}).currency||'EGP',date:l.date,source:'vehicle',note:l.note}));
+  return txnEntries.concat(cmPmtEntries, vehicleEntries);
 }
 function liveExpenseEntries(){
-  const txnEntries = liveTransactions().filter(t=>t.type==='expense')
+  const txnEntries = liveTransactions().filter(t=>t.type==='expense' && !isReconciliationAdjustment(t))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
-  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
+  const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId && !p.deletedAt)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
-  return txnEntries.concat(cmPmtEntries);
+  const vehicleEntries = DB.vehicleLogs.filter(l=>!l.linkedTransactionId && !l.deletedAt && !isArchiveTxn({accountId:l.accountId}))
+    .map(l=>({categoryId:vehicleLogCategoryId(l),amount:l.amount,currency:(accountById(l.accountId)||{}).currency||'EGP',date:l.date,source:'vehicle',note:l.note}));
+  return txnEntries.concat(cmPmtEntries, vehicleEntries);
 }
 function categorySpendInMonth(catId, mKey){
   return categoryTotal(catId, mKey);
@@ -2102,9 +2740,41 @@ let driveAccessToken = null;
 let driveFileId = null;
 let tokenClient = null;
 let pushTimer = null;
+// Shared between autoReconnectDriveSilently and the conflict-guard IIFE.
+// Must live at outer scope so both can read and write the same variable.
+let driveLastRemoteModified = null;
 
 function getClientId(){ return localStorage.getItem('fintrack_client_id') || ''; }
 function setClientId(id){ localStorage.setItem('fintrack_client_id', id); }
+
+// ---------- Session token cache ----------
+// GIS access tokens are in-memory only and lost on page refresh.
+// We cache the token + expiry in sessionStorage so a browser F5 refresh
+// restores the session instantly without any Google popup.
+// sessionStorage is cleared automatically when the tab is closed,
+// so a fresh tab always requires a new interactive login — by design.
+const TOKEN_CACHE_KEY = 'fintrack_drive_token';
+
+function saveTokenToSession(token, expiresInSeconds){
+  try{
+    const expiry = Date.now() + (expiresInSeconds || 3600) * 1000 - 60000; // 1-min safety margin
+    sessionStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify({ token, expiry }));
+  }catch(e){ /* sessionStorage unavailable — no-op */ }
+}
+
+function loadTokenFromSession(){
+  try{
+    const raw = sessionStorage.getItem(TOKEN_CACHE_KEY);
+    if(!raw) return null;
+    const { token, expiry } = JSON.parse(raw);
+    if(Date.now() > expiry){ sessionStorage.removeItem(TOKEN_CACHE_KEY); return null; }
+    return token;
+  }catch(e){ return null; }
+}
+
+function clearTokenFromSession(){
+  try{ sessionStorage.removeItem(TOKEN_CACHE_KEY); }catch(e){}
+}
 
 function initGoogleAuth(){
   const clientId = getClientId();
@@ -2116,30 +2786,82 @@ function initGoogleAuth(){
   });
 }
 
+function driveOriginSupported(){
+  return location.protocol === 'https:' || (location.protocol === 'http:' && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(location.host));
+}
+
+function driveEnvironmentError(){
+  if(location.protocol === 'file:') return LANG==='ar'
+    ? 'Google Drive لا يعمل عند فتح الملف مباشرة من الجهاز (file://). شغّل FinTrack على HTTPS أو localhost أولاً.'
+    : 'Google Drive cannot work when the HTML file is opened directly (file://). Run FinTrack over HTTPS or localhost first.';
+  if(!driveOriginSupported()) return LANG==='ar'
+    ? 'Google Drive يحتاج HTTPS (أو localhost أثناء الاختبار). افتح النظام من رابط آمن ثم أعد المحاولة.'
+    : 'Google Drive requires HTTPS (or localhost for testing). Open FinTrack from a secure URL and try again.';
+  return '';
+}
+
 function connectDrive(){
   const clientId = getClientId();
   if(!clientId){ openModal('drive-setup'); return; }
+  const envError = driveEnvironmentError();
+  if(envError){ updateSyncStatus('error'); toast(envError); openModal('drive-setup'); return; }
   if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
-  const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
-  tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
+  if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
+  // Always use 'select_account' for interactive sign-in so the Google popup
+  // always opens visibly. Using prompt:'' (empty) causes silent auth attempts
+  // that return interaction_required errors when the Google session has expired,
+  // forcing the user to click the button twice. 'select_account' is safe for
+  // both first-time and returning users.
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+function describeDriveError(e){
+  const msg = e && e.message ? e.message : String(e || 'Unknown error');
+  if(/403/.test(msg)) return LANG==='ar'
+    ? msg + ' — تأكد أن Google Drive API مفعّل وأن الـ OAuth Client ID تابع لنفس المشروع.'
+    : msg + ' — make sure Google Drive API is enabled and the OAuth Client ID belongs to the same project.';
+  if(/origin|redirect|disallowed_useragent|unauthorized_client|invalid_client/i.test(msg)) return LANG==='ar'
+    ? msg + ' — راجع Authorized JavaScript origins في Google Cloud.'
+    : msg + ' — check Authorized JavaScript origins in Google Cloud.';
+  return msg;
 }
 
 async function onTokenResponse(resp){
-  if(resp.error){ toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + resp.error); updateSyncStatus('error'); return; }
+  if(resp.error){
+    console.error('Google OAuth error:', resp);
+    // Only clear the consented flag for hard auth failures (invalid client, revoked access).
+    // Transient errors like interaction_required (session expired) or popup_closed_by_user
+    // do NOT mean the user revoked consent — clearing the flag would confuse the retry flow.
+    const hardError = /invalid_client|unauthorized_client|access_denied|admin_policy_enforced/i.test(resp.error);
+    if(hardError) localStorage.removeItem('fintrack_drive_consented');
+    updateSyncStatus('error');
+    // Don't show a toast for popup_closed — the user closed it intentionally
+    if(resp.error !== 'popup_closed_by_user'){
+      toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + (resp.error_description || resp.error));
+    }
+    return;
+  }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
+  // Cache the token in sessionStorage so page refresh restores the session
+  // instantly without re-opening the Google popup (survives F5, not tab close).
+  saveTokenToSession(resp.access_token, resp.expires_in || 3600);
   updateSyncStatus('syncing');
   try{
     await driveInitialSync();
     updateSyncStatus('connected');
   }catch(e){
-    console.error(e); toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + e.message); updateSyncStatus('error');
+    console.error('Drive sync error:', e);
+    toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + describeDriveError(e));
+    updateSyncStatus('error');
   }
 }
 
 function disconnectDrive(){
   driveAccessToken = null; driveFileId = null;
+  localStorage.removeItem('fintrack_drive_consented');
+  clearTokenFromSession();
   updateSyncStatus('disconnected');
   toast(LANG==='ar'?'تم قطع الاتصال بـ Google Drive':'Disconnected from Google Drive');
 }
@@ -2150,17 +2872,23 @@ function disconnectDrive(){
 // (e.g. the user needs to reconnect manually).
 function silentRefreshToken(){
   return new Promise((resolve, reject)=>{
+    if(!driveOriginSupported()){ reject(new Error(driveEnvironmentError() || 'Unsupported origin')); return; }
     if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
-    if(!tokenClient) initGoogleAuth();
-    if(!tokenClient){ reject(new Error('No client ID configured')); return; }
-    const prevCallback = tokenClient.callback;
-    tokenClient.callback = (resp)=>{
-      tokenClient.callback = prevCallback;
-      if(resp.error){ reject(new Error(resp.error)); return; }
-      driveAccessToken = resp.access_token;
-      resolve(resp.access_token);
-    };
-    tokenClient.requestAccessToken({ prompt: '' });
+    const clientId = getClientId();
+    if(!clientId){ reject(new Error('No client ID configured')); return; }
+    // Use a separate token client so a background refresh cannot overwrite
+    // the callback used by the interactive sign-in flow.
+    const refreshClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      callback: (resp)=>{
+        if(resp.error){ reject(new Error(resp.error_description || resp.error)); return; }
+        driveAccessToken = resp.access_token;
+        saveTokenToSession(resp.access_token, resp.expires_in || 3600);
+        resolve(resp.access_token);
+      }
+    });
+    refreshClient.requestAccessToken({ prompt: 'none' });
   });
 }
 
@@ -2170,26 +2898,37 @@ function silentRefreshToken(){
 // expired token now recovers on its own instead of failing outright.
 async function driveApiFetch(url, options, _retried){
   options = options || {};
-  options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + driveAccessToken });
-  const res = await fetch(url, options);
+  const requestOptions = Object.assign({}, options, {
+    headers: Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + driveAccessToken })
+  });
+  let res;
+  try{ res = await fetch(url, requestOptions); }
+  catch(e){ throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error')); }
   if(res.status === 401 && !_retried){
     await silentRefreshToken();
     return driveApiFetch(url, options, true);
+  }
+  if(!res.ok){
+    let detail = '';
+    try{
+      const body = await res.clone().json();
+      detail = body?.error?.message ? ': ' + body.error.message : '';
+    }catch(_){}
+    throw new Error('Drive API ' + res.status + detail);
   }
   return res;
 }
 
 async function driveFindFile(){
-  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
-  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`);
-  if(!res.ok) throw new Error('Drive list failed (' + res.status + ')');
+  const escapedName = DRIVE_FILE_NAME.replace(/'/g, "\\'");
+  const q = encodeURIComponent(`name='${escapedName}' and trashed=false`);
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&pageSize=10&fields=files(id,name,modifiedTime,mimeType)`);
   const data = await res.json();
   return (data.files && data.files[0]) ? data.files[0] : null;
 }
 
 async function driveDownload(fileId){
-  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
-  if(!res.ok) throw new Error('Drive download failed (' + res.status + ')');
+  const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`);
   return res.json();
 }
 
@@ -2257,6 +2996,9 @@ async function drivePushNow(){
 
 // Debounced background push, called from saveDB() on every local change.
 function queueDrivePush(){
+  // Background saves are strictly local-first. Never call connectDrive() or
+  // request interactive OAuth from here. If there is no active token/file,
+  // the transaction is already safely stored in localStorage and stops here.
   if(!driveAccessToken || !driveFileId) return;
   updateSyncStatus('syncing');
   clearTimeout(pushTimer);
@@ -2285,18 +3027,125 @@ function updateSyncStatus(state){
 }
 
 document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
-  if(driveAccessToken) openModal('drive-manage');
-  else connectDrive();
-});
-
-window.addEventListener('load', ()=>{
-  if(getClientId()){
-    initGoogleAuth();
-    if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // Give Google Identity Services a moment to finish loading, then try a silent (no-prompt) reconnect.
-      setTimeout(()=>{ if(tokenClient) connectDrive(); }, 700);
+  if(driveAccessToken){
+    openModal('drive-manage');
+  } else {
+    // If a client ID exists, go straight to the OAuth flow.
+    // If not (or env not supported), open drive-setup so user can configure.
+    const clientId = getClientId();
+    const envErr = driveEnvironmentError();
+    if(!clientId || envErr){
+      openModal('drive-setup');
+    } else {
+      connectDrive();
     }
   }
+});
+
+// Restore an existing Drive session without ever opening the interactive
+// Google login window.  Interactive OAuth is ONLY allowed when the user
+// explicitly clicks "Connect Google Drive".  This is important because
+// saveDB()/transaction saves must never trigger authentication UI.
+function autoReconnectDriveSilently(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  if(typeof google === 'undefined' || !google.accounts) return;
+  const clientId = getClientId();
+  try{
+    const silentClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      callback: async (resp)=>{
+        if(resp.error){
+          // Silent reconnect can legitimately fail when the Google session
+          // has expired. Do NOT show a login popup or error toast here.
+          driveAccessToken = null;
+          return;
+        }
+        driveAccessToken = resp.access_token;
+        saveTokenToSession(resp.access_token, resp.expires_in || 3600);
+        try{
+          // Do not pull/overwrite local data during automatic reconnect.
+          // The user can explicitly use Drive Sync > Pull when needed.
+          const f = await driveFindFile();
+          if(f){
+            driveFileId = f.id;
+            driveLastRemoteModified = f.modifiedTime || null;
+          }
+          updateSyncStatus('connected');
+        }catch(e){
+          console.error('Silent Drive reconnect failed:', e);
+          updateSyncStatus('error');
+        }
+      }
+    });
+    silentClient.requestAccessToken({prompt:'none'});
+  }catch(e){
+    console.error('Silent Drive reconnect setup failed:', e);
+  }
+}
+
+// Attempt to restore the Drive session on page load.
+// Strategy (in order of preference):
+//   1. sessionStorage cached token (valid, not expired) → instant restore, no Google call.
+//      This is what makes F5 refresh work seamlessly.
+//   2. Google silent token (prompt:'none') → works when Google browser session is active.
+//   3. Nothing → stay disconnected, user clicks to re-auth interactively.
+async function tryRestoreDriveSession(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  if(localStorage.getItem('fintrack_drive_consented') !== '1') return;
+
+  // ── Path 1: cached token in sessionStorage ──────────────────────────────
+  const cached = loadTokenFromSession();
+  if(cached){
+    driveAccessToken = cached;
+    updateSyncStatus('syncing');
+    try{
+      const f = await driveFindFile();
+      if(f){ driveFileId = f.id; driveLastRemoteModified = f.modifiedTime || null; }
+      updateSyncStatus('connected');
+    }catch(e){
+      // Token may have been revoked server-side even though it wasn't expired locally.
+      console.warn('Cached token rejected by Drive API:', e);
+      clearTokenFromSession();
+      driveAccessToken = null;
+      // Fall through to silent Google token below.
+      if(typeof google !== 'undefined' && google.accounts){
+        autoReconnectDriveSilently();
+      } else {
+        updateSyncStatus('error');
+      }
+    }
+    return;
+  }
+
+  // ── Path 2: silent Google token (requires active browser session) ────────
+  if(typeof google !== 'undefined' && google.accounts){
+    autoReconnectDriveSilently();
+  }
+  // If google not loaded yet, onGoogleLibraryLoad will call us again.
+}
+
+// Called by the Google GSI script exactly once when the library is ready.
+// This is the RELIABLE hook — replaces the unreliable 700ms setTimeout hack.
+function onGoogleLibraryLoad(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  initGoogleAuth();
+  tryRestoreDriveSession();
+}
+
+window.addEventListener('load', ()=>{
+  if(!getClientId()) return;
+  if(!driveOriginSupported()){
+    updateSyncStatus('error');
+    return;
+  }
+  // If the GSI script was already cached and loaded before our code ran,
+  // onGoogleLibraryLoad may never fire — handle that case here.
+  if(typeof google !== 'undefined' && google.accounts){
+    initGoogleAuth();
+    tryRestoreDriveSession();
+  }
+  // Otherwise onGoogleLibraryLoad() will fire when the script finishes loading.
 });
 
 /* ---------------------------- NAVIGATION ---------------------------- */
@@ -2340,7 +3189,7 @@ function renderDashboard(){
 
   const nw = netWorthEGP();
   const liabilities = totalLiabilitiesEGP();
-  const netPosition = nw - liabilities;
+  const netPosition = nw;
   const mt = monthTotals(thisMonthKey());
   const nAccs = DB.accounts.filter(a=>!a.excludeFromNetWorth).length;
 
@@ -2465,7 +3314,7 @@ function renderDashboard(){
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="${t('th_account')}">${acc?acc.name:'—'}</td>
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
+      <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${tx.note||''}</span></td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_txn')}</td></tr>`;
@@ -2473,13 +3322,14 @@ function renderDashboard(){
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
 function renderAccounts(){
-  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
+  const visibleAccounts = DB.accounts.filter(a=>!a.hiddenFromAccountsList);
+  const hiddenAccounts = DB.accounts.filter(a=>a.hiddenFromAccountsList);
+  document.getElementById('accounts-body').innerHTML = visibleAccounts.map(a=>{
     const bal = accountBalance(a);
     return `<tr>
       <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
       <td data-label="${t('th_currency')}">${a.currency}</td>
-      <td class="amt" data-label="${t('th_opening')}">${fmtMoney(a.openingBalance)}</td>
       <td class="amt ${bal<0?'neg':''}" data-label="${t('th_current_balance')}">${fmtMoney(bal)}</td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
@@ -2487,8 +3337,29 @@ function renderAccounts(){
         <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
-
+  }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
+  const hiddenBtn=document.getElementById('toggle-hidden-accounts');
+  const hiddenPanel=document.getElementById('hidden-accounts-panel');
+  const hiddenBody=document.getElementById('hidden-accounts-body');
+  if(hiddenBtn && hiddenPanel && hiddenBody){
+    hiddenBtn.style.display = hiddenAccounts.length ? 'inline-flex' : 'none';
+    hiddenBtn.textContent = t('show_hidden_accounts').replace('{n}', hiddenAccounts.length);
+    hiddenPanel.style.display = hiddenBtn.dataset.open==='1' ? 'block' : 'none';
+    hiddenBody.innerHTML = hiddenAccounts.map(a=>{
+      const bal = accountBalance(a);
+      return `<tr>
+        <td class="td-date" data-label="">${a.name} <span class="tag">${t('archived_tag')}</span></td>
+        <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
+        <td data-label="${t('th_currency')}">${a.currency}</td>
+          <td class="amt ${bal<0?'neg':''}" data-label="${t('th_current_balance')}">${fmtMoney(bal)}</td>
+        <td class="td-actions">
+          <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
+          <button class="btn ghost sm" data-reconcile-account="${a.id}">${t('btn_reconcile')}</button>
+          <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty">${t('empty_no_accounts')}</td></tr>`;
+  }
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
       <td class="td-date" data-label="">${r.currency}${r.currency==='EGP' ? ' <span class="tag">base</span>' : ''}</td>
@@ -2497,6 +3368,15 @@ function renderAccounts(){
           style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
       </td>
     </tr>`).join('');
+}
+
+const hiddenAccountsToggle=document.getElementById('toggle-hidden-accounts');
+if(hiddenAccountsToggle){
+  hiddenAccountsToggle.addEventListener('click',()=>{
+    hiddenAccountsToggle.dataset.open = hiddenAccountsToggle.dataset.open==='1' ? '0' : '1';
+    renderAccounts();
+    if(window.__ftScanTables) requestAnimationFrame(window.__ftScanTables);
+  });
 }
 
 document.getElementById('view-accounts').addEventListener('change', e=>{
@@ -2527,6 +3407,7 @@ let txnMonthFilterVal = '';
 let txnAccountFilterVal = '';
 let txnDateFromVal = '';
 let txnDateToVal = '';
+let txnShowDeleted = false;
 let txnPage = 0;
 const TXN_PG = 100;
 let _txnTreeCtrl = null;
@@ -2570,7 +3451,7 @@ function renderTransactions(){
 
   // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
   // Newest transaction date first; when dates are equal, newest registration first.
-  let list = [...DB.transactions].sort((a,b)=>{
+  let list = [...DB.transactions].filter(t=>txnShowDeleted ? !!t.deletedAt : !t.deletedAt).sort((a,b)=>{
     const dateCmp = (b.date||'').localeCompare(a.date||'');
     if(dateCmp !== 0) return dateCmp;
     return (b.createdAt||'').localeCompare(a.createdAt||'');
@@ -2602,6 +3483,52 @@ function renderTransactions(){
     });
   }
 
+  // When a specific account is selected, calculate a true running balance from that account's
+  // opening balance through every active transaction in chronological order. Other filters
+  // (month/category/type/search) only control which rows are shown; they do NOT reset the balance.
+  const selectedAccount = txnAccountFilterVal ? accountById(txnAccountFilterVal) : null;
+  const runningBalances = new Map();
+  if(selectedAccount){
+    let running = Number(selectedAccount.openingBalance)||0;
+    const chronological = DB.transactions.map((tx, idx)=>({tx, idx}))
+      .filter(x=>x.tx.accountId===selectedAccount.id && !x.tx.deletedAt)
+      .sort((a,b)=>{
+        const dc=(a.tx.date||'').localeCompare(b.tx.date||'');
+        if(dc!==0) return dc;
+        const cc=(a.tx.createdAt||'').localeCompare(b.tx.createdAt||'');
+        if(cc!==0) return cc;
+        return a.idx-b.idx;
+      });
+    chronological.forEach(({tx})=>{
+      if(tx.type==='income' || tx.type==='transfer_in') running += Number(tx.amount)||0;
+      else if(tx.type==='expense' || tx.type==='transfer_out') running -= Number(tx.amount)||0;
+      runningBalances.set(tx.id, running);
+    });
+    // For an account-filtered view, show the complete chronological trail so the opening
+    // balance naturally leads into the latest balance. Keep the other filters intact.
+    // Display newest transactions first (bottom-to-top chronological flow),
+    // while runningBalances remain calculated from the opening balance forward.
+    list.sort((a,b)=>{
+      const dc=(b.date||'').localeCompare(a.date||'');
+      if(dc!==0) return dc;
+      return (b.createdAt||'').localeCompare(a.createdAt||'');
+    });
+  }
+  const runningHead=document.getElementById('th-txn-running');
+  if(runningHead){
+    runningHead.style.display=selectedAccount?'table-cell':'none';
+    runningHead.textContent=selectedAccount?t('th_running_balance'):'';
+  }
+  const txnTable=document.querySelector('#view-transactions .table-wrap table');
+  if(txnTable) txnTable.dataset.accountBalanceMode=selectedAccount?'1':'0';
+  const openingHint=document.getElementById('txn-account-balance-hint');
+  if(openingHint){
+    openingHint.style.display=selectedAccount?'block':'none';
+    if(selectedAccount){
+      openingHint.textContent=`${t('th_opening')}: ${selectedAccount.currency||'EGP'} ${fmtMoney(Number(selectedAccount.openingBalance)||0)}  •  ${t('th_current_balance')}: ${selectedAccount.currency||'EGP'} ${fmtMoney(accountBalance(selectedAccount))}`;
+    }
+  }
+
   document.getElementById('txn-count-label').textContent = t('txn_count', list.length);
 
   const pages = Math.ceil(list.length/TXN_PG) || 1;
@@ -2616,14 +3543,14 @@ function renderTransactions(){
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="${t('th_account')}">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
-      <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
+      <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${tx.note||''}</span></td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
+      <td class="amt txn-running-balance" data-label="${t('th_running_balance')}" style="${selectedAccount?'':'display:none;'}">${selectedAccount ? `${tx.currency} ${fmtMoney(runningBalances.get(tx.id) ?? accountBalance(selectedAccount))}` : ''}</td>
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button>
-        <button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>
+        ${tx.deletedAt ? `<button class="btn ghost sm" data-restore-txn="${tx.id}">${tt('استرجاع','Restore')}</button>` : `<button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>`}
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
 
   const pgEl = document.getElementById('txn-pagination');
   if(pgEl){
@@ -2669,6 +3596,8 @@ document.getElementById('txn-pagination').addEventListener('click', e=>{
   const btn = e.target.closest('[data-txnpage]'); if(!btn) return;
   txnPage = parseInt(btn.dataset.txnpage); renderTransactions();
 });
+document.getElementById('txn-show-deleted')?.addEventListener('change', e=>{ txnShowDeleted=e.target.checked; txnPage=0; renderTransactions(); });
+
 document.getElementById('txn-reset').addEventListener('click', ()=>{
   txnFilter='all'; txnSearchQuery=''; txnMonthFilterVal=''; txnAccountFilterVal=''; txnDateFromVal=''; txnDateToVal=''; txnPage=0;
   document.getElementById('txn-search').value='';
@@ -2689,6 +3618,25 @@ function confirmIfLinked(txnId, action){
   if(action==='delete') return confirm(tt('حذف المعاملة دي؟ الإجراء ده مش قابل للتراجع.','Delete this transaction? This can\'t be undone.'));
   return true;
 }
+document.getElementById('view-transactions').addEventListener('click', e=>{}, true);
+document.getElementById('view-transactions').addEventListener('click', e=>{
+  const restoreId=e.target.closest('[data-restore-txn]')?.dataset.restoreTxn;
+  if(restoreId){ const tx=DB.transactions.find(t=>t.id===restoreId); if(tx){ delete tx.deletedAt; saveDB(); renderAll(); toast(tt('تم استرجاع المعاملة','Transaction restored')); } e.stopImmediatePropagation(); }
+}, true);
+document.getElementById('view-transactions').addEventListener('click', e=>{
+  const delId=e.target.closest('[data-del-txn]')?.dataset.delTxn;
+  if(!delId) return;
+  if(!confirm(tt('نقل المعاملة إلى المحذوفة؟ يمكن استرجاعها لاحقاً.','Move this transaction to Deleted? You can restore it later.'))) { e.stopImmediatePropagation(); return; }
+  const tx=DB.transactions.find(t=>t.id===delId);
+  if(tx){
+    tx.deletedAt=new Date().toISOString();
+    const p=DB.commitmentPayments.find(p=>p.linkedTransactionId===delId); if(p) p.deletedAt=tx.deletedAt;
+    const l=DB.vehicleLogs.find(l=>l.linkedTransactionId===delId); if(l) l.deletedAt=tx.deletedAt;
+    if(p){ const c=DB.commitments.find(c=>c.id===p.commitmentId); updateCommitmentStatus(c); }
+    saveDB(); renderAll(); toast(tt('اتنقلت المعاملة للمحذوفة','Transaction moved to Deleted'));
+  }
+  e.stopImmediatePropagation();
+}, true);
 document.getElementById('view-transactions').addEventListener('click', e=>{
   const editId = e.target.dataset.editTxn;
   if(editId){
@@ -2705,8 +3653,7 @@ document.getElementById('view-transactions').addEventListener('click', e=>{
     const c = DB.commitments.find(x=>x.id===linkedPmt.commitmentId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.id!==linkedPmt.id);
     if(c){
-      const paidCount = commitmentPayments(c.id).length;
-      c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+      updateCommitmentStatus(c);
     }
   }
   if(linkedVehicleLog) DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==linkedVehicleLog.id);
@@ -2755,7 +3702,8 @@ document.getElementById('view-categories').addEventListener('click', e=>{
 
 /* ---------------------------- RENDER: COMMITMENTS ---------------------------- */
 function renderCommitments(){
-  if(!DB.commitments.length){
+  const activeCommitments = DB.commitments.filter(c=>!c.deletedAt);
+  if(!activeCommitments.length){
     document.getElementById('commitments-grid').innerHTML = `
       <div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">
         <div class="big-ic">◷</div>
@@ -2763,13 +3711,15 @@ function renderCommitments(){
       </div>`;
     return;
   }
-  document.getElementById('commitments-grid').innerHTML = DB.commitments.map(c=>{
-    const paid = commitmentPayments(c.id).length;
-    const remaining = Math.max(0, c.totalInstallments - paid);
-    const pct = c.totalInstallments ? Math.min(100, Math.round(paid/c.totalInstallments*100)) : 0;
-    const nextDue = remaining>0 ? addMonths(c.startDate, paid) : null;
-    const isDone = remaining<=0 && (c.type!=='rotating_saving' || c.payoutReceived);
-
+  document.getElementById('commitments-grid').innerHTML = activeCommitments.map(c=>{
+    updateCommitmentStatus(c);
+    const paidAmount = commitmentPaidAmount(c);
+    const remainingAmount = commitmentRemaining(c);
+    const paidCount = commitmentPayments(c.id).length;
+    const remaining = commitmentRemainingInstallments(c);
+    const pct = Number(c.totalAmount)>0 ? Math.min(100, Math.round(paidAmount/Number(c.totalAmount)*100)) : 0;
+    const nextDue = remaining>0 ? addMonths(c.startDate, paidCount) : null;
+    const isDone = remainingAmount<=0.009 && (c.type!=='rotating_saving' || c.payoutReceived);
     let extra = '';
     if(c.type==='rotating_saving'){
       extra = `<div class="commit-card-payout" style="margin-top:8px;font-size:12px;color:var(--text-muted);">
@@ -2777,29 +3727,20 @@ function renderCommitments(){
         ${c.payoutReceived ? `<span class="tag income" style="margin-left:6px;">${LANG==='ar'?'تم الاستلام':'Received'}</span>` : `${LANG==='ar'?'متوقع':'expected'} ${fmtDate(c.payoutDate)}`}
       </div>`;
     }
-
     return `<div class="commit-card">
-      <div class="top">
-        <div>
-          <div class="name">${c.name}</div>
-          <div class="meta">${c.type==='rotating_saving' ? (LANG==='ar'?'جمعية':'جمعية (Rotating Savings)') : (LANG==='ar'?'أقساط':'Installment')} · ${tt('بدأ في','started')} ${fmtDate(c.startDate)}</div>
-        </div>
-        <span class="tag ${isDone?'income':''}">${isDone?(LANG==='ar'?'مكتمل':'Completed'):(LANG==='ar'?'نشط':'Active')}</span>
-      </div>
+      <div class="top"><div><div class="name">${c.name}</div><div class="meta">${c.type==='rotating_saving' ? (LANG==='ar'?'جمعية':'جمعية (Rotating Savings)') : (LANG==='ar'?'أقساط':'Installment')} · ${tt('بدأ في','started')} ${fmtDate(c.startDate)}</div></div>
+      <span class="tag ${isDone?'income':''}">${isDone?(LANG==='ar'?'مكتمل':'Completed'):(LANG==='ar'?'نشط':'Active')}</span></div>
       <div class="progress-bar"><div class="fill" style="width:${pct}%;"></div></div>
-      <div class="stats">
-        <span>${paid}/${c.totalInstallments} ${LANG==='ar'?'مدفوع':'paid'}</span>
-        <span class="num">${remaining} ${LANG==='ar'?'متبقي':'left'}</span>
-      </div>
+      <div class="stats"><span>${fmtMoney(paidAmount)} / ${fmtMoney(c.totalAmount)} ${LANG==='ar'?'مدفوع':'paid'}</span><span class="num">${fmtMoney(remainingAmount)} ${LANG==='ar'?'متبقي':'left'}</span></div>
+      <div class="meta" style="margin-top:6px;">${paidCount} ${LANG==='ar'?'دفعات مسجلة':'payments recorded'} · ${remaining} ${LANG==='ar'?'دفعات متوقعة':'scheduled payments left'}</div>
       ${nextDue ? `<div class="meta" style="margin-top:6px;">${LANG==='ar'?'الموعد القادم':'Next due'}: ${fmtDate(nextDue)}</div>` : ''}
       ${extra}
       <div class="actions">
-        ${remaining>0 ? `<button class="btn secondary sm" data-record-payment="${c.id}">${LANG==='ar'?'تسجيل دفعة':'Record Payment'}</button>` : ''}
+        ${remainingAmount>0.009 ? `<button class="btn secondary sm" data-record-payment="${c.id}">${LANG==='ar'?'تسجيل دفعة':'Record Payment'}</button>` : ''}
         ${c.type==='rotating_saving' && !c.payoutReceived ? `<button class="btn sm" data-record-payout="${c.id}">${LANG==='ar'?'تسجيل استلام الجمعية':'Mark Payout Received'}</button>` : ''}
         <button class="btn ghost sm" data-edit-commit="${c.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-del-commit="${c.id}">${t('btn_delete')}</button>
-      </div>
-    </div>`;
+      </div></div>`;
   }).join('');
 }
 document.getElementById('view-commitments').addEventListener('click', e=>{
@@ -3427,7 +4368,43 @@ function renderVehicleLogsPanel(){
   if(vehSel.innerHTML !== vehOptionsHtml) vehSel.innerHTML = vehOptionsHtml;
   if(_vlVehicle!=='all' && !DB.vehicles.some(v=>v.id===_vlVehicle)) _vlVehicle = 'all';
   vehSel.value = _vlVehicle;
-  document.getElementById('vlogs-filter-type').value = _vlType;
+  const typeMenu = document.getElementById('vlogs-filter-type-menu');
+  const typeBtn = document.getElementById('vlogs-filter-type-btn');
+  const typeLabel = document.getElementById('vlogs-filter-type-label');
+  // Type filter is category-aware and rebuilt from DB.categories on every render, so
+  // newly-created vehicle sub-categories appear without hard-coded options.
+  if(typeMenu){
+    // Show only the category tree that belongs to the selected vehicle type.
+    // When "All vehicles" is selected, show both Car and Scooter trees.
+    const selectedVehicle = _vlVehicle!=='all' ? vehicleById(_vlVehicle) : null;
+    const vehicleRootIds = selectedVehicle
+      ? new Set([selectedVehicle.type==='scooter' ? 'cat_scooter' : 'cat_car'])
+      : new Set(DB.vehicles.map(v=>v.type==='scooter'?'cat_scooter':'cat_car'));
+    const vehicleCats = DB.categories.filter(c=>c.type==='expense' && (vehicleRootIds.has(c.id) || vehicleRootIds.has(c.parentId)));
+    const opts = vehicleCats.map(c=>`<label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;min-height:28px;"><input class="vlog-type-checkbox" type="checkbox" value="cat:${c.id}"> <span>${c.parentId ? '└ ' : '📁 '}${c.name}</span></label>`).join('');
+    typeMenu.innerHTML = opts || `<div style="padding:8px;color:var(--text-muted);">${LANG==='ar'?'لا توجد فئات لهذه المركبة':'No categories for this vehicle'}</div>`;
+  }
+  // Backward compatibility: old session state used fuel/maintenance/oil/asset.
+  // Convert those selections to the corresponding category IDs once.
+  const typeMap = {fuel:[],maintenance:[],oil:[],asset:[]};
+  DB.vehicles.forEach(v=>{
+    const set = v.type==='scooter' ? {fuel:'cat_scooter_fuel',maintenance:'cat_scooter_maint',oil:'cat_scooter_oil',asset:'cat_scooter_asset'} : {fuel:'cat_car_fuel',maintenance:'cat_car_maint',oil:'cat_car_oil',asset:'cat_car_asset'};
+    Object.keys(set).forEach(k=>typeMap[k].push('cat:'+set[k]));
+  });
+  _vlTypes = _vlTypes.flatMap(x=> typeMap[x] || [x]);
+  _vlTypes = [...new Set(_vlTypes)];
+  // If the vehicle changed, discard selections that do not belong to that vehicle's category tree.
+  const validTypeValues = new Set(typeMenu ? [...typeMenu.querySelectorAll('input[type=checkbox]')].map(cb=>cb.value) : []);
+  _vlTypes = _vlTypes.filter(x=>validTypeValues.has(x));
+  const typeChecks = typeMenu ? [...typeMenu.querySelectorAll('input[type=checkbox]')] : [];
+  typeChecks.forEach(cb=>{ cb.checked = _vlTypes.includes(cb.value); });
+  if(typeLabel){
+    if(!_vlTypes.length) typeLabel.textContent = LANG==='ar' ? 'كل الأنواع' : 'All types';
+    else if(_vlTypes.length===1){
+      const one = _vlTypes[0].replace(/^cat:/,'');
+      typeLabel.textContent = categoryById(one)?.name || one;
+    } else typeLabel.textContent = LANG==='ar' ? `${_vlTypes.length} أنواع محددة` : `${_vlTypes.length} types selected`;
+  }
   document.getElementById('vlogs-filter-from').value = _vlFrom;
   document.getElementById('vlogs-filter-to').value = _vlTo;
   document.getElementById('vlogs-sort-toggle').textContent = LANG==='ar' ? ('التاريخ: ' + (_vlSort==='asc' ? 'الأقدم أولاً ↑' : 'الأحدث أولاً ↓')) : ('Date: ' + (_vlSort==='asc' ? 'Oldest first ↑' : 'Newest first ↓'));
@@ -3435,25 +4412,27 @@ function renderVehicleLogsPanel(){
   const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
-    .filter(l => _vlType==='all' || l.type===_vlType)
+    .filter(l => !_vlTypes.length || _vlTypes.includes('cat:' + vehicleLogCategoryId(l)))
     .filter(l => !_vlFrom || l.date>=_vlFrom)
     .filter(l => !_vlTo || l.date<=_vlTo)
     .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
 
   // Table
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
-      <td class="td-date" data-label="">${fmtDate(l.date)} · ${l.vehicleIcon} ${l.vehicleName}</td>
+      <td class="td-date" data-label="${t('th_date')}">${fmtDate(l.date)}</td>
+      <td data-label="${t('th_vehicle')}">${l.vehicleIcon} ${l.vehicleName}</td>
       <td data-label="${t('th_type')}"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
       <td class="amt neg" data-label="${t('th_amount')}">${fmtMoney(l.amount)}</td>
       <td class="amt" data-label="${t('th_km')}">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
       <td class="amt" data-label="${t('th_dist')}">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
+      <td class="amt" data-label="${t('th_liters')}">${l.litersFilled!=null?fmtMoney(l.litersFilled):'—'}</td>
       <td class="amt" data-label="${t('th_kmpl')}">${l.kmPerLiter!=null?l.kmPerLiter:'—'}</td>
-      <td class="td-note" dir="auto" data-label="${t('th_note')}">${l.note||''}</td>
+      <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${l.note||''}</span></td>
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-vlog="${l.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-del-vlog="${l.id}">${t('btn_delete')}</button>
       </td>
-    </tr>`).join('') || `<tr><td colspan="8" class="empty">${LANG==='ar'?'لا توجد سجلات تطابق الفلتر':'No log entries match these filters'}</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="10" class="empty">${LANG==='ar'?'لا توجد سجلات تطابق الفلتر':'No log entries match these filters'}</td></tr>`;
 
   // Summary strip
   const totalSpend = logs.reduce((s,l)=>s+l.amount,0);
@@ -3490,7 +4469,7 @@ function renderVehicleLogsPanel(){
       name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
       total: allVehicleLogsComputed()
         .filter(l=>l.vehicleId===v.id)
-        .filter(l => _vlType==='all' || l.type===_vlType)
+        .filter(l => !_vlTypes.length || _vlTypes.includes('cat:' + vehicleLogCategoryId(l)))
         .filter(l => !_vlFrom || l.date>=_vlFrom)
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
@@ -3506,7 +4485,25 @@ function renderVehicleLogsPanel(){
   const vehSel = document.getElementById('vlogs-filter-vehicle');
   if(!vehSel) return;
   vehSel.addEventListener('change', e=>{ _vlVehicle = e.target.value; renderVehicleLogsPanel(); });
-  document.getElementById('vlogs-filter-type').addEventListener('change', e=>{ _vlType = e.target.value; renderVehicleLogsPanel(); });
+  const typeBtn = document.getElementById('vlogs-filter-type-btn');
+  const typeMenu = document.getElementById('vlogs-filter-type-menu');
+  typeBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = typeMenu.style.display !== 'none';
+    typeMenu.style.display = open ? 'none' : 'block';
+    typeBtn.setAttribute('aria-expanded', String(!open));
+  });
+  typeMenu.addEventListener('click', e=>e.stopPropagation());
+  // Delegated change handler: renderVehicleLogsPanel rebuilds the menu dynamically,
+  // so listeners must live on the stable menu element rather than its checkboxes.
+  typeMenu.addEventListener('change', e=>{
+    if(!e.target.matches('input[type=checkbox]')) return;
+    _vlTypes = [...typeMenu.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
+    renderVehicleLogsPanel();
+  });
+  document.addEventListener('click', ()=>{
+    if(typeMenu.style.display !== 'none'){ typeMenu.style.display='none'; typeBtn.setAttribute('aria-expanded','false'); }
+  });
   document.getElementById('vlogs-filter-from').addEventListener('change', e=>{ _vlFrom = e.target.value; renderVehicleLogsPanel(); });
   document.getElementById('vlogs-filter-to').addEventListener('change', e=>{ _vlTo = e.target.value; renderVehicleLogsPanel(); });
   document.getElementById('vlogs-sort-toggle').addEventListener('click', ()=>{
@@ -3514,7 +4511,7 @@ function renderVehicleLogsPanel(){
     renderVehicleLogsPanel();
   });
   document.getElementById('vlogs-filter-reset').addEventListener('click', ()=>{
-    _vlVehicle='all'; _vlType='all'; _vlFrom=''; _vlTo=''; _vlSort='desc';
+    _vlVehicle='all'; _vlTypes=[]; _vlFrom=''; _vlTo=''; _vlSort='desc';
     renderVehicleLogsPanel();
   });
   document.getElementById('veh-subtab-group').addEventListener('click', e=>{
@@ -3608,23 +4605,30 @@ function accountOptions(selected){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
 }
 function categoryOptions(type, selected){
-  // Build tree with <optgroup> for parents and indented children
-  const parents = DB.categories.filter(c=>c.type===type && !c.parentId);
+  // Build a stable two-level tree and always preserve the selected value when editing. This
+  // prevents a valid custom/legacy sub-category from disappearing from an edit form.
+  const all = DB.categories.filter(c=>c.type===type);
+  const parents = all.filter(c=>!c.parentId);
   const rows = [];
+  const selectedCat = selected ? DB.categories.find(c=>c.id===selected) : null;
+  const included = new Set();
   parents.forEach(p=>{
-    const children = DB.categories.filter(c=>c.type===type && c.parentId===p.id);
+    const children = all.filter(c=>c.parentId===p.id);
     if(children.length){
-      // Parent is selectable + has children shown in group
       rows.push(`<optgroup label="${p.name}">`);
       rows.push(`<option value="${p.id}" ${p.id===selected?'selected':''}>${p.name} (${tt('كل البند','general')})</option>`);
+      included.add(p.id);
       children.forEach(c=>{
         rows.push(`<option value="${c.id}" ${c.id===selected?'selected':''}>　└ ${c.name}</option>`);
+        included.add(c.id);
       });
       rows.push(`</optgroup>`);
     } else {
       rows.push(`<option value="${p.id}" ${p.id===selected?'selected':''} style="font-weight:600;">${p.name}</option>`);
+      included.add(p.id);
     }
   });
+  if(selectedCat && !included.has(selectedCat.id)) rows.unshift(`<option value="${selectedCat.id}" selected>${selectedCat.name}</option>`);
   return rows.join('');
 }
 
@@ -3806,13 +4810,18 @@ function openModal(kind, ctx={}){
             <label>${tt('الالتزام المرتبط','Linked Commitment')}</label>
             <select name="commitmentId" id="txn-commitment-select">${commitmentOptions(linkedCommitmentId||'')}</select>
           </div>
-          ${editing ? '' : `
+          ${(() => {
+            const linkedVehicleLog = editing ? DB.vehicleLogs.find(l=>l.linkedTransactionId===editing.id && !l.deletedAt) : null;
+            const linkedVehicleId = linkedVehicleLog ? linkedVehicleLog.vehicleId : '';
+            const linkedOdo = linkedVehicleLog && linkedVehicleLog.odometerKm!=null ? linkedVehicleLog.odometerKm : '';
+            const linkedPart = linkedVehicleLog ? (linkedVehicleLog.partId||'') : '';
+            return `
           <div class="field" id="txn-vehicle-field" style="display:none;">
             <label>${tt('المركبة','Vehicle')}</label>
-            <select name="vehicleId" id="txn-vehicle-select"></select>
+            <select name="vehicleId" id="txn-vehicle-select">${vehicleOptionsAll(linkedVehicleId)}</select>
           </div>
           <div class="field-row" id="txn-odometer-row" style="display:none;">
-            <div class="field"><label>${tt('العداد (كم)','Odometer (km)')}</label><input type="number" step="0.01" name="odometerKm" id="txn-odometer" placeholder="${tt('القراءة الحالية','current reading')}"></div>
+            <div class="field"><label>${tt('العداد (كم)','Odometer (km)')}</label><input type="number" step="0.01" name="odometerKm" id="txn-odometer" value="${linkedOdo}" placeholder="${tt('القراءة الحالية','current reading')}"></div>
             <div class="field" id="txn-liters-field" style="display:none;">
               <label>${tt('اللترات','Liters')} <span style="color:var(--text-faint);">(${tt(`تلقائي على ${DB.fuelPricePerLiter} ج.م/لتر — مش قابل للتعديل هنا، غيّر السعر من صفحة المركبات`, `auto @ ${DB.fuelPricePerLiter} EGP/L — not editable, change the price on the Vehicles page instead`)})</span></label>
               <input type="number" step="0.01" name="litersFilled" id="txn-liters" readonly>
@@ -3820,11 +4829,12 @@ function openModal(kind, ctx={}){
           </div>
           <div class="field" id="txn-part-field" style="display:none;">
             <label>${tt('القطعة (اختياري)','Part (optional)')}</label>
-            <select name="partId" id="txn-part-select"><option value="">${tt('صيانة عامة (بدون قطعة محددة)','General maintenance (no specific part)')}</option></select>
+            <select name="partId" id="txn-part-select"><option value="">${tt('صيانة عامة (بدون قطعة محددة)','General maintenance (no specific part)')}</option>${linkedVehicleId ? vehiclePartsFor(linkedVehicleId).map(p=>`<option value="${p.id}" ${p.id===linkedPart?'selected':''}>${p.name}</option>`).join('') : ''}</select>
           </div>
           <div class="help-text" id="txn-vehicle-hint" style="display:none;margin-top:-6px;">
-            ${tt('دخول العداد هنا بيخلي FinTrack يتابع كفاءة الوقود وفترات تغيير الزيت وعمر القطع تلقائياً لهذه المركبة.', 'Entering the odometer here lets FinTrack track fuel efficiency, oil-change intervals and part wear for this vehicle automatically.')}
-          </div>`}
+            ${tt('دخول العداد هنا بيخلي FinTrack يتابع كفاءة الوقود وفترات تغيير الزيت وعمر القطع تلقائياً لهذه المركبة.','Entering the odometer here lets FinTrack track fuel efficiency, oil-change intervals and part wear for this vehicle automatically.')}
+          </div>`;
+          })()}
           <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="${tt('مثال: صيانة العربية','e.g. car maintenance')}"></div>
           <div class="modal-actions">
             <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
@@ -3987,7 +4997,7 @@ function openModal(kind, ctx={}){
     const isIncome = ctx.type === 'income';
     let rows;
     if(isIncome){
-      rows = DB.transactions.filter(t=>t.type==='income' && monthKey(t.date)===mKey)
+      rows = DB.transactions.filter(t=>t.type==='income' && !t.deletedAt && !isReconciliationAdjustment(t) && monthKey(t.date)===mKey)
         .map(t=>({date:t.date, label: categoryLabel(t.categoryId), note:t.note, amount:t.amount, currency:t.currency}));
     } else {
       rows = allExpenseEntries().filter(e=>monthKey(e.date)===mKey)
@@ -4005,7 +5015,7 @@ function openModal(kind, ctx={}){
             ${rows.map(r=>`<tr>
               <td class="td-date" data-label="">${fmtDate(r.date)}</td>
               <td data-label="${t('th_category')}">${r.label}</td>
-              <td class="td-note" dir="auto" data-label="${t('th_note')}">${r.note||''}</td>
+              <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${r.note||''}</span></td>
               <td class="amt td-actions ${isIncome?'pos':'neg'}" data-label="${t('th_amount')}">${r.currency} ${fmtMoney(r.amount)}</td>
             </tr>`).join('') || `<tr><td colspan="4" class="empty">${LANG==='ar'?'لا توجد عمليات هذا الشهر بعد':'No entries yet this month'}</td></tr>`}
           </tbody>
@@ -4029,6 +5039,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="car">
         </div>
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
+        <div class="field"><label>${tt('القيمة الحالية للمركبة (اختياري)','Current market value (optional)')}</label><input type="number" step="0.01" name="currentValue" placeholder="${tt('مثال: 450000','e.g. 450000')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
@@ -4055,6 +5066,7 @@ function openModal(kind, ctx={}){
           <input type="hidden" name="type" value="${v.type}">
         </div>
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" value="${v.plateNote||''}" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
+        <div class="field"><label>${tt('القيمة الحالية للمركبة','Current market value')}</label><input type="number" step="0.01" name="currentValue" value="${v.currentValue||0}" placeholder="${tt('مثال: 450000','e.g. 450000')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" value="${v.oilIntervalKm||''}" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
         <div class="field"><label>${tt('مدى الخزان (كم لكل تانك كامل، اختياري)','Tank range (km per full tank, optional)')}</label><input type="number" step="10" name="tankRangeKm" value="${v.tankRangeKm||''}" placeholder="${tt('مثال: 550','e.g. 550')}"></div>
         <div class="modal-actions">
@@ -4128,7 +5140,7 @@ function openModal(kind, ctx={}){
             ${docs.map(d=>`<tr>
               <td class="td-date" data-label="">${d.docType}</td>
               <td data-label="${LANG==='ar'?'التجديد':'Renewal'}">${fmtDate(d.renewalDate)}</td>
-              <td class="td-note" dir="auto" data-label="${t('th_note')}">${d.note||''}</td>
+              <td class="td-note" data-label="${t('th_note')}"><span dir="auto">${d.note||''}</span></td>
               <td class="td-actions">
                 <button class="btn ghost sm" data-edit-vdoc="${d.id}">${t('btn_edit')}</button>
                 <button class="btn ghost sm" data-del-vdoc="${d.id}">${t('btn_delete')}</button>
@@ -4146,6 +5158,8 @@ function openModal(kind, ctx={}){
     const editing = ctx.logId ? DB.vehicleLogs.find(l=>l.id===ctx.logId) : null;
     const typeVal = editing ? editing.type : 'fuel';
     const methodVal = editing ? editing.method : 'cash';
+    const fallbackCategory = editing ? vehicleLogCategoryId(editing) : (v.type==='scooter' ? 'cat_scooter_fuel' : 'cat_car_fuel');
+    const categoryVal = editing && editing.categoryId ? editing.categoryId : fallbackCategory;
     const typeLabelsShort = {fuel:tt('⛽ وقود','⛽ Fuel'), maintenance:tt('🔧 صيانة','🔧 Maint.'), oil:tt('🛢 زيت','🛢 Oil'), asset:tt('💰 مقتنيات','💰 Asset')};
     html = `<div class="modal">
       <h2>${editing ? tt('تعديل السجل','Edit Log Entry') : tt('سجل جديد','Log Entry')} — ${v.name}</h2>
@@ -4161,6 +5175,11 @@ function openModal(kind, ctx={}){
             <div class="radio-opt ${typeVal==='asset'?'selected':''}" data-val="asset">💰 ${tt('مقتنيات','Asset')}</div>
           </div>
           <input type="hidden" name="type" value="${typeVal}">
+        </div>
+        <div class="field">
+          <label>${tt('الفئة','Category')}</label>
+          <select name="categoryId" id="vlog-category-select">${vehicleCategoryOptions(v.id, categoryVal)}</select>
+          <div class="help-text" style="margin:4px 0 0;font-size:10.5px;">${tt('تقدر تضيف Sub-category جديدة تحت المركبة من صفحة الفئات، وهتظهر هنا تلقائياً.','Add a new sub-category under the vehicle category from Categories; it will appear here automatically.')}</div>
         </div>
         <div class="field-row">
           <div class="field"><label>${tt('التاريخ','Date')}</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
@@ -4256,8 +5275,8 @@ function openModal(kind, ctx={}){
       ? `<div style="background:rgba(226,114,124,.12);border:1px solid rgba(226,114,124,.3);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--negative);">
           <strong>⚠ تحذير مهم / Important:</strong><br>
           ${LANG==='ar'
-            ? 'الملف مفتوح كـ file:// — Google OAuth لا يعمل مع البروتوكول ده. لازم ترفع الملف على HTTPS (GitHub Pages, Netlify, Vercel) عشان الاتصال يشتغل.'
-            : 'File is open as file:// — Google OAuth does NOT work with this protocol. You must host the file on HTTPS (GitHub Pages, Netlify, Vercel) for Drive to connect.'
+            ? 'الملف مفتوح كـ file:// — Google OAuth لا يعمل مع فتح HTML مباشرة. شغّله على HTTPS أو localhost أولاً، ثم أضف نفس الـ Origin في Google Cloud.'
+            : 'File is open as file:// — Google OAuth does NOT work when the HTML is opened directly. Run it over HTTPS or localhost, then add the same Origin in Google Cloud.'
           }
         </div>`
       : (!isHttps
@@ -4504,9 +5523,11 @@ function wireModal(kind){
       // category already tells us which type, so there's nothing left to ask when it's unambiguous.
       // Still overridable, and left blank when there's more than one vehicle of that type.
       const matching = DB.vehicles.filter(v=>v.type===info.vehicleType);
-      const autoId = matching.length===1 ? matching[0].id : undefined;
+      const existingLog = (typeof editing !== 'undefined' && editing) ? DB.vehicleLogs.find(l=>l.linkedTransactionId===editing.id && !l.deletedAt) : null;
+      const autoId = existingLog?.vehicleId || (matching.length===1 ? matching[0].id : undefined);
       vehicleSelect.innerHTML = vehicleOptionsAll(autoId);
       updatePartOptions();
+      if(existingLog && partSelect) partSelect.value = existingLog.partId || '';
       recalcLiters();
     };
     const commitmentField = backdrop.querySelector('#txn-commitment-field');
@@ -4548,7 +5569,9 @@ function wireModal(kind){
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
         openModal('vehicle-detail', {vehicleId: data.vehicleId});
-      } else {
+      } else if(kind !== 'drive-setup'){
+        // drive-setup closes the modal itself (before the Google popup opens).
+        // All other modals close here after their submit handler runs.
         closeModal();
       }
     }catch(err){ toast(err.message || 'Something went wrong'); }
@@ -4589,6 +5612,8 @@ const submitHandlers = {
       amount: Math.abs(diff), currency: a.currency,
       note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
     });
+    DB.reconciliations = DB.reconciliations || [];
+    DB.reconciliations.push({id:uid('rec'),date:todayLocalISO(),accountId:a.id,systemBalance:computed,actualBalance:actual,difference:diff,source:'single'});
     saveDB(); toast(tt('اتسجل التعديل — الرصيد بقى مطابق','Adjustment recorded — balance now matches'));
   },
   'reconcile-all'(data){
@@ -4603,11 +5628,13 @@ const submitHandlers = {
       const diff = Number(data[key]) - computed;
       if(Math.abs(diff) < 0.01) return;
       DB.transactions.push({
-        id: uid('txn'), date: today, accountId: a.id,
+        id: uid('txn'), date: today, createdAt:new Date().toISOString(), accountId: a.id,
         categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
         amount: Math.abs(diff), currency: a.currency,
         note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
       });
+      DB.reconciliations = DB.reconciliations || [];
+      DB.reconciliations.push({id:uid('rec'),date:today,accountId:a.id,systemBalance:computed,actualBalance:Number(data[key]),difference:diff,source:'all'});
       recorded++;
     });
     if(recorded===0){ toast(tt('مفيش فروق للتسجيل','No differences to record')); return; }
@@ -4662,6 +5689,31 @@ const submitHandlers = {
       t.note = data.note;
       t.type = data.type;
 
+      const linkedVehicleLog = DB.vehicleLogs.find(l=>l.linkedTransactionId===t.id && !l.deletedAt);
+      if(linkedVehicleLog){
+        // A category change must never remove the financial expense. The transaction remains an
+        // expense in the account balance; the linked vehicle log is only synchronized with the
+        // vehicle metadata when the new category is vehicle-aware.
+        const newVehicleInfo = categoryVehicleInfo(data.categoryId);
+        // Keep the vehicle log financially linked even when the user changes the
+        // transaction to a normal expense category. The category is classification,
+        // not permission to remove the expense from the account balance.
+        linkedVehicleLog.categoryId = data.categoryId;
+        if(newVehicleInfo){
+          linkedVehicleLog.type = newVehicleInfo.logType;
+          if(newVehicleInfo.logType!=='maintenance') linkedVehicleLog.partId = null;
+        }
+        linkedVehicleLog.date = data.date;
+        linkedVehicleLog.accountId = data.accountId;
+        linkedVehicleLog.amount = Number(data.amount);
+        linkedVehicleLog.note = data.note || linkedVehicleLog.note || '';
+        if(linkedVehicleLog.type==='fuel') linkedVehicleLog.litersFilled = computeLitersFromAmount(data.amount);
+        else linkedVehicleLog.litersFilled = null;
+        if(newVehicleInfo?.logType==='maintenance') linkedVehicleLog.partId = data.partId || linkedVehicleLog.partId || null;
+        if(data.vehicleId && vehicleById(data.vehicleId)) linkedVehicleLog.vehicleId = data.vehicleId;
+        if(data.odometerKm !== undefined) linkedVehicleLog.odometerKm = data.odometerKm ? Number(data.odometerKm) : null;
+      }
+
       if(linkedPmt){
         linkedPmt.date = data.date;
         linkedPmt.amount = Number(data.amount);
@@ -4680,8 +5732,7 @@ const submitHandlers = {
       }
       const c = commitmentId ? DB.commitments.find(x=>x.id===commitmentId) : null;
       if(c){
-        const paidCount = commitmentPayments(c.id).length;
-        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+        updateCommitmentStatus(c);
       }
       saveDB(); toast(tt('اتحدثت المعاملة','Transaction updated'));
       return;
@@ -4716,8 +5767,7 @@ const submitHandlers = {
           id:uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
           method:data.method || 'cash', accountId:data.accountId, linkedTransactionId:txnId
         });
-        const paidCount = commitmentPayments(c.id).length;
-        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+        updateCommitmentStatus(c);
       } else {
         const txnId = uid('txn');
         DB.transactions.push({
@@ -4795,8 +5845,7 @@ const submitHandlers = {
       method:data.method || 'cash', accountId:acc.id, linkedTransactionId:txnId
     });
 
-    const paidCount = commitmentPayments(c.id).length;
-    c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+    updateCommitmentStatus(c);
     saveDB(); toast(tt('اتسجلت الدفعة والمعاملة المرتبطة','Payment and linked transaction recorded'));
   },
   payout(data){
@@ -4804,14 +5853,14 @@ const submitHandlers = {
     const acc = accountById(data.accountId);
     DB.transactions.push({id:uid('txn'), date:data.date, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
     c.payoutReceived = true;
-    const paidCount = commitmentPayments(c.id).length;
-    if(paidCount >= c.totalInstallments) c.status='completed';
+    updateCommitmentStatus(c);
     saveDB(); toast(tt('اتسجل استلام الدور','Payout recorded'));
   },
   vehicle(data){
     DB.vehicles.push({
       id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || '',
-      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
+      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null,
+      currentValue: Number(data.currentValue)||0
     });
     saveDB(); toast(tt('اتعملت المركبة','Vehicle created'));
   },
@@ -4822,6 +5871,7 @@ const submitHandlers = {
     v.type = data.type;
     v.plateNote = data.plateNote || '';
     v.oilIntervalKm = data.oilIntervalKm ? Number(data.oilIntervalKm) : null;
+    v.currentValue = Number(data.currentValue)||0;
     v.tankRangeKm = data.tankRangeKm ? Number(data.tankRangeKm) : null;
     saveDB(); toast(tt('اتحدثت المركبة','Vehicle updated'));
   },
@@ -4835,7 +5885,7 @@ const submitHandlers = {
       accountId = acc.id; currency = acc.currency;
     }
     const noteTxt = `${v.name} — ${data.type}${data.note?': '+data.note:''}`;
-    const catId = vehicleLogCategoryId({vehicleId: v.id, type: data.type});
+    const catId = data.categoryId && categoryById(data.categoryId) ? data.categoryId : vehicleLogCategoryId({vehicleId: v.id, type: data.type});
 
     if(data.logId){
       // Editing an existing log entry. Keep its linked transaction (if any) in sync, creating
@@ -4861,7 +5911,7 @@ const submitHandlers = {
         odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
         litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
         partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
-        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId, categoryId: catId
       });
       saveDB(); toast(tt('اتحدث السجل','Log entry updated'));
       return;
@@ -4881,7 +5931,7 @@ const submitHandlers = {
       amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
       litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
       partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
-      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId, categoryId: catId
     });
     saveDB(); toast(tt('اتسجل السجل','Log entry saved'));
   },
@@ -4927,12 +5977,16 @@ const submitHandlers = {
       return;
     }
     initGoogleAuth();
-    if(tokenClient){
-      localStorage.removeItem('fintrack_drive_consented');
-      tokenClient.requestAccessToken({prompt:'consent'});
-    } else {
+    if(!tokenClient){
       toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
+      return;
     }
+    // Close the setup modal BEFORE opening the Google popup.
+    // Having a FinTrack modal on top of the Google consent window confuses
+    // browsers and can cause the popup to appear behind the modal overlay.
+    closeModal();
+    localStorage.removeItem('fintrack_drive_consented');
+    tokenClient.requestAccessToken({prompt:'consent'});
   }
 };
 
@@ -5164,44 +6218,207 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 })();
 
 /* ================================================================
-   COLUMN RESIZE — Tables
-   All <th> elements get a resize handle on right edge.
+   COLUMN RESIZE — All Tables (persistent, Excel-like)
+   - Clear vertical separators between every column.
+   - Drag a divider to resize the column.
+   - Double-click a divider to auto-fit the column.
+   - Widths are persisted per logical table, independent of language.
+   - Existing v1 saved widths are migrated on first use when possible.
+   - Dynamic tables are detected automatically after every render.
+   - Disabled on mobile card layouts.
    ================================================================ */
 (function initColResize(){
-  function makeTableResizable(table){
-    if(table.dataset.resizable) return;
-    table.dataset.resizable='1';
-    const ths = table.querySelectorAll('thead th');
-    ths.forEach(th=>{
-      if(th.dataset.resizable) return;
-      th.dataset.resizable='1';
-      th.style.position='relative';
-      const handle = document.createElement('div');
-      handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
-      handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
-      handle.onmouseleave=()=>handle.style.background='';
-      th.appendChild(handle);
-      let startX, startW;
-      handle.addEventListener('mousedown', ev=>{
-        ev.preventDefault(); ev.stopPropagation();
-        startX=ev.clientX; startW=th.offsetWidth;
-        const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
-        const mu=()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
-        document.addEventListener('mousemove',mm);
-        document.addEventListener('mouseup',mu);
-      });
+  const STORE_KEY='fintrack_table_column_widths_v1';
+  const MIN_W=52;
+  const MOBILE_BREAKPOINT=760;
+  const migrated={};
+
+  function load(){
+    try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{};}catch(e){return {};} 
+  }
+  function save(data){
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(e){}
+  }
+  function cleanText(s){return (s||'').replace(/\s+/g,' ').trim();}
+  function hash(str){
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+    return (h>>>0).toString(36);
+  }
+  function viewIdFor(table){return table.closest('.view')?.id||'global';}
+  function tableIndexFor(table){
+    const view=table.closest('.view');
+    const tables=view ? [...view.querySelectorAll('table')] : [...document.querySelectorAll('table')];
+    return Math.max(0,tables.indexOf(table));
+  }
+  function tableKey(table){
+    if(table.dataset.ftColKey) return table.dataset.ftColKey;
+    const viewId=viewIdFor(table);
+    const index=tableIndexFor(table);
+    const headers=[...table.querySelectorAll('thead th')];
+    const raw=viewId+'|table-'+index+'|cols-'+headers.length;
+    table.dataset.ftColKey='t_'+hash(raw);
+    return table.dataset.ftColKey;
+  }
+  // Legacy key used by the previous implementation, allowing already-saved widths to survive.
+  function legacyTableKey(table){
+    const view=table.closest('.view');
+    const headers=[...table.querySelectorAll('thead th')].map(th=>cleanText(th.textContent));
+    const dataTables=view ? [...view.querySelectorAll('table')] : [...document.querySelectorAll('table')];
+    const index=Math.max(0,dataTables.indexOf(table));
+    const raw=(view?.id||'global')+'|'+index+'|'+headers.join('¦');
+    return 't_'+hash(raw);
+  }
+  function getColGroup(table,count){
+    let cg=table.querySelector(':scope > colgroup[data-ft-cols]');
+    if(!cg){
+      cg=document.createElement('colgroup');
+      cg.dataset.ftCols='1';
+      for(let i=0;i<count;i++) cg.appendChild(document.createElement('col'));
+      table.insertBefore(cg,table.firstChild);
+    }
+    while(cg.children.length<count) cg.appendChild(document.createElement('col'));
+    while(cg.children.length>count) cg.removeChild(cg.lastElementChild);
+    return cg;
+  }
+  function getStored(table){
+    const d=load();
+    const key=tableKey(table);
+    if(Array.isArray(d[key])) return d[key];
+    const legacy=legacyTableKey(table);
+    if(Array.isArray(d[legacy])){
+      d[key]=d[legacy];
+      save(d);
+      migrated[key]=true;
+      return d[key];
+    }
+    return [];
+  }
+  function saveWidths(table,cg){
+    const d=load();
+    d[tableKey(table)]=[...cg.children].map(c=>{
+      const v=parseFloat(c.style.width);
+      return Number.isFinite(v)?Math.round(v):null;
+    });
+    save(d);
+  }
+  function applyWidths(table){
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+    const ths=[...table.querySelectorAll('thead th')];
+    if(!ths.length) return;
+    const cg=getColGroup(table,ths.length);
+    const stored=getStored(table);
+    ths.forEach((th,i)=>{
+      const w=Number(stored[i]);
+      if(Number.isFinite(w)&&w>=MIN_W){
+        cg.children[i].style.width=w+'px';
+        th.style.width=w+'px';
+      }
     });
   }
-
-  // Scan tables periodically (after renders)
-  function scanTables(){
-    document.querySelectorAll('table').forEach(makeTableResizable);
+  function autoFit(table,index){
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+    const ths=[...table.querySelectorAll('thead th')];
+    if(!ths[index]) return;
+    const rows=[...table.querySelectorAll('tbody tr')];
+    const sample=[ths[index],...rows.slice(0,120).map(r=>r.children[index]).filter(Boolean)];
+    const probe=document.createElement('div');
+    probe.style.cssText='position:fixed;left:-10000px;top:-10000px;visibility:hidden;white-space:nowrap;display:inline-block;pointer-events:none;';
+    document.body.appendChild(probe);
+    let max=0;
+    sample.forEach(cell=>{
+      const clone=cell.cloneNode(true);
+      clone.querySelectorAll('.col-resize').forEach(x=>x.remove());
+      const cs=getComputedStyle(cell);
+      clone.style.cssText='display:inline-block;width:auto;max-width:none;white-space:nowrap;padding:12px 16px;font-family:'+cs.fontFamily+';font-size:'+cs.fontSize+';font-weight:'+cs.fontWeight+';letter-spacing:'+cs.letterSpacing+';box-sizing:border-box;';
+      probe.appendChild(clone);
+      max=Math.max(max,clone.scrollWidth);
+      clone.remove();
+    });
+    probe.remove();
+    const parentW=table.parentElement?.clientWidth||window.innerWidth;
+    const maxAllowed=Math.max(MIN_W,Math.floor(parentW*0.8));
+    const width=Math.min(maxAllowed,Math.max(MIN_W,max+4));
+    const cg=getColGroup(table,ths.length);
+    cg.children[index].style.width=width+'px';
+    ths[index].style.width=width+'px';
+    saveWidths(table,cg);
   }
-
-  // Observe DOM changes to catch newly rendered tables
-  const obs = new MutationObserver(()=>{ requestAnimationFrame(scanTables); });
-  obs.observe(document.body, {childList:true, subtree:true});
-  setTimeout(scanTables, 500);
+  function addResizeHandle(th, i, table, cg){
+    if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+    // Language switching updates TH via textContent, which removes child nodes.
+    // Re-create the handle when that happens instead of considering the table initialized.
+    if(th.querySelector('.col-resize')) return;
+    th.style.position='relative';
+    th.classList.add('ft-resizable-th');
+    const handle=document.createElement('div');
+    handle.className='col-resize';
+    handle.setAttribute('aria-label', LANG==='ar' ? 'تغيير عرض العمود' : 'Resize column');
+    handle.title=LANG==='ar' ? 'اسحب لتغيير العرض • انقر مرتين للملاءمة التلقائية' : 'Drag to resize • Double-click to auto-fit';
+    th.appendChild(handle);
+    let startX=0,startW=0,moved=false;
+    handle.addEventListener('mousedown',ev=>{
+      if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+      ev.preventDefault();ev.stopPropagation();
+      startX=ev.clientX;
+      startW=th.getBoundingClientRect().width;
+      moved=false;
+      handle.classList.add('dragging');
+      document.body.classList.add('ft-col-resizing');
+      const mm=ev2=>{
+        moved=true;
+        const direction=(document.documentElement.dir==='rtl')?-1:1;
+        const delta=(ev2.clientX-startX)*direction;
+        const newW=Math.max(MIN_W,Math.round(startW+delta));
+        cg.children[i].style.width=newW+'px';
+        th.style.width=newW+'px';
+      };
+      const mu=()=>{
+        document.removeEventListener('mousemove',mm);
+        document.removeEventListener('mouseup',mu);
+        handle.classList.remove('dragging');
+        document.body.classList.remove('ft-col-resizing');
+        if(moved) saveWidths(table,cg);
+      };
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    });
+    handle.addEventListener('dblclick',ev=>{
+      if(window.innerWidth<=MOBILE_BREAKPOINT) return;
+      ev.preventDefault();ev.stopPropagation();autoFit(table,i);
+    });
+  }
+  function makeTableResizable(table){
+    const ths=[...table.querySelectorAll('thead th')];
+    if(!ths.length) return;
+    const cg=getColGroup(table,ths.length);
+    applyWidths(table);
+    if(table.dataset.resizable==='1'){
+      // The table may have been re-localized: textContent assignment can remove handles.
+      // Keep the saved widths and restore only the missing handles.
+      ths.forEach((th,i)=>addResizeHandle(th,i,table,cg));
+      return;
+    }
+    table.dataset.resizable='1';
+    table.classList.add('ft-resizable-table');
+    ths.forEach((th,i)=>addResizeHandle(th,i,table,cg));
+  }
+  function scanTables(){document.querySelectorAll('table').forEach(makeTableResizable);}
+  window.__ftScanTables=scanTables;
+  let scanQueued=false;
+  const queueScan=()=>{
+    if(scanQueued) return;
+    scanQueued=true;
+    requestAnimationFrame(()=>{scanQueued=false;scanTables();});
+  };
+  const obs=new MutationObserver(queueScan);
+  obs.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',()=>{
+    document.querySelectorAll('table[data-resizable="1"]').forEach(table=>{
+      if(window.innerWidth>MOBILE_BREAKPOINT) applyWidths(table);
+    });
+  });
+  setTimeout(scanTables,300);
 })();
 
 /* ---------------------------- INIT ---------------------------- */
@@ -5226,7 +6443,7 @@ const I18N = {
     nav_dashboard:'Dashboard', nav_transactions:'Transactions',
     nav_commitments:'Commitments', nav_reports:'Reports',
     nav_accounts:'Accounts', nav_vehicles:'Vehicles',
-    nav_budgets:'Budgets', nav_categories:'Categories', nav_guide:'User Guide',
+    nav_budgets:'Budgets', nav_categories:'Categories', nav_wealth:'Wealth', nav_guide:'User Guide',
     btn_lang:'\ud83c\udf10 \u0627\u0644\u0639\u0631\u0628\u064a\u0629',
     btn_theme_light:'\u2600 Light Mode', btn_theme_dark:'\ud83c\udf19 Dark Mode',
     btn_connect_drive:'\ud83d\udd17 Connect Google Drive',
@@ -5246,7 +6463,7 @@ const I18N = {
     empty_no_txn:'No transactions yet \u2014 add your first one',
     empty_due_soon:'Nothing due soon',
     th_account:'Account', th_type:'Type', th_balance:'Balance', th_date:'Date',
-    th_category:'Category', th_note:'Note', th_amount:'Amount',
+    th_category:'Category', th_note:'Note', th_amount:'Amount', th_running_balance:'Balance after',
     th_currency:'Currency', th_opening:'Opening', th_name:'Name',
     th_current_balance:'Current Balance', th_vehicle:'Vehicle',
     rep_this_month_th:'This Month', rep_no_data:'No data yet', btn_close:'Close',
@@ -5255,9 +6472,9 @@ const I18N = {
     exchange_rates:'Exchange Rates', exchange_rates_hint:'used to convert balances to EGP',
     th_rate_egp:'Rate to EGP', btn_edit:'Edit', btn_reconcile:'Reconcile', btn_delete:'Delete',
     empty_no_accounts_long:'No accounts yet \u2014 add one to start tracking',
-    archived_tag:'Archived',
+    archived_tag:'Archived', show_hidden_accounts:'Show archived / hidden ({n})',
     page_transactions:'Transactions', btn_new_txn2:'+ New Transaction',
-    txn_search_placeholder:'Search by note or category...',
+    txn_search_placeholder:'Search by note or category...', txn_show_deleted:'Deleted',
     txn_all_months:'All months', txn_all_accounts:'All accounts', txn_all_categories:'All categories',
     txn_custom_range:'Custom range...', txn_date_range_sep:'to',
     txn_filter_all:'All', txn_filter_income:'Income', txn_filter_expense:'Expense', txn_filter_transfer:'Transfers',
@@ -5277,7 +6494,7 @@ const I18N = {
     page_vehicles:'Vehicles', page_vehicles_sub:'Fuel, maintenance & mileage per vehicle',
     btn_new_vehicle:'+ New Vehicle', fuel_price_label:'92 Fuel Price (EGP / liter)',
     veh_tab_cards:'Vehicles', veh_tab_logs:'All Logs', veh_all_types:'All types', btn_reset:'Reset',
-    th_km:'KM', th_dist:'Dist.', th_kmpl:'km/L',
+    th_km:'KM', th_dist:'Dist.', th_liters:'Liters', th_kmpl:'km/L',
     veh_view_log:'View / Log Entry', veh_btn_edit:'Edit', veh_btn_delete:'Delete',
     veh_deleted:'Vehicle deleted', veh_updated:'Vehicle updated',
     page_budgets:'Budgets', page_budgets_sub:'Set a monthly limit per category',
@@ -5288,6 +6505,11 @@ const I18N = {
     rep_cat_col:'Category', rep_total_col:'Total', rep_monthly_breakdown:'Monthly Breakdown',
     rep_month_th:'Month', rep_amount_th:'Amount',
     rep_empty_chart:'Select a category and period to display the chart',
+    wealth_title:'Wealth', wealth_sub:'Assets & liabilities — your real net worth',
+    wealth_add_asset:'+ Asset', wealth_add_liability:'+ Liability', wealth_assets:'Assets', wealth_liabilities:'Liabilities',
+    wealth_name:'Name', wealth_type:'Type', wealth_value:'Value', wealth_remaining:'Remaining', wealth_actions:'Actions',
+    wealth_vehicle:'Vehicle', wealth_current_value:'Current Value', wealth_vehicles_title:'Vehicles included in Net Worth',
+    wealth_formula:'Net Worth = account balances + assets + vehicle values − manual liabilities − outstanding commitments.',
     page_guide:'\ud83d\udcd6 User Guide', page_guide_sub:'Detailed guide and Google Drive setup',
     sync_not_connected:'Google Drive: not connected', sync_connected:'Google Drive: synced \u2713',
     sync_syncing:'Google Drive: syncing\u2026', sync_error:'Google Drive: sync error',
@@ -5298,7 +6520,7 @@ const I18N = {
     nav_dashboard:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629', nav_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
     nav_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', nav_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631',
     nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a',
-    nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0641\u0626\u0627\u062a', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
+    nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0641\u0626\u0627\u062a', nav_wealth:'\u0627\u0644\u062b\u0631\u0648\u0629', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
     btn_lang:'\ud83c\udf10 English',
     btn_theme_light:'\u2600 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d', btn_theme_dark:'\ud83c\udf19 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
     btn_connect_drive:'\ud83d\udd17 \u0631\u0628\u0637 Google Drive',
@@ -5318,7 +6540,7 @@ const I18N = {
     empty_no_txn:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u0623\u0648\u0644\u0649 \u0645\u0639\u0627\u0645\u0644\u0627\u062a\u0643',
     empty_due_soon:'\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0648\u0627\u0639\u064a\u062f \u0642\u0631\u064a\u0628\u0629',
     th_account:'\u0627\u0644\u062d\u0633\u0627\u0628', th_type:'\u0627\u0644\u0646\u0648\u0639', th_balance:'\u0627\u0644\u0631\u0635\u064a\u062f', th_date:'\u0627\u0644\u062a\u0627\u0631\u064a\u062e',
-    th_category:'\u0627\u0644\u0641\u0626\u0629', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a',
+    th_category:'\u0627\u0644\u0641\u0626\u0629', th_note:'\u0645\u0644\u0627\u062d\u0638\u0629', th_amount:'\u0627\u0644\u0645\u0628\u0644\u063a', th_running_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0628\u0639\u062f \u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0629',
     th_currency:'\u0627\u0644\u0639\u0645\u0644\u0629', th_opening:'\u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a', th_name:'\u0627\u0644\u0627\u0633\u0645',
     th_current_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a', th_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     rep_this_month_th:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_no_data:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0639\u062f', btn_close:'\u0625\u063a\u0644\u0627\u0642',
@@ -5327,9 +6549,9 @@ const I18N = {
     exchange_rates:'\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0635\u0631\u0641', exchange_rates_hint:'\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0644\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
     th_rate_egp:'\u0627\u0644\u0633\u0639\u0631 \u0644\u0644\u062c\u0646\u064a\u0647', btn_edit:'\u062a\u0639\u062f\u064a\u0644', btn_reconcile:'\u0645\u0637\u0627\u0628\u0642\u0629', btn_delete:'\u062d\u0630\u0641',
     empty_no_accounts_long:'\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0639\u062f \u2014 \u0623\u0636\u0641 \u062d\u0633\u0627\u0628\u0627\u064b \u0644\u0628\u062f\u0621 \u0627\u0644\u062a\u062a\u0628\u0639',
-    archived_tag:'\u0645\u0624\u0631\u0634\u0641',
+    archived_tag:'\u0645\u0624\u0631\u0634\u0641', show_hidden_accounts:'\u0639\u0631\u0636 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0624\u0631\u0634\u0641\u0629 / \u0627\u0644\u0645\u062e\u0641\u064a\u0629 ({n})',
     page_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a', btn_new_txn2:'+ \u0645\u0639\u0627\u0645\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
-    txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0641\u0626\u0629...',
+    txn_search_placeholder:'\u0628\u062d\u062b \u0628\u0627\u0644\u0646\u0648\u062a \u0623\u0648 \u0627\u0644\u0641\u0626\u0629...', txn_show_deleted:'\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629',
     txn_all_months:'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631', txn_all_accounts:'\u0643\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', txn_all_categories:'\u0643\u0644 \u0627\u0644\u0641\u0626\u0627\u062a',
     txn_custom_range:'\u0641\u062a\u0631\u0629 \u0645\u062e\u0635\u0635\u0629...', txn_date_range_sep:'\u0625\u0644\u0649',
     txn_filter_all:'\u0627\u0644\u0643\u0644', txn_filter_income:'\u062f\u062e\u0644', txn_filter_expense:'\u0645\u0635\u0627\u0631\u064a\u0641', txn_filter_transfer:'\u062a\u062d\u0648\u064a\u0644\u0627\u062a',
@@ -5349,7 +6571,7 @@ const I18N = {
     page_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', page_vehicles_sub:'\u0648\u0642\u0648\u062f\u060c \u0635\u064a\u0627\u0646\u0629\u060c \u062a\u063a\u064a\u064a\u0631 \u0632\u064a\u062a \u0648\u0627\u0644\u0639\u062f\u0627\u062f \u2014 \u0644\u0643\u0644 \u0645\u0631\u0643\u0628\u0629',
     btn_new_vehicle:'+ \u0645\u0631\u0643\u0628\u0629 \u062c\u062f\u064a\u062f\u0629', fuel_price_label:'\u0633\u0639\u0631 \u0627\u0644\u0628\u0646\u0632\u064a\u0646 92 (\u062c\u0646\u064a\u0647 / \u0644\u062a\u0631)',
     veh_tab_cards:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', veh_tab_logs:'\u0643\u0644 \u0627\u0644\u0633\u062c\u0644\u0627\u062a', veh_all_types:'\u0643\u0644 \u0627\u0644\u0623\u0646\u0648\u0627\u0639', btn_reset:'\u0625\u0639\u0627\u062f\u0629',
-    th_km:'\u0643\u0645', th_dist:'\u0627\u0644\u0645\u0633\u0627\u0641\u0629', th_kmpl:'\u0643\u0645/\u0644\u062a\u0631',
+    th_km:'\u0643\u0645', th_dist:'\u0627\u0644\u0645\u0633\u0627\u0641\u0629', th_liters:'\u0627\u0644\u0644\u062a\u0631', th_kmpl:'\u0643\u0645/\u0644\u062a\u0631',
     veh_view_log:'\u0639\u0631\u0636 / \u062a\u0633\u062c\u064a\u0644', veh_btn_edit:'\u062a\u0639\u062f\u064a\u0644', veh_btn_delete:'\u062d\u0630\u0641',
     veh_deleted:'\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0645\u0631\u0643\u0628\u0629', veh_updated:'\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     page_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', page_budgets_sub:'\u062d\u062f\u062f \u0633\u0642\u0641\u0627\u064b \u0634\u0647\u0631\u064a\u0627\u064b \u0644\u0643\u0644 \u0641\u0626\u0629',
@@ -5360,6 +6582,11 @@ const I18N = {
     rep_cat_col:'\u0627\u0644\u0641\u0626\u0629', rep_total_col:'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a', rep_monthly_breakdown:'\u0627\u0644\u062a\u0641\u0635\u064a\u0644 \u0627\u0644\u0634\u0647\u0631\u064a',
     rep_month_th:'\u0627\u0644\u0634\u0647\u0631', rep_amount_th:'\u0627\u0644\u0645\u0628\u0644\u063a',
     rep_empty_chart:'\u0627\u062e\u062a\u0631 \u0641\u0626\u0629 \u0648\u0641\u062a\u0631\u0629 \u0644\u0639\u0631\u0636 \u0627\u0644\u0631\u0633\u0645 \u0627\u0644\u0628\u064a\u0627\u0646\u064a',
+    wealth_title:'\u0627\u0644\u062b\u0631\u0648\u0629', wealth_sub:'\u0627\u0644\u0623\u0635\u0648\u0644 \u0648\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a \u2014 \u0635\u0627\u0641\u064a \u062b\u0631\u0648\u062a\u0643 \u0627\u0644\u062d\u0642\u064a\u0642\u064a',
+    wealth_add_asset:'+ \u0623\u0635\u0644', wealth_add_liability:'+ \u0627\u0644\u062a\u0632\u0627\u0645', wealth_assets:'\u0627\u0644\u0623\u0635\u0648\u0644', wealth_liabilities:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a',
+    wealth_name:'\u0627\u0644\u0627\u0633\u0645', wealth_type:'\u0627\u0644\u0646\u0648\u0639', wealth_value:'\u0627\u0644\u0642\u064a\u0645\u0629', wealth_remaining:'\u0627\u0644\u0645\u062a\u0628\u0642\u064a', wealth_actions:'\u0625\u062c\u0631\u0627\u0621\u0627\u062a',
+    wealth_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629', wealth_current_value:'\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u062d\u0627\u0644\u064a\u0629', wealth_vehicles_title:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a \u0627\u0644\u062f\u0627\u062e\u0644\u0629 \u0641\u064a \u0635\u0627\u0641\u064a \u0627\u0644\u062b\u0631\u0648\u0629',
+    wealth_formula:'\u0635\u0627\u0641\u064a \u0627\u0644\u062b\u0631\u0648\u0629 = \u0623\u0631\u0635\u062f\u0629 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a + \u0627\u0644\u0623\u0635\u0648\u0644 + \u0642\u064a\u0645 \u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a \u2212 \u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a \u0627\u0644\u064a\u062f\u0648\u064a\u0629 \u2212 \u0627\u0644\u0623\u0642\u0633\u0627\u0637 \u0627\u0644\u0645\u062a\u0628\u0642\u064a\u0629.',
     page_guide:'\ud83d\udcd6 \u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645', page_guide_sub:'\u0634\u0631\u062d \u062a\u0641\u0635\u064a\u0644\u064a \u0644\u0644\u0646\u0638\u0627\u0645 \u0648\u0631\u0628\u0637 Google Drive',
     sync_not_connected:'Google Drive: \u063a\u064a\u0631 \u0645\u062a\u0635\u0644', sync_connected:'Google Drive: \u0645\u062a\u0632\u0627\u0645\u0646 \u2713',
     sync_syncing:'Google Drive: \u062c\u0627\u0631\u064a \u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629\u2026', sync_error:'Google Drive: \u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629',
@@ -5390,7 +6617,7 @@ function applyLang(lang){
   // Nav labels
   var navMap = {dashboard:'nav_dashboard',transactions:'nav_transactions',
     commitments:'nav_commitments',reports:'nav_reports',accounts:'nav_accounts',
-    vehicles:'nav_vehicles',budgets:'nav_budgets',categories:'nav_categories',guide:'nav_guide'};
+    vehicles:'nav_vehicles',budgets:'nav_budgets',categories:'nav_categories',wealth:'nav_wealth',guide:'nav_guide'};
   document.querySelectorAll('.nav button[data-view]').forEach(function(btn){
     var lbl = btn.querySelector('.lbl');
     if(lbl && navMap[btn.dataset.view]) lbl.textContent = t(navMap[btn.dataset.view]);
@@ -5435,7 +6662,7 @@ function applyLang(lang){
     'th-fx-cur':'th_currency','th-fx-rate':'th_rate_egp',
     'th-txn-date':'th_date','th-txn-acc':'th_account','th-txn-cat':'th_category','th-txn-note':'th_note','th-txn-amt':'th_amount',
     'th-veh-date':'th_date','th-veh-vehicle':'th_vehicle','th-veh-type':'th_type','th-veh-amt':'th_amount',
-    'th-veh-km':'th_km','th-veh-dist':'th_dist','th-veh-kmpl':'th_kmpl','th-veh-note':'th_note',
+    'th-veh-km':'th_km','th-veh-dist':'th_dist','th-veh-liters':'th_liters','th-veh-kmpl':'th_kmpl','th-veh-note':'th_note',
     'th-rep-cat':'rep_cat_col','th-rep-thismonth':'rep_this_month_th','th-rep-month':'rep_month_th'
   };
   Object.keys(thMap).forEach(function(id){
@@ -5469,6 +6696,10 @@ function applyLang(lang){
   // Topbar action buttons
   var ab = document.querySelector('#view-accounts .topbar .btn'); if(ab) ab.textContent = t('btn_new_account');
   var aah = document.getElementById('acc-all-heading'); if(aah) aah.textContent = tt('كل الحسابات','All Accounts');
+  var hat=document.getElementById('hidden-accounts-title'); if(hat) hat.textContent = tt('الحسابات المؤرشفة / المخفية','Archived / Hidden Accounts');
+  var hnames={name:tt('الاسم','Name'),type:tt('النوع','Type'),cur:tt('العملة','Currency'),opening:tt('الافتتاحي','Opening'),curbal:tt('الرصيد الحالي','Current Balance')};
+  [['th-hidden-acc-name','name'],['th-hidden-acc-type','type'],['th-hidden-acc-cur','cur'],['th-hidden-acc-opening','opening'],['th-hidden-acc-curbal','curbal']].forEach(function(pair){var el=document.getElementById(pair[0]); if(el) el.textContent=hnames[pair[1]];});
+  renderAccounts();
   var ert = document.getElementById('exchange-rates-title');
   if(ert) ert.innerHTML = t('exchange_rates') + ' <span class="hint" id="exchange-rates-hint">' + t('exchange_rates_hint') + '</span>';
   var rch = document.getElementById('rep-chart-heading'); if(rch) rch.textContent = tt('الرسم البياني الشهري','Monthly Chart');
@@ -5500,6 +6731,7 @@ function applyLang(lang){
   var tca = document.getElementById('txn-cat-all'); if(tca) tca.textContent = tt('الكل','All');
   var tcn = document.getElementById('txn-cat-none'); if(tcn) tcn.textContent = tt('إلغاء','Clear');
   var tr = document.getElementById('txn-reset'); if(tr) tr.title = tt('مسح الفلاتر','Clear filters');
+  var tsd = document.getElementById('txn-show-deleted-label'); if(tsd) tsd.textContent = t('txn_show_deleted');
 
   // Categories page section titles
   var cel = document.querySelector('#view-categories .grid.cols-2 > div:first-child .section-title');
@@ -5544,6 +6776,22 @@ function applyLang(lang){
     rs.querySelectorAll('option').forEach(function(o){ if(pm[o.value]) o.textContent=t(pm[o.value]); });
   }
 
+  // Wealth page static labels
+  var wh = document.getElementById('wealth-h1'); if(wh) wh.textContent = t('wealth_title');
+  var ws = document.getElementById('wealth-sub'); if(ws) ws.textContent = t('wealth_sub');
+  var wv = document.querySelector('#view-wealth [data-open-modal=\"asset\"]'); if(wv) wv.textContent = t('wealth_add_asset');
+  var wl = document.querySelector('#view-wealth [data-open-modal=\"liability\"]'); if(wl) wl.textContent = t('wealth_add_liability');
+  var wa = document.getElementById('wealth-assets-title'); if(wa) wa.textContent = t('wealth_assets');
+  var wli = document.getElementById('wealth-liabilities-title'); if(wli) wli.textContent = t('wealth_liabilities');
+  var wvt = document.getElementById('wealth-vehicles-title'); if(wvt) wvt.textContent = t('wealth_vehicles_title');
+  var wf = document.getElementById('wealth-formula'); if(wf) wf.textContent = t('wealth_formula');
+  var wth = {
+    'asset-name':'wealth_name','asset-type':'wealth_type','asset-value':'wealth_value','asset-actions':'wealth_actions',
+    'liab-name':'wealth_name','liab-type':'wealth_type','liab-remaining':'wealth_remaining','liab-actions':'wealth_actions',
+    'vehicle-name':'wealth_vehicle','vehicle-type':'wealth_type','vehicle-value':'wealth_current_value'
+  };
+  document.querySelectorAll('[data-wealth-th]').forEach(function(th){ var k=wth[th.dataset.wealthTh]; if(k) th.textContent=t(k); });
+
   // Footer
   var fc = document.querySelector('.footer-copy');
   if(fc) fc.innerHTML = lang==='ar'
@@ -5572,6 +6820,218 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
   const panel = document.getElementById('guide-tab-' + tab);
   if (panel) panel.classList.add('active');
 });
+
+
+
+/* ================================================================
+   FinTrack V2 — Wealth layer, soft-delete, reconciliation history,
+   commitment amount accounting, vehicle valuation, and Drive conflict guard.
+   Excluded by request: validation module, historical FX, IndexedDB migration,
+   audit trail, opening-balance locking, advanced budgets, recurring transactions.
+   ================================================================ */
+(function initFinTrackV2(){
+  function ensureV2(){
+    DB = DB && typeof DB === 'object' ? DB : {};
+    DB.accounts = Array.isArray(DB.accounts) ? DB.accounts : [];
+    DB.transactions = Array.isArray(DB.transactions) ? DB.transactions : [];
+    DB.categories = Array.isArray(DB.categories) ? DB.categories : [];
+    DB.commitments = Array.isArray(DB.commitments) ? DB.commitments : [];
+    DB.commitmentPayments = Array.isArray(DB.commitmentPayments) ? DB.commitmentPayments : [];
+    DB.fxRates = Array.isArray(DB.fxRates) && DB.fxRates.length ? DB.fxRates : [{currency:'EGP',rateToEGP:1}];
+    DB.budgets = Array.isArray(DB.budgets) ? DB.budgets : [];
+    DB.vehicles = Array.isArray(DB.vehicles) ? DB.vehicles : [];
+    DB.vehicleLogs = Array.isArray(DB.vehicleLogs) ? DB.vehicleLogs : [];
+    DB.vehicleDocs = Array.isArray(DB.vehicleDocs) ? DB.vehicleDocs : [];
+    DB.vehicleParts = Array.isArray(DB.vehicleParts) ? DB.vehicleParts : [];
+    DB.assets = Array.isArray(DB.assets) ? DB.assets : [];
+    DB.liabilities = Array.isArray(DB.liabilities) ? DB.liabilities : [];
+    DB.reconciliations = Array.isArray(DB.reconciliations) ? DB.reconciliations : [];
+    (DB.vehicles||[]).forEach(v=>{ if(v.currentValue===undefined) v.currentValue=0; });
+    (DB.assets||[]).forEach(a=>{ if(a.currency===undefined) a.currency='EGP'; if(a.value===undefined) a.value=0; });
+    (DB.liabilities||[]).forEach(l=>{ if(l.currency===undefined) l.currency='EGP'; if(l.remainingAmount===undefined) l.remainingAmount=l.amount||0; });
+  }
+  ensureV2();
+
+  // True net worth: liquid account balances + manually tracked assets + vehicle market values
+  // minus manual liabilities and outstanding commitments.
+  const _oldNetWorth = netWorthEGP;
+  netWorthEGP = function(){
+    ensureV2();
+    const accounts = DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((s,a)=>s+toEGP(accountBalance(a),a.currency),0);
+    const assets = DB.assets.filter(a=>!a.deletedAt).reduce((s,a)=>s+toEGP(Number(a.value)||0,a.currency||'EGP'),0);
+    const vehicles = DB.vehicles.filter(v=>!v.deletedAt).reduce((s,v)=>s+(Number(v.currentValue)||0),0);
+    const manualLiab = DB.liabilities.filter(l=>!l.deletedAt).reduce((s,l)=>s+toEGP(Number(l.remainingAmount)||0,l.currency||'EGP'),0);
+    return accounts + assets + vehicles - manualLiab;
+  };
+
+  const _oldTotalLiabilities = totalLiabilitiesEGP;
+  totalLiabilitiesEGP = function(){
+    ensureV2();
+    const commitments = DB.commitments.filter(c=>c.status!=='completed' && !c.deletedAt).reduce((s,c)=>s+commitmentRemaining(c),0);
+    const manual = DB.liabilities.filter(l=>!l.deletedAt).reduce((s,l)=>s+toEGP(Number(l.remainingAmount)||0,l.currency||'EGP'),0);
+    return commitments + manual;
+  };
+
+  // Ensure all calculations ignore soft-deleted transactions.
+  liveTransactions = function(){ return DB.transactions.filter(t=>!t.deletedAt && !isArchiveTxn(t)); };
+  archiveTransactions = function(){ return DB.transactions.filter(t=>!t.deletedAt && isArchiveTxn(t)); };
+
+  // Improve Drive sync with a remote-modification conflict guard.
+  // driveLastRemoteModified is declared at outer scope (shared with autoReconnectDriveSilently).
+  let driveLocalDirty=false;
+  let driveConflictRemote=null;
+  let driveConflictBusy=false;
+  const _origSaveDB = saveDB;
+  saveDB = function(){
+    ensureV2();
+    driveLocalDirty=true;
+    _origSaveDB();
+  };
+  const _origSaveLocalOnly = saveLocalOnly;
+  saveLocalOnly = function(){ _origSaveLocalOnly(); driveLocalDirty=false; };
+
+  const _origDriveInitialSync = driveInitialSync;
+  driveInitialSync = async function(){
+    await _origDriveInitialSync();
+    try{ const f=driveFileId?{id:driveFileId}:await driveFindFile(); if(f) driveLastRemoteModified=f.modifiedTime||null; }catch(e){}
+    driveLocalDirty=false;
+  };
+  const _origDrivePullOverwriteLocal = drivePullOverwriteLocal;
+  drivePullOverwriteLocal = async function(){
+    await _origDrivePullOverwriteLocal();
+    try{ const f=driveFileId?{id:driveFileId}:await driveFindFile(); if(f) driveLastRemoteModified=f.modifiedTime||null; }catch(e){}
+    driveLocalDirty=false;
+  };
+  const _origDrivePushNow = drivePushNow;
+  drivePushNow = async function(){
+    if(!driveAccessToken) throw new Error('Not connected');
+    const f=driveFileId?{id:driveFileId}:await driveFindFile();
+    if(f){
+      const latest=await driveFindFile();
+      if(latest && driveLocalDirty && driveLastRemoteModified && latest.modifiedTime && latest.modifiedTime!==driveLastRemoteModified){
+        driveConflictRemote=latest;
+        openModal('drive-conflict');
+        throw new Error('Drive conflict detected');
+      }
+    }
+    await _origDrivePushNow();
+    try{ const latest=await driveFindFile(); driveLastRemoteModified=latest?.modifiedTime||driveLastRemoteModified; }catch(e){}
+    driveLocalDirty=false;
+  };
+  clearTimeout(pushTimer);
+  queueDrivePush = function(){
+    if(!driveAccessToken || !driveFileId) return;
+    updateSyncStatus('syncing'); clearTimeout(pushTimer);
+    pushTimer=setTimeout(async()=>{
+      try{ await drivePushNow(); updateSyncStatus('connected'); }
+      catch(e){ if(e.message==='Drive conflict detected') return; console.error(e); updateSyncStatus('error'); toast(tt('تعذرت مزامنة Drive','Drive sync failed')); }
+    },1500);
+  };
+
+  // Soft-delete UI is already wired at capture phase; keep deleted records out of category/report totals.
+  const _oldIncInRange=_incInRange;
+  _incInRange=function(from,to,catIds){
+    const incCatIds=catIds?new Set([...catIds].filter(id=>{const cat=DB.categories.find(c=>c.id===id);return !cat||cat.type==='income';})):null;
+    const useFilter=incCatIds&&incCatIds.size>0;
+    return DB.transactions.filter(t=>!t.deletedAt && t.type==='income' && !isReconciliationAdjustment(t)).filter(t=>{const mk=monthKey(t.date);if(from&&mk<from)return false;if(to&&mk>to)return false;if(useFilter&&!incCatIds.has(t.categoryId))return false;return true;}).reduce((s,t)=>s+toEGP(Number(t.amount),t.currency),0);
+  };
+
+  function renderWealth(){
+    ensureV2();
+    const acc = DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((s,a)=>s+toEGP(accountBalance(a),a.currency),0);
+    const assets = DB.assets.filter(a=>!a.deletedAt).reduce((s,a)=>s+toEGP(Number(a.value)||0,a.currency||'EGP'),0);
+    const vehicles = DB.vehicles.filter(v=>!v.deletedAt).reduce((s,v)=>s+(Number(v.currentValue)||0),0);
+    const manualLiab = DB.liabilities.filter(l=>!l.deletedAt).reduce((s,l)=>s+toEGP(Number(l.remainingAmount)||0,l.currency||'EGP'),0);
+    const commitments = DB.commitments.filter(c=>c.status!=='completed'&&!c.deletedAt).reduce((s,c)=>s+commitmentRemaining(c),0);
+    const net=acc+assets+vehicles-manualLiab-commitments;
+    const el=document.getElementById('wealth-summary'); if(!el) return;
+    el.innerHTML=[
+      [tt('الأرصدة','Accounts'),acc],
+      [tt('الأصول','Assets'),assets+vehicles],
+      [tt('الالتزامات','Liabilities'),manualLiab+commitments],
+    ].map(x=>`<div class="card"><div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${x[0]}</div><div class="num" style="font-size:17px;font-weight:700;">EGP ${fmtMoney(x[1])}</div></div>`).join('')+
+      `<div class="card" style="grid-column:1/-1;"><div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${tt('صافي الثروة الحقيقي','True Net Worth')}</div><div class="num" style="font-size:26px;font-weight:800;color:${net>=0?'var(--positive)':'var(--negative)'};">EGP ${fmtMoney(net)}</div><div class="help-text">${tt('يشمل الحسابات والأصول والمركبات ويخصم الالتزامات والأقساط المتبقية.','Includes accounts, assets and vehicles, less liabilities and outstanding commitments.')}</div></div>`;
+    document.getElementById('wealth-assets-body').innerHTML=DB.assets.filter(a=>!a.deletedAt).map(a=>`<tr><td>${a.name}</td><td>${a.type||'—'}</td><td class="amt">${a.currency||'EGP'} ${fmtMoney(a.value)}</td><td class="td-actions"><button class="btn ghost sm" data-edit-asset="${a.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-asset="${a.id}">${t('btn_delete')}</button></td></tr>`).join('')||`<tr><td colspan="4" class="empty">${tt('لا توجد أصول مسجلة','No assets recorded')}</td></tr>`;
+    document.getElementById('wealth-liabilities-body').innerHTML=DB.liabilities.filter(l=>!l.deletedAt).map(l=>`<tr><td>${l.name}</td><td>${l.type||'—'}</td><td class="amt">${l.currency||'EGP'} ${fmtMoney(l.remainingAmount)}</td><td class="td-actions"><button class="btn ghost sm" data-edit-liability="${l.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-liability="${l.id}">${t('btn_delete')}</button></td></tr>`).join('')||`<tr><td colspan="4" class="empty">${tt('لا توجد التزامات إضافية','No additional liabilities')}</td></tr>`;
+    document.getElementById('wealth-vehicles-body').innerHTML=DB.vehicles.filter(v=>!v.deletedAt).map(v=>{const vt=v.type==='scooter'?tt('سكوتر','Scooter'):v.type==='car'?tt('سيارة','Car'):(v.type||'—');return `<tr><td>${v.name}</td><td>${v.type==='scooter'?'🛵':'🚗'} ${vt}</td><td class="amt">EGP ${fmtMoney(v.currentValue||0)}</td></tr>`}).join('')||`<tr><td colspan="3" class="empty">${tt('لا توجد مركبات','No vehicles')}</td></tr>`;
+  }
+
+  // Add/modify wealth modals without duplicating the large existing modal function.
+  const _origOpenModal = openModal;
+  openModal = function(kind,ctx={}){
+    if(kind==='asset' || kind==='liability'){
+      ensureV2(); const editing=ctx.id ? (kind==='asset'?DB.assets.find(a=>a.id===ctx.id):DB.liabilities.find(l=>l.id===ctx.id)) : null;
+      const isAsset=kind==='asset'; const title=isAsset?(editing?tt('تعديل أصل','Edit Asset'):tt('أصل جديد','New Asset')):(editing?tt('تعديل التزام','Edit Liability'):tt('التزام جديد','New Liability'));
+      document.getElementById('modal-root').innerHTML=`<div class="modal-backdrop" id="modal-backdrop"><div class="modal"><h2>${title}</h2><form id="form-wealth-item"><input type="hidden" name="kind" value="${kind}">${editing?`<input type="hidden" name="id" value="${editing.id}">`:''}<div class="field"><label>${tt('الاسم','Name')}</label><input name="name" required value="${editing?.name||''}" placeholder="${isAsset?tt('مثال: ذهب، أثاث، عقار','e.g. gold, furniture, property'):tt('مثال: قرض شخصي','e.g. personal loan')}"></div><div class="field"><label>${tt('النوع','Type')}</label><input name="type" value="${editing?.type||''}" placeholder="${isAsset?tt('ذهب / عقار / أثاث / أخرى','Gold / Property / Furniture / Other'):tt('قرض / بطاقة / دين / أخرى','Loan / Card / Debt / Other')}"></div><div class="field-row"><div class="field"><label>${tt('العملة','Currency')}</label><select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${(editing?.currency||'EGP')===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select></div><div class="field"><label>${isAsset?tt('القيمة الحالية','Current Value'):tt('المبلغ المتبقي','Remaining Amount')}</label><input type="number" step="0.01" min="0" name="value" required value="${isAsset?(editing?.value||0):(editing?.remainingAmount||0)}"></div></div><div class="modal-actions"><button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button><button type="submit" class="btn">${tt('حفظ','Save')}</button></div></form></div></div>`;
+      const mb=document.getElementById('modal-backdrop'); mb.querySelector('[data-close]')?.addEventListener('click',closeModal); mb.addEventListener('click',e=>{if(e.target===mb)closeModal();}); return;
+    }
+    if(kind==='drive-conflict'){
+      document.getElementById('modal-root').innerHTML=`<div class="modal-backdrop" id="modal-backdrop"><div class="modal"><h2>${tt('تعارض في Google Drive','Google Drive Conflict')}</h2><div class="help-text">${tt('اتغير ملف FinTrack على Drive من جهاز آخر بعد آخر مزامنة. عشان ما نخسرش بيانات، النظام وقف الرفع التلقائي. اختار إما جلب نسخة Drive أو إجبار الرفع المحلي.','The FinTrack file changed on Drive after your last sync. To prevent data loss, automatic upload was stopped. Choose Pull Drive or Force Push Local.')}</div><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;"><button class="btn secondary" id="btn-conflict-pull">⬇ ${tt('جلب من Drive','Pull Drive')}</button><button class="btn danger" id="btn-conflict-push">⬆ ${tt('فرض الرفع المحلي','Force Push Local')}</button><button class="btn ghost" data-close>${tt('إلغاء','Cancel')}</button></div></div></div>`;
+      document.getElementById('btn-conflict-pull').onclick=async()=>{try{await _origDrivePullOverwriteLocal();driveLocalDirty=false;driveLastRemoteModified=driveConflictRemote?.modifiedTime||null;document.getElementById('modal-backdrop')?.remove();renderAll();toast(tt('تم جلب نسخة Drive','Drive version pulled'));}catch(e){toast(e.message)}};
+      document.getElementById('btn-conflict-push').onclick=async()=>{try{const f=driveConflictRemote;await driveUpdate(driveFileId,DB);driveLastRemoteModified=f?.modifiedTime||null;driveLocalDirty=false;document.getElementById('modal-backdrop')?.remove();updateSyncStatus('connected');toast(tt('تم فرض الرفع المحلي','Local version pushed'));}catch(e){toast(e.message)}};
+      return;
+    }
+    return _origOpenModal(kind,ctx);
+  };
+
+  // Wealth form submission hook through the existing modal submit dispatcher.
+  const wealthSubmit = document.addEventListener('submit', e=>{
+    if(e.target.id!=='form-wealth-item') return;
+    e.preventDefault();
+    const data=Object.fromEntries(new FormData(e.target).entries()); ensureV2();
+    const arr=data.kind==='asset'?DB.assets:DB.liabilities; const item=data.id?arr.find(x=>x.id===data.id):null;
+    if(item){ item.name=data.name.trim();item.type=data.type.trim();item.currency=data.currency;if(data.kind==='asset')item.value=Number(data.value)||0;else item.remainingAmount=Number(data.value)||0; }
+    else arr.push(data.kind==='asset'?{id:uid('asset'),name:data.name.trim(),type:data.type.trim(),currency:data.currency,value:Number(data.value)||0}:{id:uid('liab'),name:data.name.trim(),type:data.type.trim(),currency:data.currency,remainingAmount:Number(data.value)||0});
+    saveDB();document.getElementById('modal-backdrop')?.remove();renderAll();toast(tt('تم الحفظ','Saved'));
+  });
+
+  document.getElementById('view-wealth')?.addEventListener('click',e=>{
+    const ea=e.target.closest('[data-edit-asset]')?.dataset.editAsset, da=e.target.closest('[data-del-asset]')?.dataset.delAsset;
+    const el=e.target.closest('[data-edit-liability]')?.dataset.editLiability, dl=e.target.closest('[data-del-liability]')?.dataset.delLiability;
+    if(ea)return openModal('asset',{id:ea}); if(el)return openModal('liability',{id:el});
+    if(da){const x=DB.assets.find(a=>a.id===da);if(confirm(tt(`حذف ${x?.name||'الأصل'}؟`,`Delete ${x?.name||'this asset'}?`))){DB.assets=DB.assets.filter(a=>a.id!==da);saveDB();renderAll();}};
+    if(dl){const x=DB.liabilities.find(a=>a.id===dl);if(confirm(tt(`حذف ${x?.name||'الالتزام'}؟`,`Delete ${x?.name||'this liability'}?`))){DB.liabilities=DB.liabilities.filter(a=>a.id!==dl);saveDB();renderAll();}};
+  });
+
+  // Commitment amount logic for newly-created/edited commitments.
+  const _origCommitmentSubmit=submitHandlers.commitment;
+  submitHandlers.commitment=function(data){ _origCommitmentSubmit(data); const c=data.commitId?DB.commitments.find(x=>x.id===data.commitId):DB.commitments[DB.commitments.length-1]; updateCommitmentStatus(c); saveDB(); };
+
+  // Reconciliation history display.
+  const _origRenderAccounts=renderAccounts;
+  renderAccounts=function(){ _origRenderAccounts(); ensureV2(); const host=document.getElementById('view-accounts'); if(!host)return; let box=document.getElementById('reconciliation-history-box'); if(!box){box=document.createElement('div');box.id='reconciliation-history-box';host.appendChild(box);} const rows=DB.reconciliations.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10); box.innerHTML=`<div class="section-title" style="margin-top:18px;">${tt('آخر عمليات المطابقة','Recent Reconciliations')}</div><div class="table-wrap"><table><thead><tr><th>${tt('التاريخ','Date')}</th><th>${tt('الحساب','Account')}</th><th>${tt('النظام','System')}</th><th>${tt('الفعلي','Actual')}</th><th class="amt">${tt('الفرق','Difference')}</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${accountById(r.accountId)?.name||'—'}</td><td>${r.systemBalance?.toFixed(2)||'0.00'}</td><td>${r.actualBalance?.toFixed(2)||'0.00'}</td><td class="amt">${r.difference>=0?'+':''}${fmtMoney(r.difference)}</td></tr>`).join('')||`<tr><td colspan="5" class="empty">${tt('لا توجد عمليات مطابقة بعد','No reconciliation sessions yet')}</td></tr>`}</tbody></table></div>`; };
+
+  const _origRenderAll=renderAll;
+  renderAll=function(){ _origRenderAll(); renderWealth(); };
+
+  const _origApplyLangV2=applyLang;
+  applyLang=function(lang){
+    _origApplyLangV2(lang);
+    const wh=document.getElementById('wealth-h1'); if(wh) wh.textContent=tt('الثروة','Wealth');
+    const ws=document.getElementById('wealth-sub'); if(ws) ws.textContent=tt('الأصول والالتزامات — صافي ثروتك الحقيقي','Assets & liabilities — your real net worth');
+    const wv=document.querySelector('#view-wealth .section-title'); if(wv) wv.textContent=tt('الأصول','Assets');
+    const wt=document.querySelectorAll('#view-wealth .section-title')[1]; if(wt) wt.textContent=tt('الالتزامات','Liabilities');
+    const wvt=document.querySelectorAll('#view-wealth .section-title')[2]; if(wvt) wvt.textContent=tt('المركبات الداخلة في صافي الثروة','Vehicles included in Net Worth');
+    const wb=document.querySelector('#view-wealth .topbar .btn'); if(wb) wb.textContent=tt('+ أصل','+ Asset');
+    const wl=document.querySelector('#view-wealth .topbar .btn.secondary'); if(wl) wl.textContent=tt('+ التزام','+ Liability');
+    const labels={
+      'asset-name':tt('الاسم','Name'),'asset-type':tt('النوع','Type'),'asset-value':tt('القيمة','Value'),'asset-actions':tt('إجراءات','Actions'),
+      'liab-name':tt('الاسم','Name'),'liab-type':tt('النوع','Type'),'liab-remaining':tt('المتبقي','Remaining'),'liab-actions':tt('إجراءات','Actions'),
+      'vehicle-name':tt('المركبة','Vehicle'),'vehicle-type':tt('النوع','Type'),'vehicle-value':tt('القيمة الحالية','Current Value')
+    };
+    document.querySelectorAll('#view-wealth [data-wealth-th]').forEach(th=>{ const k=th.getAttribute('data-wealth-th'); if(labels[k]!==undefined) th.textContent=labels[k]; });
+    const formula=document.getElementById('wealth-formula'); if(formula) formula.textContent=tt('صافي الثروة = أرصدة الحسابات + الأصول + قيم المركبات − الالتزامات المسجلة − الأقساط المتبقية.','Net Worth = account balances + assets + vehicle values − manual liabilities − outstanding commitments.');
+    // Language localization rewrites TH contents with textContent, which removes resize handles.
+    // Re-scan after the DOM settles so resizing remains available in both languages.
+    if(window.__ftScanTables) requestAnimationFrame(window.__ftScanTables);
+  };
+  // Re-run once so the new view/fields are immediately available.
+  renderAll();
+  applyLang(LANG);
+  // applyLang() rewrites table headers with textContent; that removes resize handles.
+  // Re-attach them after localization and re-apply the saved widths.
+  if(window.__ftScanTables) requestAnimationFrame(window.__ftScanTables);
+})();
 
 </script>
 </body>

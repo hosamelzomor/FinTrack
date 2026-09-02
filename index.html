@@ -2990,15 +2990,33 @@ async function driveUpdate(fileId, content){
 
 // First connection: pull remote if it already exists (so a second device
 // picks up the first device's data), otherwise create it from local data.
+// IMPORTANT: the OAuth callback is async, so the user can start using FinTrack
+// while this initial sync is still downloading. Never overwrite a local change
+// made after authentication started. If local data changed during the pull,
+// preserve it and push that newer local state to Drive instead.
 async function driveInitialSync(){
+  const localSnapshotBeforeSync = JSON.stringify(DB);
   const file = await driveFindFile();
   if(file){
     driveFileId = file.id;
     const remote = await driveDownload(file.id);
-    DB = migrateDB(remote);
-    saveLocalOnly();
-    renderAll();
-    toast(LANG==='ar'?'تم جلب البيانات من Google Drive':'Pulled latest data from Google Drive');
+
+    // If nothing changed locally while the remote file was being downloaded,
+    // it is safe to hydrate the app from Drive. Otherwise, the local state is
+    // newer (e.g. a transaction was just entered) and MUST NOT be discarded.
+    const localChangedDuringSync = JSON.stringify(DB) !== localSnapshotBeforeSync;
+    if(localChangedDuringSync){
+      await driveUpdate(file.id, DB);
+      updateSyncStatus('syncing');
+      toast(LANG==='ar'
+        ? 'تم الحفاظ على التغييرات المحلية ورفعها إلى Google Drive'
+        : 'Local changes were preserved and pushed to Google Drive');
+    } else {
+      DB = migrateDB(remote);
+      saveLocalOnly();
+      renderAll();
+      toast(LANG==='ar'?'تم جلب البيانات من Google Drive':'Pulled latest data from Google Drive');
+    }
   } else {
     driveFileId = await driveCreate(DB);
     toast(LANG==='ar'?'تم الاتصال — تم إنشاء ملف البيانات في Google Drive':'Connected — created FinTrack data file in Drive');

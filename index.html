@@ -2980,21 +2980,33 @@ window.addEventListener('load', ()=>{
       // keep the local data fully usable and show a neutral disconnected state
       // instead of a misleading sync error until the user reconnects.
       setTimeout(async ()=>{
-        if(!tokenClient) return;
-        try{ await new Promise((resolve,reject)=>{
-          const client = google.accounts.oauth2.initTokenClient({
-            client_id:getClientId(), scope:DRIVE_SCOPE,
-            callback:(resp)=> resp.error ? reject(new Error(resp.error_description || resp.error)) : resolve(resp)
+        if(!tokenClient || typeof google === 'undefined' || !google.accounts) return;
+        try{
+          const resp = await new Promise((resolve,reject)=>{
+            const client = google.accounts.oauth2.initTokenClient({
+              client_id:getClientId(),
+              scope:DRIVE_SCOPE,
+              callback:(r)=> r.error ? reject(new Error(r.error_description || r.error)) : resolve(r)
+            });
+            // Silent only: never open an interactive Google login window on page load.
+            client.requestAccessToken({prompt:'none'});
           });
-          client.requestAccessToken({prompt:'none'});
-        });
-        // Use the normal callback path with the fresh token.
-        // The interactive connect flow remains available from the toolbar.
-        connectDrive();
-      }catch(e){
-        driveAccessToken = null;
-        updateSyncStatus('disconnected');
-      }
+
+          // IMPORTANT: use the token we just received directly. Calling connectDrive()
+          // here would start a second OAuth request and can cause the Google window
+          // to flash open and close immediately.
+          driveAccessToken = resp.access_token;
+          localStorage.setItem('fintrack_drive_consented','1');
+          updateSyncStatus('syncing');
+          await driveInitialSync();
+          updateSyncStatus('connected');
+        }catch(e){
+          driveAccessToken = null;
+          driveFileId = null;
+          updateSyncStatus('disconnected');
+          // A silent failure simply means the user must reconnect manually.
+          console.debug('Google Drive silent reconnect skipped:', e);
+        }
       }, 700);
     }
   }

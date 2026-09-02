@@ -2757,25 +2757,34 @@ function setClientId(id){ localStorage.setItem('fintrack_client_id', id); }
 // so a fresh tab always requires a new interactive login — by design.
 const TOKEN_CACHE_KEY = 'fintrack_drive_token';
 
+/*
+ * Keep a valid OAuth access token locally so reopening FinTrack does not
+ * launch a background Google popup. GIS token clients are popup-oriented,
+ * and requestAccessToken({prompt:'none'}) can still produce a transient
+ * Google window when silent authorization is unavailable.
+ */
 function saveTokenToSession(token, expiresInSeconds){
   try{
-    const expiry = Date.now() + (expiresInSeconds || 3600) * 1000 - 60000; // 1-min safety margin
-    sessionStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify({ token, expiry }));
-  }catch(e){ /* sessionStorage unavailable — no-op */ }
+    const expiry = Date.now() + (expiresInSeconds || 3600) * 1000 - 60000;
+    localStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify({ token, expiry }));
+  }catch(e){}
 }
 
 function loadTokenFromSession(){
   try{
-    const raw = sessionStorage.getItem(TOKEN_CACHE_KEY);
+    const raw = localStorage.getItem(TOKEN_CACHE_KEY);
     if(!raw) return null;
     const { token, expiry } = JSON.parse(raw);
-    if(Date.now() > expiry){ sessionStorage.removeItem(TOKEN_CACHE_KEY); return null; }
+    if(!token || !expiry || Date.now() > expiry){
+      localStorage.removeItem(TOKEN_CACHE_KEY);
+      return null;
+    }
     return token;
   }catch(e){ return null; }
 }
 
 function clearTokenFromSession(){
-  try{ sessionStorage.removeItem(TOKEN_CACHE_KEY); }catch(e){}
+  try{ localStorage.removeItem(TOKEN_CACHE_KEY); }catch(e){}
 }
 
 function initGoogleAuth(){
@@ -2833,6 +2842,13 @@ function connectDrive(){
   // a silent/competing request and the Google popup may flash and close.
   // Keep the request directly inside the user's click handler.
   if(driveInteractiveAuthInFlight) return;
+  const cachedToken = loadTokenFromSession();
+  if(cachedToken){
+    driveAccessToken = cachedToken;
+    driveInteractiveAuthInFlight = false;
+    updateSyncStatus('connected');
+    return true;
+  }
   driveInteractiveAuthInFlight = true;
   try{
     tokenClient.requestAccessToken({ prompt: 'consent' });
@@ -2900,32 +2916,6 @@ function disconnectDrive(){
 // tokenClient (no popup/consent screen — just a token refresh). Resolves
 // with the new token, or rejects if a silent refresh isn't possible
 // (e.g. the user needs to reconnect manually).
-function silentRefreshToken(){
-  return new Promise((resolve, reject)=>{
-    if(!driveOriginSupported()){ reject(new Error(driveEnvironmentError() || 'Unsupported origin')); return; }
-    if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
-    const clientId = getClientId();
-    if(!clientId){ reject(new Error('No client ID configured')); return; }
-    // Use a separate token client so a background refresh cannot overwrite
-    // the callback used by the interactive sign-in flow.
-    const refreshClient = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: DRIVE_SCOPE,
-      callback: (resp)=>{
-        if(resp.error){ reject(new Error(resp.error_description || resp.error)); return; }
-        driveAccessToken = resp.access_token;
-        saveTokenToSession(resp.access_token, resp.expires_in || 3600);
-        resolve(resp.access_token);
-      }
-    });
-    refreshClient.requestAccessToken({ prompt: 'none' });
-  });
-}
-
-// Wraps fetch() with the current Drive access token, and — if the token
-// has expired (401) — does ONE silent refresh + retry before giving up.
-// This is what fixes the "sync error" that used to appear silently: an
-// expired token now recovers on its own instead of failing outright.
 async function driveApiFetch(url, options, _retried){
   options = options || {};
   const requestOptions = Object.assign({}, options, {
@@ -2935,8 +2925,16 @@ async function driveApiFetch(url, options, _retried){
   try{ res = await fetch(url, requestOptions); }
   catch(e){ throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error')); }
   if(res.status === 401 && !_retried){
-    await silentRefreshToken();
-    return driveApiFetch(url, options, true);
+    // Never start a background OAuth popup from a normal Drive API request.
+    // An expired/revoked token is handled locally; the user can reconnect
+    // explicitly with the Google Drive button.
+    clearTokenFromSession();
+    driveAccessToken = null;
+    driveFileId = null;
+    updateSyncStatus('disconnected');
+    throw new Error(LANG==='ar'
+      ? 'انتهت جلسة Google Drive — اضغط ربط Google Drive لتسجيل الدخول مرة أخرى.'
+      : 'Google Drive session expired — click Connect Google Drive to sign in again.');
   }
   if(!res.ok){
     let detail = '';
@@ -3120,73 +3118,45 @@ document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
 // Google login window.  Interactive OAuth is ONLY allowed when the user
 // explicitly clicks "Connect Google Drive".  This is important because
 // saveDB()/transaction saves must never trigger authentication UI.
+/*
+ * Automatic reconnect is intentionally token-cache based.
+ * Never call requestAccessToken({prompt:'none'}) during page load: the GIS
+ * token client uses a popup flow and can flash a Google window when silent
+ * authorization is not available.
+ */
 function autoReconnectDriveSilently(){
-  if(!getClientId() || !driveOriginSupported()) return;
-  if(driveInteractiveAuthInFlight || window.__ftDriveSilentInFlight) return;
-  if(typeof google === 'undefined' || !google.accounts) return;
-  window.__ftDriveSilentInFlight = true;
-  const clientId = getClientId();
-  try{
-    const silentClient = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: DRIVE_SCOPE,
-      callback: async (resp)=>{
-        window.__ftDriveSilentInFlight = false;
-        if(resp.error){
-          driveAccessToken = null;
-          updateSyncStatus('disconnected');
-          return;
-        }
-        driveAccessToken = resp.access_token;
-        saveTokenToSession(resp.access_token, resp.expires_in || 3600);
-        try{
-          const f = await driveFindFile();
-          if(f){ driveFileId=f.id; driveLastRemoteModified=f.modifiedTime||null; }
-          updateSyncStatus('connected');
-        }catch(e){
-          console.error('Silent Drive reconnect failed:',e);
-          updateSyncStatus('error');
-        }
-      }
-    });
-    silentClient.requestAccessToken({prompt:'none'});
-  }catch(e){
-    window.__ftDriveSilentInFlight = false;
-    console.error('Silent Drive reconnect setup failed:',e);
-  }
+  return false;
 }
 
 async function tryRestoreDriveSession(){
   if(!getClientId() || !driveOriginSupported()) return;
-  if(localStorage.getItem('fintrack_drive_consented') !== '1') return;
   if(driveInteractiveAuthInFlight) return;
 
-  // 1) Reuse a still-valid token from this tab first.
   const cached = loadTokenFromSession();
-  if(cached){
-    driveAccessToken = cached;
-    updateSyncStatus('syncing');
-    try{
-      const f = await driveFindFile();
-      if(f){ driveFileId = f.id; driveLastRemoteModified = f.modifiedTime || null; }
-      updateSyncStatus('connected');
-      return;
-    }catch(e){
-      console.warn('Cached Drive token rejected:', e);
-      clearTokenFromSession();
-      driveAccessToken = null;
-    }
+  if(!cached){
+    driveAccessToken = null;
+    updateSyncStatus('disconnected');
+    return;
   }
 
-  // 2) Restore the previous Google authorization silently. This must NEVER
-  // pull/overwrite application data and must never race a manual click.
-  if(typeof google !== 'undefined' && google.accounts){
-    autoReconnectDriveSilently();
+  driveAccessToken = cached;
+  updateSyncStatus('syncing');
+  try{
+    const f = await driveFindFile();
+    if(f){
+      driveFileId = f.id;
+      driveLastRemoteModified = f.modifiedTime || null;
+    }
+    updateSyncStatus('connected');
+  }catch(e){
+    console.warn('Cached Drive token rejected:', e);
+    clearTokenFromSession();
+    driveAccessToken = null;
+    driveFileId = null;
+    updateSyncStatus('disconnected');
   }
 }
 
-// Called by the Google GSI script exactly once when the library is ready.
-// This is the RELIABLE hook — replaces the unreliable 700ms setTimeout hack.
 function onGoogleLibraryLoad(){
   if(!getClientId() || !driveOriginSupported()) return;
   initGoogleAuth();
@@ -3199,13 +3169,10 @@ window.addEventListener('load', ()=>{
     updateSyncStatus('error');
     return;
   }
-  // If the GSI script was already cached and loaded before our code ran,
-  // onGoogleLibraryLoad may never fire — handle that case here.
   if(typeof google !== 'undefined' && google.accounts){
     initGoogleAuth();
     tryRestoreDriveSession();
   }
-  // Otherwise onGoogleLibraryLoad() will fire when the script finishes loading.
 });
 
 /* ---------------------------- NAVIGATION ---------------------------- */
@@ -6047,6 +6014,12 @@ const submitHandlers = {
     // modal DOM untouched until Google returns. Re-rendering/closing the modal
     // here is unnecessary and can interfere with the popup lifecycle.
     if(driveInteractiveAuthInFlight) return;
+    const cachedToken = loadTokenFromSession();
+    if(cachedToken){
+      driveAccessToken = cachedToken;
+      updateSyncStatus('connected');
+      return;
+    }
     localStorage.removeItem('fintrack_drive_consented');
     driveInteractiveAuthInFlight = true;
     try{

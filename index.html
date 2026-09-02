@@ -2786,33 +2786,30 @@ function disconnectDrive(){
 // tokenClient (no popup/consent screen — just a token refresh). Resolves
 // with the new token, or rejects if a silent refresh isn't possible
 // (e.g. the user needs to reconnect manually).
-function silentRefreshToken(){
-  return new Promise((resolve, reject)=>{
-    if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
-    if(!tokenClient) initGoogleAuth();
-    if(!tokenClient){ reject(new Error('No client ID configured')); return; }
-    const prevCallback = tokenClient.callback;
-    tokenClient.callback = (resp)=>{
-      tokenClient.callback = prevCallback;
-      if(resp.error){ reject(new Error(resp.error)); return; }
-      driveAccessToken = resp.access_token;
-      resolve(resp.access_token);
-    };
-    tokenClient.requestAccessToken({ prompt: '' });
-  });
-}
-
-// Wraps fetch() with the current Drive access token, and — if the token
-// has expired (401) — does ONE silent refresh + retry before giving up.
-// This is what fixes the "sync error" that used to appear silently: an
-// expired token now recovers on its own instead of failing outright.
-async function driveApiFetch(url, options, _retried){
+// Drive API requests are deliberately NEVER allowed to start Google OAuth.
+// Authentication is an explicit user action only. A failed/expired token must
+// not interrupt saving a transaction locally or open a second Google window.
+async function driveApiFetch(url, options){
   options = options || {};
-  options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + driveAccessToken });
-  const res = await fetch(url, options);
-  if(res.status === 401 && !_retried){
-    await silentRefreshToken();
-    return driveApiFetch(url, options, true);
+  const headers = Object.assign({}, options.headers || {});
+  if(driveAccessToken) headers.Authorization = 'Bearer ' + driveAccessToken;
+  const requestOptions = Object.assign({}, options, {headers});
+  let res;
+  try{
+    res = await fetch(url, requestOptions);
+  }catch(e){
+    throw new Error((LANG==='ar'?'تعذر الاتصال بخوادم Google: ':'Could not reach Google servers: ') + (e.message || 'Network error'));
+  }
+  if(res.status === 401){
+    // Do NOT call requestAccessToken here. In particular, saveDB() may have
+    // just persisted a transaction and must never turn a Drive error into an
+    // authentication popup. The caller can explicitly reconnect from Drive.
+    driveAccessToken = null;
+    driveFileId = null;
+    updateSyncStatus('disconnected');
+    throw new Error(LANG==='ar'
+      ? 'انتهت جلسة Google Drive. تم حفظ بياناتك محليًا، ويمكنك إعادة الربط من زر Google Drive.'
+      : 'Google Drive session expired. Your data was saved locally; reconnect from Google Drive when needed.');
   }
   return res;
 }
@@ -2895,15 +2892,21 @@ async function drivePushNow(){
 
 // Debounced background push, called from saveDB() on every local change.
 function queueDrivePush(){
+  // Saving the application database is always local-first. Drive is a
+  // best-effort background mirror and can NEVER trigger authentication or
+  // reject/cancel the transaction that has already been saved locally.
   if(!driveAccessToken || !driveFileId) return;
   updateSyncStatus('syncing');
   clearTimeout(pushTimer);
   pushTimer = setTimeout(async ()=>{
-    try{ await driveUpdate(driveFileId, DB); updateSyncStatus('connected'); }
-    catch(e){
-      console.error(e);
-      toast(LANG==='ar' ? 'تعذّرت مزامنة Drive — قد تحتاج لإعادة الاتصال من إعدادات Drive' : 'Drive sync failed — you may need to reconnect via Drive settings');
-      updateSyncStatus('error');
+    try{
+      await driveUpdate(driveFileId, DB);
+      updateSyncStatus('connected');
+    }catch(e){
+      console.error('Background Drive push failed:', e);
+      updateSyncStatus(driveAccessToken ? 'error' : 'disconnected');
+      // Intentionally no login request and no throw: the local transaction
+      // has already been committed by saveDB().
     }
   }, 1500);
 }

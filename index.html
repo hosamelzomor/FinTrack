@@ -1546,12 +1546,7 @@ Object.assign(GUIDE_CONTENT, {
             <button type="button" class="filter-select-btn" id="vlogs-filter-type-btn" aria-haspopup="listbox" aria-expanded="false" style="width:100%;text-align:inherit;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:9px 11px;font-size:13px;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;">
               <span id="vlogs-filter-type-label">All types</span><span aria-hidden="true">▾</span>
             </button>
-            <div id="vlogs-filter-type-menu" role="listbox" aria-multiselectable="true" style="display:none;position:absolute;z-index:80;top:100%;left:0;right:0;margin-top:5px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.28);">
-              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="fuel"> <span id="vlogs-opt-fuel">⛽ Fuel</span></label>
-              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="maintenance"> <span id="vlogs-opt-maint">🔧 Maintenance</span></label>
-              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="oil"> <span id="vlogs-opt-oil">🛢 Oil Change</span></label>
-              <label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="asset"> <span id="vlogs-opt-asset">💰 Asset</span></label>
-            </div>
+            <div id="vlogs-filter-type-menu" role="listbox" aria-multiselectable="true" style="display:none;position:absolute;z-index:80;top:100%;left:0;right:0;margin-top:5px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.28);max-height:320px;overflow:auto;"></div>
           </div>
           <div class="field" style="margin:0;flex:1;">
             <label id="vlogs-lbl-from">From</label>
@@ -2579,12 +2574,31 @@ function categoryAndDescendantIds(catId){
 function vehicleLogCategoryId(log){
   const v = vehicleById(log.vehicleId);
   if(!v) return null;
+  // New logs/edit operations may carry an explicit categoryId. Always prefer it so
+  // custom vehicle sub-categories remain attached to the log instead of being
+  // silently converted back to the built-in Fuel/Maintenance/Oil category.
+  if(log.categoryId && categoryById(log.categoryId)) return log.categoryId;
   const sets = {
     car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
     scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
   };
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
+}
+
+// All expense categories belonging to this vehicle's category tree. This includes
+// built-in categories and every custom sub-category added later.
+function vehicleCategoryOptions(vehicleId, selected){
+  const v = vehicleById(vehicleId);
+  if(!v) return '';
+  const rootId = v.type==='scooter' ? 'cat_scooter' : 'cat_car';
+  const cats = DB.categories.filter(c=>c.type==='expense' && (c.id===rootId || c.parentId===rootId));
+  const root = cats.find(c=>c.id===rootId);
+  const children = cats.filter(c=>c.parentId===rootId);
+  let html = '';
+  if(root) html += `<option value="${root.id}" ${selected===root.id?'selected':''}>${root.name} (${tt('كل البنود','all items')})</option>`;
+  children.forEach(c=>{ html += `<option value="${c.id}" ${selected===c.id?'selected':''}>└ ${c.name}</option>`; });
+  return html;
 }
 // Reverse of vehicleLogCategoryId: given a category id picked in the regular Transaction form,
 // tells us it's a vehicle-tracked category and what vehicle type / log type it implies.
@@ -4186,13 +4200,31 @@ function renderVehicleLogsPanel(){
   const typeMenu = document.getElementById('vlogs-filter-type-menu');
   const typeBtn = document.getElementById('vlogs-filter-type-btn');
   const typeLabel = document.getElementById('vlogs-filter-type-label');
+  // Type filter is category-aware and rebuilt from DB.categories on every render, so
+  // newly-created vehicle sub-categories appear without hard-coded options.
+  if(typeMenu){
+    const vehicleRootIds = new Set(DB.vehicles.map(v=>v.type==='scooter'?'cat_scooter':'cat_car'));
+    const vehicleCats = DB.categories.filter(c=>c.type==='expense' && (vehicleRootIds.has(c.id) || vehicleRootIds.has(c.parentId)));
+    const opts = vehicleCats.map(c=>`<label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="cat:${c.id}"> <span>${c.parentId ? '└ ' : '📁 '}${c.name}</span></label>`).join('');
+    typeMenu.innerHTML = opts || `<div style="padding:8px;color:var(--text-muted);">${LANG==='ar'?'لا توجد فئات مركبات':'No vehicle categories'}</div>`;
+  }
+  // Backward compatibility: old session state used fuel/maintenance/oil/asset.
+  // Convert those selections to the corresponding category IDs once.
+  const typeMap = {fuel:[],maintenance:[],oil:[],asset:[]};
+  DB.vehicles.forEach(v=>{
+    const set = v.type==='scooter' ? {fuel:'cat_scooter_fuel',maintenance:'cat_scooter_maint',oil:'cat_scooter_oil',asset:'cat_scooter_asset'} : {fuel:'cat_car_fuel',maintenance:'cat_car_maint',oil:'cat_car_oil',asset:'cat_car_asset'};
+    Object.keys(set).forEach(k=>typeMap[k].push('cat:'+set[k]));
+  });
+  _vlTypes = _vlTypes.flatMap(x=> typeMap[x] || [x]);
+  _vlTypes = [...new Set(_vlTypes)];
   const typeChecks = typeMenu ? [...typeMenu.querySelectorAll('input[type=checkbox]')] : [];
   typeChecks.forEach(cb=>{ cb.checked = _vlTypes.includes(cb.value); });
-  const typeNames = LANG==='ar' ? {fuel:'وقود', maintenance:'صيانة', oil:'تغيير زيت', asset:'مقتنيات'} : {fuel:'Fuel', maintenance:'Maintenance', oil:'Oil Change', asset:'Asset'};
   if(typeLabel){
-    if(!_vlTypes.length || _vlTypes.length===4) typeLabel.textContent = LANG==='ar' ? 'كل الأنواع' : 'All types';
-    else if(_vlTypes.length===1) typeLabel.textContent = typeNames[_vlTypes[0]] || _vlTypes[0];
-    else typeLabel.textContent = LANG==='ar' ? `${_vlTypes.length} أنواع محددة` : `${_vlTypes.length} types selected`;
+    if(!_vlTypes.length) typeLabel.textContent = LANG==='ar' ? 'كل الأنواع' : 'All types';
+    else if(_vlTypes.length===1){
+      const one = _vlTypes[0].replace(/^cat:/,'');
+      typeLabel.textContent = categoryById(one)?.name || one;
+    } else typeLabel.textContent = LANG==='ar' ? `${_vlTypes.length} أنواع محددة` : `${_vlTypes.length} types selected`;
   }
   document.getElementById('vlogs-filter-from').value = _vlFrom;
   document.getElementById('vlogs-filter-to').value = _vlTo;
@@ -4201,7 +4233,7 @@ function renderVehicleLogsPanel(){
   const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
-    .filter(l => !_vlTypes.length || _vlTypes.includes(l.type))
+    .filter(l => !_vlTypes.length || _vlTypes.includes('cat:' + vehicleLogCategoryId(l)))
     .filter(l => !_vlFrom || l.date>=_vlFrom)
     .filter(l => !_vlTo || l.date<=_vlTo)
     .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
@@ -4258,7 +4290,7 @@ function renderVehicleLogsPanel(){
       name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
       total: allVehicleLogsComputed()
         .filter(l=>l.vehicleId===v.id)
-        .filter(l => !_vlTypes.length || _vlTypes.includes(l.type))
+        .filter(l => !_vlTypes.length || _vlTypes.includes('cat:' + vehicleLogCategoryId(l)))
         .filter(l => !_vlFrom || l.date>=_vlFrom)
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
@@ -4283,10 +4315,13 @@ function renderVehicleLogsPanel(){
     typeBtn.setAttribute('aria-expanded', String(!open));
   });
   typeMenu.addEventListener('click', e=>e.stopPropagation());
-  typeMenu.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change', ()=>{
+  // Delegated change handler: renderVehicleLogsPanel rebuilds the menu dynamically,
+  // so listeners must live on the stable menu element rather than its checkboxes.
+  typeMenu.addEventListener('change', e=>{
+    if(!e.target.matches('input[type=checkbox]')) return;
     _vlTypes = [...typeMenu.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
     renderVehicleLogsPanel();
-  }));
+  });
   document.addEventListener('click', ()=>{
     if(typeMenu.style.display !== 'none'){ typeMenu.style.display='none'; typeBtn.setAttribute('aria-expanded','false'); }
   });
@@ -4944,6 +4979,8 @@ function openModal(kind, ctx={}){
     const editing = ctx.logId ? DB.vehicleLogs.find(l=>l.id===ctx.logId) : null;
     const typeVal = editing ? editing.type : 'fuel';
     const methodVal = editing ? editing.method : 'cash';
+    const fallbackCategory = editing ? vehicleLogCategoryId(editing) : (v.type==='scooter' ? 'cat_scooter_fuel' : 'cat_car_fuel');
+    const categoryVal = editing && editing.categoryId ? editing.categoryId : fallbackCategory;
     const typeLabelsShort = {fuel:tt('⛽ وقود','⛽ Fuel'), maintenance:tt('🔧 صيانة','🔧 Maint.'), oil:tt('🛢 زيت','🛢 Oil'), asset:tt('💰 مقتنيات','💰 Asset')};
     html = `<div class="modal">
       <h2>${editing ? tt('تعديل السجل','Edit Log Entry') : tt('سجل جديد','Log Entry')} — ${v.name}</h2>
@@ -4959,6 +4996,11 @@ function openModal(kind, ctx={}){
             <div class="radio-opt ${typeVal==='asset'?'selected':''}" data-val="asset">💰 ${tt('مقتنيات','Asset')}</div>
           </div>
           <input type="hidden" name="type" value="${typeVal}">
+        </div>
+        <div class="field">
+          <label>${tt('الفئة','Category')}</label>
+          <select name="categoryId" id="vlog-category-select">${vehicleCategoryOptions(v.id, categoryVal)}</select>
+          <div class="help-text" style="margin:4px 0 0;font-size:10.5px;">${tt('تقدر تضيف Sub-category جديدة تحت المركبة من صفحة الفئات، وهتظهر هنا تلقائياً.','Add a new sub-category under the vehicle category from Categories; it will appear here automatically.')}</div>
         </div>
         <div class="field-row">
           <div class="field"><label>${tt('التاريخ','Date')}</label><input type="date" name="date" value="${editing?editing.date:todayLocalISO()}" required></div>
@@ -5472,6 +5514,10 @@ const submitHandlers = {
         // expense in the account balance; the linked vehicle log is only synchronized with the
         // vehicle metadata when the new category is vehicle-aware.
         const newVehicleInfo = categoryVehicleInfo(data.categoryId);
+        // Keep the vehicle log financially linked even when the user changes the
+        // transaction to a normal expense category. The category is classification,
+        // not permission to remove the expense from the account balance.
+        linkedVehicleLog.categoryId = data.categoryId;
         if(newVehicleInfo){
           linkedVehicleLog.type = newVehicleInfo.logType;
           if(newVehicleInfo.logType!=='maintenance') linkedVehicleLog.partId = null;
@@ -5658,7 +5704,7 @@ const submitHandlers = {
       accountId = acc.id; currency = acc.currency;
     }
     const noteTxt = `${v.name} — ${data.type}${data.note?': '+data.note:''}`;
-    const catId = vehicleLogCategoryId({vehicleId: v.id, type: data.type});
+    const catId = data.categoryId && categoryById(data.categoryId) ? data.categoryId : vehicleLogCategoryId({vehicleId: v.id, type: data.type});
 
     if(data.logId){
       // Editing an existing log entry. Keep its linked transaction (if any) in sync, creating
@@ -5684,7 +5730,7 @@ const submitHandlers = {
         odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
         litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
         partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
-        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId, categoryId: catId
       });
       saveDB(); toast(tt('اتحدث السجل','Log entry updated'));
       return;
@@ -5704,7 +5750,7 @@ const submitHandlers = {
       amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
       litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
       partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
-      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
+      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId, categoryId: catId
     });
     saveDB(); toast(tt('اتسجل السجل','Log entry saved'));
   },

@@ -1176,6 +1176,24 @@
     #guide-root .g-table-wrap table { width:100%; min-width:0 !important; table-layout:fixed; }
     #guide-root .g-table-wrap th, #guide-root .g-table-wrap td { white-space:normal; overflow-wrap:anywhere; word-break:normal; }
   }
+
+  /* Vehicle All Logs multi-select checkboxes must not inherit the global .field input width rules. */
+  #vlogs-filter-type-menu .vlog-type-option .vlog-type-checkbox{
+    width:14px !important;
+    min-width:14px !important;
+    max-width:14px !important;
+    height:14px !important;
+    min-height:14px !important;
+    margin:0 !important;
+    padding:0 !important;
+    flex:0 0 14px !important;
+    appearance:auto;
+    cursor:pointer;
+  }
+  #vlogs-filter-type-menu .vlog-type-option{
+    line-height:1.25;
+    white-space:normal;
+  }
 </style>
 <script>
   // Match guide-tab button labels (icon + text) to the current language.
@@ -2929,6 +2947,9 @@ async function drivePushNow(){
 
 // Debounced background push, called from saveDB() on every local change.
 function queueDrivePush(){
+  // Background saves are strictly local-first. Never call connectDrive() or
+  // request interactive OAuth from here. If there is no active token/file,
+  // the transaction is already safely stored in localStorage and stops here.
   if(!driveAccessToken || !driveFileId) return;
   updateSyncStatus('syncing');
   clearTimeout(pushTimer);
@@ -2961,18 +2982,58 @@ document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
   else connectDrive();
 });
 
+// Restore an existing Drive session without ever opening the interactive
+// Google login window.  Interactive OAuth is ONLY allowed when the user
+// explicitly clicks "Connect Google Drive".  This is important because
+// saveDB()/transaction saves must never trigger authentication UI.
+function autoReconnectDriveSilently(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  if(typeof google === 'undefined' || !google.accounts) return;
+  const clientId = getClientId();
+  try{
+    const silentClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      callback: async (resp)=>{
+        if(resp.error){
+          // Silent reconnect can legitimately fail when the Google session
+          // has expired. Do NOT show a login popup or error toast here.
+          driveAccessToken = null;
+          return;
+        }
+        driveAccessToken = resp.access_token;
+        try{
+          // Do not pull/overwrite local data during automatic reconnect.
+          // The user can explicitly use Drive Sync > Pull when needed.
+          const f = await driveFindFile();
+          if(f){
+            driveFileId = f.id;
+            driveLastRemoteModified = f.modifiedTime || null;
+          }
+          updateSyncStatus('connected');
+        }catch(e){
+          console.error('Silent Drive reconnect failed:', e);
+          updateSyncStatus('error');
+        }
+      }
+    });
+    silentClient.requestAccessToken({prompt:'none'});
+  }catch(e){
+    console.error('Silent Drive reconnect setup failed:', e);
+  }
+}
+
 window.addEventListener('load', ()=>{
   if(getClientId()){
     if(!driveOriginSupported()){
-      // Do not repeatedly trigger Google OAuth errors when the user opened
-      // the HTML file directly via file://.
       updateSyncStatus('error');
       return;
     }
     initGoogleAuth();
     if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // Reconnect silently only from a supported origin.
-      setTimeout(()=>{ if(tokenClient) connectDrive(); }, 700);
+      // NEVER call connectDrive() here: that function is interactive and may
+      // open the Google login window. Use a true silent token request.
+      setTimeout(autoReconnectDriveSilently, 700);
     }
   }
 });
@@ -4203,10 +4264,15 @@ function renderVehicleLogsPanel(){
   // Type filter is category-aware and rebuilt from DB.categories on every render, so
   // newly-created vehicle sub-categories appear without hard-coded options.
   if(typeMenu){
-    const vehicleRootIds = new Set(DB.vehicles.map(v=>v.type==='scooter'?'cat_scooter':'cat_car'));
+    // Show only the category tree that belongs to the selected vehicle type.
+    // When "All vehicles" is selected, show both Car and Scooter trees.
+    const selectedVehicle = _vlVehicle!=='all' ? vehicleById(_vlVehicle) : null;
+    const vehicleRootIds = selectedVehicle
+      ? new Set([selectedVehicle.type==='scooter' ? 'cat_scooter' : 'cat_car'])
+      : new Set(DB.vehicles.map(v=>v.type==='scooter'?'cat_scooter':'cat_car'));
     const vehicleCats = DB.categories.filter(c=>c.type==='expense' && (vehicleRootIds.has(c.id) || vehicleRootIds.has(c.parentId)));
-    const opts = vehicleCats.map(c=>`<label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;"><input type="checkbox" value="cat:${c.id}"> <span>${c.parentId ? '└ ' : '📁 '}${c.name}</span></label>`).join('');
-    typeMenu.innerHTML = opts || `<div style="padding:8px;color:var(--text-muted);">${LANG==='ar'?'لا توجد فئات مركبات':'No vehicle categories'}</div>`;
+    const opts = vehicleCats.map(c=>`<label class="vlog-type-option" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;min-height:28px;"><input class="vlog-type-checkbox" type="checkbox" value="cat:${c.id}"> <span>${c.parentId ? '└ ' : '📁 '}${c.name}</span></label>`).join('');
+    typeMenu.innerHTML = opts || `<div style="padding:8px;color:var(--text-muted);">${LANG==='ar'?'لا توجد فئات لهذه المركبة':'No categories for this vehicle'}</div>`;
   }
   // Backward compatibility: old session state used fuel/maintenance/oil/asset.
   // Convert those selections to the corresponding category IDs once.
@@ -4217,6 +4283,9 @@ function renderVehicleLogsPanel(){
   });
   _vlTypes = _vlTypes.flatMap(x=> typeMap[x] || [x]);
   _vlTypes = [...new Set(_vlTypes)];
+  // If the vehicle changed, discard selections that do not belong to that vehicle's category tree.
+  const validTypeValues = new Set(typeMenu ? [...typeMenu.querySelectorAll('input[type=checkbox]')].map(cb=>cb.value) : []);
+  _vlTypes = _vlTypes.filter(x=>validTypeValues.has(x));
   const typeChecks = typeMenu ? [...typeMenu.querySelectorAll('input[type=checkbox]')] : [];
   typeChecks.forEach(cb=>{ cb.checked = _vlTypes.includes(cb.value); });
   if(typeLabel){

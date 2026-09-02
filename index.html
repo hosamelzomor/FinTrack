@@ -2808,12 +2808,11 @@ function connectDrive(){
   if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
   if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
-  // Always use 'select_account' for interactive sign-in so the Google popup
-  // always opens visibly. Using prompt:'' (empty) causes silent auth attempts
-  // that return interaction_required errors when the Google session has expired,
-  // forcing the user to click the button twice. 'select_account' is safe for
-  // both first-time and returning users.
-  tokenClient.requestAccessToken({ prompt: 'select_account' });
+  // Match the original working GIS flow: first connection asks for consent;
+  // subsequent manual connections can reuse the existing Google grant.
+  // Keep this call synchronous inside the user's click handler.
+  const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
+  tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
 }
 
 function describeDriveError(e){
@@ -5569,9 +5568,9 @@ function wireModal(kind){
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
         openModal('vehicle-detail', {vehicleId: data.vehicleId});
-      } else if(kind !== 'drive-setup'){
-        // drive-setup closes the modal itself (before the Google popup opens).
-        // All other modals close here after their submit handler runs.
+      } else {
+        // Keep the original modal lifecycle. For drive-setup the OAuth request
+        // has already been initiated synchronously above, so closing now is safe.
         closeModal();
       }
     }catch(err){ toast(err.message || 'Something went wrong'); }
@@ -5981,10 +5980,10 @@ const submitHandlers = {
       toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
       return;
     }
-    // Close the setup modal BEFORE opening the Google popup.
-    // Having a FinTrack modal on top of the Google consent window confuses
-    // browsers and can cause the popup to appear behind the modal overlay.
-    closeModal();
+    // IMPORTANT: requestAccessToken must run synchronously while the original
+    // form submission still carries the user's activation. Do not close or
+    // re-render the FinTrack modal before this call; the outer submit handler
+    // will perform the normal render/close after the request is initiated.
     localStorage.removeItem('fintrack_drive_consented');
     tokenClient.requestAccessToken({prompt:'consent'});
   }

@@ -2740,6 +2740,8 @@ let driveAccessToken = null;
 let driveFileId = null;
 let tokenClient = null;
 let pushTimer = null;
+// OAuth is user-initiated only. A background silent request must never race the popup.
+let driveInteractiveAuthInFlight = false;
 // Shared between autoReconnectDriveSilently and the conflict-guard IIFE.
 // Must live at outer scope so both can read and write the same variable.
 let driveLastRemoteModified = null;
@@ -2782,7 +2784,25 @@ function initGoogleAuth(){
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
     scope: DRIVE_SCOPE,
-    callback: onTokenResponse
+    callback: onTokenResponse,
+    // GIS reports popup lifecycle failures here because these cases may not
+    // reach the OAuth callback at all.
+    error_callback: (err)=>{
+      driveInteractiveAuthInFlight = false;
+      console.error('Google OAuth popup error:', err);
+      if(err?.type === 'popup_closed'){
+        updateSyncStatus('disconnected');
+        return;
+      }
+      if(err?.type === 'popup_failed_to_open'){
+        updateSyncStatus('error');
+        toast(LANG==='ar'
+          ? 'تعذر فتح نافذة Google. اسمح بالنوافذ المنبثقة لهذا الموقع ثم أعد المحاولة.'
+          : 'Google could not open the sign-in window. Allow pop-ups for this site and try again.');
+        return;
+      }
+      updateSyncStatus('error');
+    }
   });
 }
 
@@ -2808,11 +2828,20 @@ function connectDrive(){
   if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
   if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
-  // Match the original working GIS flow: first connection asks for consent;
-  // subsequent manual connections can reuse the existing Google grant.
-  // Keep this call synchronous inside the user's click handler.
-  const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
-  tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
+  // Manual connection is always an interactive OAuth request. Do not reuse a
+  // stale consent flag here: if a previous attempt failed, prompt:'' can start
+  // a silent/competing request and the Google popup may flash and close.
+  // Keep the request directly inside the user's click handler.
+  if(driveInteractiveAuthInFlight) return;
+  driveInteractiveAuthInFlight = true;
+  try{
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }catch(e){
+    driveInteractiveAuthInFlight = false;
+    console.error('Google OAuth request failed:', e);
+    updateSyncStatus('error');
+    toast((LANG==='ar'?'تعذر بدء تسجيل الدخول إلى Google: ':'Could not start Google sign-in: ') + (e.message || e));
+  }
 }
 
 function describeDriveError(e){
@@ -2827,6 +2856,7 @@ function describeDriveError(e){
 }
 
 async function onTokenResponse(resp){
+  driveInteractiveAuthInFlight = false;
   if(resp.error){
     console.error('Google OAuth error:', resp);
     // Only clear the consented flag for hard auth failures (invalid client, revoked access).
@@ -2843,6 +2873,7 @@ async function onTokenResponse(resp){
   }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
+  closeModal();
   // Cache the token in sessionStorage so page refresh restores the session
   // instantly without re-opening the Google popup (survives F5, not tab close).
   saveTokenToSession(resp.access_token, resp.expires_in || 3600);
@@ -3107,21 +3138,16 @@ async function tryRestoreDriveSession(){
       console.warn('Cached token rejected by Drive API:', e);
       clearTokenFromSession();
       driveAccessToken = null;
-      // Fall through to silent Google token below.
-      if(typeof google !== 'undefined' && google.accounts){
-        autoReconnectDriveSilently();
-      } else {
-        updateSyncStatus('error');
-      }
+      // Do not start another OAuth request automatically. The user can
+      // reconnect explicitly; this prevents background OAuth from racing the popup.
+      updateSyncStatus('disconnected');
     }
     return;
   }
 
-  // ── Path 2: silent Google token (requires active browser session) ────────
-  if(typeof google !== 'undefined' && google.accounts){
-    autoReconnectDriveSilently();
-  }
-  // If google not loaded yet, onGoogleLibraryLoad will call us again.
+  // No cached token: stay disconnected and wait for an explicit user click.
+  // Background prompt:'none' was intentionally removed because it could race
+  // with the manual OAuth popup after a refresh/session expiry.
 }
 
 // Called by the Google GSI script exactly once when the library is ready.
@@ -3129,7 +3155,6 @@ async function tryRestoreDriveSession(){
 function onGoogleLibraryLoad(){
   if(!getClientId() || !driveOriginSupported()) return;
   initGoogleAuth();
-  tryRestoreDriveSession();
 }
 
 window.addEventListener('load', ()=>{
@@ -5564,6 +5589,8 @@ function wireModal(kind){
     const data = Object.fromEntries(fd.entries());
     try{
       submitHandlers[kind](data);
+      // Google OAuth owns the modal lifecycle until its callback completes.
+      if(kind==='drive-setup') return;
       annotatePartialFillNotes();
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
@@ -5980,12 +6007,18 @@ const submitHandlers = {
       toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
       return;
     }
-    // IMPORTANT: requestAccessToken must run synchronously while the original
-    // form submission still carries the user's activation. Do not close or
-    // re-render the FinTrack modal before this call; the outer submit handler
-    // will perform the normal render/close after the request is initiated.
+    // IMPORTANT: start OAuth synchronously from the submit click and leave the
+    // modal DOM untouched until Google returns. Re-rendering/closing the modal
+    // here is unnecessary and can interfere with the popup lifecycle.
+    if(driveInteractiveAuthInFlight) return;
     localStorage.removeItem('fintrack_drive_consented');
-    tokenClient.requestAccessToken({prompt:'consent'});
+    driveInteractiveAuthInFlight = true;
+    try{
+      tokenClient.requestAccessToken({prompt:'consent'});
+    }catch(e){
+      driveInteractiveAuthInFlight = false;
+      throw e;
+    }
   }
 };
 

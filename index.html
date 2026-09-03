@@ -166,7 +166,9 @@
   .grid{display:grid;gap:16px;}
   .grid.cols-3{grid-template-columns:repeat(3,1fr);}
   .grid.cols-2{grid-template-columns:2fr 1fr;}
-  @media(max-width:900px){.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:900px){.grid.cols-3,.grid.cols-2,.grid.cols-4{grid-template-columns:1fr;}}
+  @media(max-width:640px){.grid.cols-4{grid-template-columns:repeat(2,1fr);}}
 
   .card{
     background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
@@ -723,10 +725,10 @@
 <script>
   // Match guide-tab button labels (icon + text) to the current language.
   var GUIDE_TAB_LABELS = {
-    en: {overview:'🧭 Overview', accounts:'🏦 Accounts', transactions:'💸 Transactions',
+    en: {overview:'🧭 Overview', accounts:'🏦 Accounts', wealth:'💎 Wealth', transactions:'💸 Transactions',
       categories:'🏷️ Categories', commitments:'🔄 Commitments', vehicles:'🚗 Vehicles',
       budgets:'🎯 Budgets', reports:'📈 Reports', drive:'☁️ Google Drive'},
-    ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', transactions:'💸 المعاملات',
+    ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', wealth:'💎 الثروة', transactions:'💸 المعاملات',
       categories:'🏷️ الفئات', commitments:'🔄 الالتزامات', vehicles:'🚗 المركبات',
       budgets:'🎯 الميزانيات', reports:'📈 التقارير', drive:'☁️ Google Drive'}
   };
@@ -751,6 +753,10 @@
     accounts: {
       ar: {'guide-content-accounts': '<div class="g-section-title">🏦 الحسابات (Accounts)</div><p class="g-p">الحسابات هي الأساس اللي بتقوم عليه كل حاجة. كل معاملة لازم تكون مربوطة بحساب معين.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash — كاش</div><div class="g-card-body">الفلوس اللي معاك في إيدك أو في الدرج. مثال: "محفظتي"، "كاش البيت".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank — بنك</div><div class="g-card-body">حساباتك البنكية. تقدر تضيف أكثر من حساب لو عندك أكثر من بنك.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">محافظ إلكترونية زي فودافون كاش، اورنج موني، إنستاباي.</div></div></div><div class="g-section-title">إضافة حساب جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">افتح صفحة Accounts</div><div class="g-step-desc">من القائمة الجانبية اضغط على <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">اضغط Add Account</div><div class="g-step-desc">هيفتح نموذج — اكتب اسم الحساب وحدد نوعه وعملته.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">حدد الرصيد الافتتاحي</div><div class="g-step-desc">أدخل الرصيد الفعلي الموجود دلوقتي في الحساب. ده المبلغ اللي بيبدأ منه النظام الحساب.</div></div></div></div><div class="g-callout warning">⚠️ <strong>مهم جداً:</strong> الرصيد الافتتاحي لازم يكون دقيق. لو غلطت فيه، كل أرصدتك هتبقى غلط. استخدم زر <strong>Reconcile</strong> بعد كده عشان تصحح أي فرق.</div><div class="g-section-title">Reconcile — مطابقة الأرصدة</div><p class="g-p">لو لاحظت فرق بين رصيد النظام والرصيد الحقيقي، استخدم زر <strong>Reconcile</strong> بجانب كل حساب. النظام هيسألك عن الرصيد الحقيقي ويسجّل معاملة تعديل تلقائياً.</p><div class="g-section-title">أسعار الصرف</div><p class="g-p">لو عندك حسابات بعملات مختلفة (دولار، ريال..)، ضبط أسعار الصرف من نفس الصفحة. النظام بيحوّل كل حاجة لـ EGP في التقارير والداشبورد.</p>'},
       en: {'guide-content-accounts': '<div class="g-section-title">🏦 Accounts</div><p class="g-p">Accounts are the foundation everything else builds on. Every transaction must be linked to a specific account.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash</div><div class="g-card-body">Money in your hand or at home. Example: "My wallet", "Cash at home".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank</div><div class="g-card-body">Your bank accounts. You can add more than one if you bank with several banks.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">E-wallets like Vodafone Cash, Orange Money, InstaPay.</div></div></div><div class="g-section-title">Adding a New Account</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open the Accounts page</div><div class="g-step-desc">From the sidebar, click <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Click Add Account</div><div class="g-step-desc">A form opens — enter the account name and choose its type and currency.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Set the opening balance</div><div class="g-step-desc">Enter the actual balance currently in the account. This is the starting point the system calculates from.</div></div></div></div><div class="g-callout warning">⚠️ <strong>Very important:</strong> The opening balance needs to be accurate. Get it wrong and every balance downstream will be wrong too. Use the <strong>Reconcile</strong> button afterward to fix any discrepancy.</div><div class="g-section-title">Reconcile — Matching Balances</div><p class="g-p">If you notice a difference between the system balance and the real one, use the <strong>Reconcile</strong> button next to that account. The system will ask for the real balance and automatically log an adjustment transaction.</p><div class="g-section-title">Exchange Rates</div><p class="g-p">If you have accounts in different currencies (USD, SAR...), set the exchange rates on the same page. The system converts everything to EGP in reports and the dashboard.</p>'}
+    },
+    wealth: {
+      ar: {'guide-content-wealth': '<div class="g-section-title">💎 الثروة (Wealth)</div><p class="g-p">صفحة الثروة بتديك نظرة شاملة على صافي ثروتك الحقيقي — مش بس أرصدة الحسابات، لكن كمان الأصول والمركبات وخصم الالتزامات.</p><div class="g-callout tip">🧮 <strong>معادلة صافي الثروة:</strong> أرصدة الحسابات + الأصول + القيمة السوقية للمركبات − الالتزامات (كل حاجة بتتحول لجنيه مصري تلقائياً حسب أسعار الصرف).</div><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 الأصول (Assets)</div><div class="g-card-body">أي حاجة ليها قيمة مالية عندك: شقة، ذهب، محفظة استثمار.. أضفها من صفحة الثروة بقيمتها الحالية وعملتها.</div></div><div class="g-card"><div class="g-card-title">📉 الالتزامات (Liabilities)</div><div class="g-card-body">أي مبلغ متبقي عليك: قرض، دين شخصي.. بيتخصم من صافي الثروة تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🚗 قيمة المركبات</div><div class="g-card-body">حدد القيمة السوقية الحالية لكل مركبة من صفحة المركبات — وهتدخل في حساب الثروة تلقائياً.</div></div></div><div class="g-section-title">🗑️ الحذف الآمن والاسترجاع (Soft Delete)</div><p class="g-p">لما تحذف معاملة، النظام مش بيمسحها نهائياً — بينقلها لسلة المحذوفات وبيستبعدها من كل الحسابات والتقارير والميزانيات فوراً. تقدر تسترجعها في أي وقت من فلتر <strong>المحذوفة</strong> في صفحة المعاملات.</p><div class="g-callout warning">⚠️ المعاملة المحذوفة بتفضل محفوظة في النظام لحد ما تسترجعها أو الفلتر يوريها — مفيش حذف نهائي.</div><div class="g-section-title">📊 الرصيد بعد كل معاملة (Running Balance)</div><p class="g-p">لما تفلتر صفحة المعاملات بحساب معين، هيظهر عمود إضافي <strong>الرصيد بعد</strong> بيوريك رصيد الحساب لحظة بلحظة بعد كل معاملة، مرتب زمنياً من الرصيد الافتتاحي. الرصيد ده بيفضل صحيح حتى لو فلترت كمان بالفئة أو النوع أو الشهر.</p><div class="g-section-title">🗂️ الحسابات المخفية / المؤرشفة</div><p class="g-p">تقدر تخفي أي حساب قديم مش بتستخدمه من قائمة الحسابات الرئيسية (بدون ما تحذفه أو تفقد بياناته). الحساب المخفي بيفضل متاح في قسم <strong>Hidden / Archived Accounts</strong> بنفس الصفحة، وتقدر تظهره تاني في أي وقت.</p><div class="g-section-title">🧾 سجل المطابقة (Reconciliation History)</div><p class="g-p">كل مرة تعمل <strong>Reconcile</strong> لحساب (فردي أو Reconcile All)، النظام بيسجل التاريخ والرصيد قبل وبعد والفرق في سجل تاريخي تحت جدول أسعار الصرف في صفحة الحسابات — عشان تقدر تراجع تصحيحاتك القديمة. تعديلات المطابقة دي بتأثر على رصيد الحساب بس مش بتتحسب كدخل أو مصروف في التقارير.</p>'},
+      en: {'guide-content-wealth': '<div class="g-section-title">💎 Wealth</div><p class="g-p">The Wealth page gives you a full picture of your real net worth &mdash; not just account balances, but assets and vehicles too, minus your liabilities.</p><div class="g-callout tip">🧮 <strong>Net Worth formula:</strong> Account Balances + Assets + Vehicle Market Values &minus; Liabilities (everything is auto-converted to EGP using the exchange rates).</div><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Assets</div><div class="g-card-body">Anything with financial value: an apartment, gold, an investment portfolio... Add it from the Wealth page with its current value and currency.</div></div><div class="g-card"><div class="g-card-title">📉 Liabilities</div><div class="g-card-body">Any amount still owed: a loan, a personal debt... automatically subtracted from net worth.</div></div><div class="g-card"><div class="g-card-title">🚗 Vehicle Values</div><div class="g-card-body">Set the current market value for each vehicle from the Vehicles page (the &quot;Current market value&quot; field) &mdash; it flows into the net worth calculation automatically.</div></div></div><div class="g-section-title">🗑️ Soft Delete &amp; Restore</div><p class="g-p">When a transaction is deleted, the system does not erase it &mdash; it moves it to a &quot;Deleted&quot; bucket and immediately excludes it from every balance, report, and budget. It can be restored any time from the <strong>Deleted</strong> filter on the Transactions page.</p><div class="g-callout warning">⚠️ A deleted transaction stays stored in the system until it is restored or viewed via the filter &mdash; nothing is permanently erased.</div><div class="g-section-title">📊 Running Balance</div><p class="g-p">When the Transactions page is filtered by a specific account, an extra <strong>Balance After</strong> column appears, showing the account balance moment-by-moment after each transaction, ordered chronologically from the opening balance. This stays accurate even when also filtering by category, type, or month.</p><div class="g-section-title">🗂️ Hidden / Archived Accounts</div><p class="g-p">Any old account no longer in use can be hidden from the main Accounts list (without deleting it or losing its data). A hidden account stays available in the <strong>Hidden / Archived Accounts</strong> section on the same page, and can be unhidden at any time.</p><div class="g-section-title">🧾 Reconciliation History</div><p class="g-p">Every time an account is Reconciled (single or Reconcile All), the system logs the date, the before/after balance, and the difference in a history table beneath the exchange rates on the Accounts page &mdash; so past corrections can always be reviewed. These reconciliation adjustments affect the account balance but are never counted as income or expense in reports.</p>'}
     },
     transactions: {
       ar: {'guide-content-transactions': '<div class="g-section-title">💸 المعاملات (Transactions)</div><p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span> مصروف</div><div class="g-card-body">أي حاجة بتصرفها: أكل، مواصلات، فواتير، إيجار. بتخصم من رصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span> دخل</div><div class="g-card-body">أي حاجة بتدخل: مرتب، فلوس من حد، أرباح. بتضيف لرصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span> تحويل</div><div class="g-card-body">نقل فلوس من حساب لحساب تاني عندك. مش مصروف ولا دخل — بس إعادة توزيع.</div></div></div><div class="g-section-title">حقول المعاملة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense / Income / Transfer</td><td>لازم يتحدد أول حاجة</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr><tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr><tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr><tr><td><strong>الفئة</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr><tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت فئة مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div><div class="g-section-title">البحث والفلترة</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>النوع:</strong> All / Income / Expense / Transfers<br><strong>الشهر:</strong> اعرض معاملات شهر معين<br><strong>الحساب:</strong> معاملات حساب معين<br><strong>الفئة:</strong> من القائمة المنسدلة الشجرية<br><strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ</div></div>'},
@@ -809,6 +815,7 @@
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
       <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
       <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
+      <button data-view="wealth"><span class="ic">💎</span><span class="lbl">Wealth</span></button>
       <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
       <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
@@ -874,11 +881,68 @@
         </table>
       </div>
 
+      <div class="table-wrap" id="hidden-accounts-wrap" style="display:none;">
+        <div class="head-row"><h3 id="hidden-accounts-title">Hidden / Archived Accounts</h3></div>
+        <table>
+          <thead><tr><th id="th-hacc-name">Name</th><th id="th-hacc-type">Type</th><th id="th-hacc-cur">Currency</th><th class="amt" id="th-hacc-opening">Opening</th><th class="amt" id="th-hacc-curbal">Current Balance</th><th></th></tr></thead>
+          <tbody id="hidden-accounts-body"></tbody>
+        </table>
+      </div>
+
       <div class="section-title" id="exchange-rates-title">Exchange Rates<span class="hint" id="exchange-rates-hint">used to convert balances to EGP</span></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th id="th-fx-cur">Currency</th><th class="amt" id="th-fx-rate">Rate to EGP</th><th></th></tr></thead>
           <tbody id="fx-body"></tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap" id="recon-history-wrap">
+        <div class="head-row"><h3 id="recon-history-title">Reconciliation History</h3></div>
+        <table>
+          <thead><tr><th id="th-recon-date">Date</th><th id="th-recon-acc">Account</th><th class="amt" id="th-recon-sys">System</th><th class="amt" id="th-recon-actual">Actual</th><th class="amt" id="th-recon-diff">Difference</th><th id="th-recon-src">Source</th></tr></thead>
+          <tbody id="recon-history-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- WEALTH -->
+    <section class="view" id="view-wealth">
+      <div class="topbar">
+        <div><h1 id="wealth-h1">Wealth</h1><div class="today" id="wealth-sub">Net worth, assets & liabilities</div></div>
+      </div>
+      <div class="grid cols-4" id="wealth-cards"></div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-assets-title">Assets</h3>
+        <button class="btn" data-open-modal="asset" id="wealth-new-asset-btn">+ New Asset</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-a-name">Name</th><th id="th-wealth-a-cur">Currency</th><th class="amt" id="th-wealth-a-val">Value</th><th class="amt" id="th-wealth-a-valegp">Value (EGP)</th><th id="th-wealth-a-note">Note</th><th></th></tr></thead>
+          <tbody id="wealth-assets-body"></tbody>
+        </table>
+      </div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-liabilities-title">Liabilities</h3>
+        <button class="btn" data-open-modal="liability" id="wealth-new-liability-btn">+ New Liability</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-l-name">Name</th><th id="th-wealth-l-cur">Currency</th><th class="amt" id="th-wealth-l-val">Remaining</th><th class="amt" id="th-wealth-l-valegp">Value (EGP)</th><th id="th-wealth-l-note">Note</th><th></th></tr></thead>
+          <tbody id="wealth-liabilities-body"></tbody>
+        </table>
+      </div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-vehicles-title">Vehicle Market Values</h3>
+      </div>
+      <div class="help-text" id="wealth-vehicles-hint">Set each vehicle's current market value from the Vehicles page — it's included in Net Worth automatically below.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-v-name">Vehicle</th><th class="amt" id="th-wealth-v-val">Current Value (EGP)</th></tr></thead>
+          <tbody id="wealth-vehicles-body"></tbody>
         </table>
       </div>
     </section>
@@ -923,7 +987,7 @@
       <div class="pill-row" id="txn-filters"></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th></th></tr></thead>
+          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th class="amt" id="th-txn-balance" style="display:none;">Balance After</th><th></th></tr></thead>
           <tbody id="txn-body"></tbody>
         </table>
       </div>
@@ -982,15 +1046,18 @@
             <label id="vlogs-lbl-vehicle">Vehicle</label>
             <select id="vlogs-filter-vehicle"></select>
           </div>
-          <div class="field" style="margin:0;min-width:150px;flex:1;">
+          <div class="field" style="margin:0;min-width:150px;flex:1;position:relative;">
             <label id="vlogs-lbl-type">Type</label>
-            <select id="vlogs-filter-type">
-              <option value="all" id="vlogs-opt-all">All types</option>
-              <option value="fuel" id="vlogs-opt-fuel">⛽ Fuel</option>
-              <option value="maintenance" id="vlogs-opt-maint">🔧 Maintenance</option>
-              <option value="oil" id="vlogs-opt-oil">🛢 Oil Change</option>
-              <option value="asset" id="vlogs-opt-asset">💰 Asset</option>
-            </select>
+            <button type="button" id="vlogs-type-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <span id="vlogs-type-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">All types</span><span style="flex:none;font-size:10px;">▾</span>
+            </button>
+            <div id="vlogs-type-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:200px;max-height:260px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+              <div style="padding:4px 0;" id="vlogs-type-list"></div>
+              <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
+                <button type="button" class="btn ghost sm" id="vlogs-type-all">All</button>
+                <button type="button" class="btn ghost sm" id="vlogs-type-none">Clear</button>
+              </div>
+            </div>
           </div>
           <div class="field" style="margin:0;flex:1;">
             <label id="vlogs-lbl-from">From</label>
@@ -1125,6 +1192,7 @@
         <div class="guide-tabs" id="guide-tabs">
           <button class="guide-tab active" data-tab="overview">🧭 نظرة عامة</button>
           <button class="guide-tab" data-tab="accounts">🏦 الحسابات</button>
+          <button class="guide-tab" data-tab="wealth">💎 الثروة</button>
           <button class="guide-tab" data-tab="transactions">💸 المعاملات</button>
           <button class="guide-tab" data-tab="categories">🏷️ الفئات</button>
           <button class="guide-tab" data-tab="commitments">🔄 الالتزامات</button>
@@ -1206,6 +1274,11 @@
           <div class="g-section-title">أسعار الصرف</div>
           <p class="g-p">لو عندك حسابات بعملات مختلفة (دولار، ريال..)، ضبط أسعار الصرف من نفس الصفحة. النظام بيحوّل كل حاجة لـ EGP في التقارير والداشبورد.</p>
           </div>
+        </div>
+
+        <!-- ===== TAB: WEALTH ===== -->
+        <div class="guide-panel" id="guide-tab-wealth">
+          <div id="guide-content-wealth"></div>
         </div>
 
         <!-- ===== TAB: TRANSACTIONS ===== -->
@@ -1496,6 +1569,7 @@ function migrateDB(db){
     if(v.tankRangeKm===undefined) v.tankRangeKm = null;
   });
   db.fuelPricePerLiter = db.fuelPricePerLiter || 22.25;
+  db.vehicles.forEach(v=>{ if(v.currentValue===undefined) v.currentValue = null; });
   db.vehicleParts = db.vehicleParts || [];
   db.vehicleParts.forEach(p=>{
     if(p.intervalType===undefined) p.intervalType = 'km';
@@ -1505,7 +1579,29 @@ function migrateDB(db){
   db.vehicleLogs = db.vehicleLogs || [];
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
-  (db.accounts||[]).forEach(a=>{ if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false; });
+  db.assets = db.assets || [];
+  db.liabilities = db.liabilities || [];
+  db.reconciliations = db.reconciliations || [];
+  (db.accounts||[]).forEach(a=>{
+    if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false;
+    if(a.hiddenFromAccountsList===undefined) a.hiddenFromAccountsList = false;
+  });
+  // Transactions: createdAt / deletedAt normalization — idempotent & non-destructive.
+  // Existing transactions (that never had createdAt) get a safe fallback derived from their
+  // date plus original array position, so same-date ties keep their current relative order
+  // instead of being shuffled around once createdAt-based ordering is turned on everywhere.
+  (db.transactions||[]).forEach((tx,idx)=>{
+    if(tx.deletedAt===undefined) tx.deletedAt = null;
+    if(!tx.createdAt){
+      const base = tx.date ? new Date(tx.date+'T00:00:00').getTime() : Date.now();
+      tx.createdAt = (isNaN(base)?Date.now():base) + idx;
+    }
+    // Missing transaction currency where it can safely be inferred from the linked account.
+    if(!tx.currency){
+      const acc = (db.accounts||[]).find(a=>a.id===tx.accountId);
+      tx.currency = acc ? acc.currency : 'EGP';
+    }
+  });
   const catIds = new Set((db.categories||[]).map(c=>c.id));
   const defaultCats = [
     { id:'cat_car', name:'مصاريف العربية (Car Expenses)', type:'expense', parentId:null },
@@ -1565,6 +1661,9 @@ function seedDB(){
     vehicleParts: [],
     fuelPricePerLiter: 22.25,
     budgets: [],
+    assets: [],
+    liabilities: [],
+    reconciliations: [],
     fxRates: [
       { currency: 'EGP', rateToEGP: 1 },
       { currency: 'SAR', rateToEGP: 13.68 },
@@ -1621,7 +1720,7 @@ function categoryById(id){ return DB.categories.find(c=>c.id===id); }
 
 function accountBalance(acc){
   let bal = Number(acc.openingBalance)||0;
-  DB.transactions.forEach(t=>{
+  activeTransactions().forEach(t=>{
     if(t.accountId !== acc.id) return;
     if(t.type === 'income') bal += Number(t.amount);
     else if(t.type === 'expense') bal -= Number(t.amount);
@@ -1633,6 +1732,36 @@ function accountBalance(acc){
 
 function netWorthEGP(){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
+}
+
+/* ---------------------------- SOFT DELETE / ORDERING ---------------------------- */
+// Single source of truth for "is this transaction still active" — every calculation that
+// represents live data (balances, reports, budgets, dashboards...) must go through this
+// instead of reading DB.transactions directly, or soft-deleted rows leak back into totals.
+function activeTransactions(){ return DB.transactions.filter(tx=>!tx.deletedAt); }
+function deletedTransactionsList(){ return DB.transactions.filter(tx=>!!tx.deletedAt); }
+// Reconciliation adjustments move money but aren't a "real" income/expense — reports, budgets
+// and category totals must exclude them so a balance fix never looks like spending or earning.
+function isAdjustmentCategory(catId){ return catId==='cat_adjustment' || catId==='cat_adjustment_inc'; }
+// Canonical chronological ordering used everywhere transactions are listed or accumulated:
+// 1) transaction date, 2) createdAt as a secondary/tiebreaker, 3) array position as a last resort.
+function compareTxnChronological(a,b){
+  if(a.date!==b.date) return (a.date||'') < (b.date||'') ? -1 : 1;
+  const ca = a.createdAt||0, cb = b.createdAt||0;
+  if(ca!==cb) return ca-cb;
+  return 0;
+}
+
+/* ---------------------------- WEALTH ---------------------------- */
+function totalAssetsEGP(){ return (DB.assets||[]).reduce((s,a)=> s + toEGP(a.value, a.currency), 0); }
+function totalWealthLiabilitiesEGP(){ return (DB.liabilities||[]).reduce((s,l)=> s + toEGP(l.value, l.currency), 0); }
+function totalVehicleValueEGP(){ return (DB.vehicles||[]).reduce((s,v)=> s + (Number(v.currentValue)||0), 0); }
+// Net Worth = Account Balances + Assets + Vehicle Values − Liabilities (all converted to EGP).
+function wealthAccountBalancesEGP(){
+  return DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
+}
+function wealthNetWorthEGP(){
+  return wealthAccountBalancesEGP() + totalAssetsEGP() + totalVehicleValueEGP() - totalWealthLiabilitiesEGP();
 }
 
 // Outstanding commitments (installments/جمعية still owed) — assumed EGP, matching how commitments are entered.
@@ -1652,7 +1781,7 @@ function monthTotals(mKey){
   // excludeFromNetWorth should only affect balance/net-worth calculations, not
   // monthly income/expense totals — previously this silently dropped archived-
   // account transactions whenever the month also had at least one "live" transaction.
-  const src = DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  const src = activeTransactions().filter(t=>monthKey(t.date)===mKey && !isAdjustmentCategory(t.categoryId));
   let income=0,expense=0;
   src.forEach(t=>{
     if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
@@ -1699,13 +1828,13 @@ function isArchiveTxn(t){
   if(!acc) return false;
   return acc.excludeFromNetWorth === true;
 }
-function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
-function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
+function liveTransactions(){ return activeTransactions().filter(t=>!isArchiveTxn(t)); }
+function archiveTransactions(){ return activeTransactions().filter(t=>isArchiveTxn(t)); }
 
 /* ---------------------------- VEHICLES ---------------------------- */
 // State for the full-page "All Logs" panel (Vehicles > All Logs tab) — persists across
 // re-renders within the current page session.
-let _vlVehicle='all', _vlType='all', _vlFrom='', _vlTo='', _vlSort='desc', _vlSubtab='cards';
+let _vlVehicle='all', _vlTypes=new Set(), _vlFrom='', _vlTo='', _vlSort='desc', _vlSubtab='cards';
 function vehicleById(id){ return DB.vehicles.find(v=>v.id===id); }
 function vehicleLogsRaw(vehicleId){
   // DB.vehicleLogs is always appended to (push) and never reordered by edits, so its array index
@@ -1982,14 +2111,14 @@ function vehicleOptionsAll(selectedId){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  const txnEntries = DB.transactions.filter(t=>t.type==='expense')
+  const txnEntries = activeTransactions().filter(t=>t.type==='expense' && !isAdjustmentCategory(t.categoryId))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
   return txnEntries.concat(cmPmtEntries);
 }
 function liveExpenseEntries(){
-  const txnEntries = liveTransactions().filter(t=>t.type==='expense')
+  const txnEntries = liveTransactions().filter(t=>t.type==='expense' && !isAdjustmentCategory(t.categoryId))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
@@ -2403,7 +2532,7 @@ function renderDashboard(){
       <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
     </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">${t('empty_due_soon')}</div>`;
 
-  const recent = liveTransactions().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,8);
+  const recent = liveTransactions().sort((a,b)=> compareTxnChronological(b,a)).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(tx=>{
     const acc = accountById(tx.accountId);
     const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
@@ -2419,11 +2548,10 @@ function renderDashboard(){
 }
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
-function renderAccounts(){
-  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
-    const bal = accountBalance(a);
-    return `<tr>
-      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
+function accountRowHTML(a, archivedView){
+  const bal = accountBalance(a);
+  return `<tr>
+      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}${a.hiddenFromAccountsList?` <span class="tag">${tt('مخفي','Hidden')}</span>`:''}</td>
       <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
       <td data-label="${t('th_currency')}">${a.currency}</td>
       <td class="amt" data-label="${t('th_opening')}">${fmtMoney(a.openingBalance)}</td>
@@ -2431,10 +2559,23 @@ function renderAccounts(){
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-reconcile-account="${a.id}">${t('btn_reconcile')}</button>
+        ${archivedView ? `<button class="btn ghost sm" data-unhide-account="${a.id}">${tt('إظهار','Unhide')}</button>` : ''}
         <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
+}
+function renderAccounts(){
+  const visible = DB.accounts.filter(a=>!a.hiddenFromAccountsList);
+  const hidden = DB.accounts.filter(a=>a.hiddenFromAccountsList);
+  document.getElementById('accounts-body').innerHTML = visible.map(a=>accountRowHTML(a,false)).join('')
+    || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
+
+  const hiddenWrap = document.getElementById('hidden-accounts-wrap');
+  if(hiddenWrap){
+    hiddenWrap.style.display = hidden.length ? 'block' : 'none';
+    const hiddenBody = document.getElementById('hidden-accounts-body');
+    if(hiddenBody) hiddenBody.innerHTML = hidden.map(a=>accountRowHTML(a,true)).join('');
+  }
 
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
@@ -2444,6 +2585,25 @@ function renderAccounts(){
           style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
       </td>
     </tr>`).join('');
+
+  const reconWrap = document.getElementById('recon-history-wrap');
+  if(reconWrap){
+    const recent = [...(DB.reconciliations||[])].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const reconBody = document.getElementById('recon-history-body');
+    if(reconBody){
+      reconBody.innerHTML = recent.map(r=>{
+        const acc = accountById(r.accountId);
+        return `<tr>
+          <td class="td-date" data-label="">${fmtDate(r.date)}</td>
+          <td data-label="${t('th_account')}">${acc?acc.name:'—'}</td>
+          <td class="amt" data-label="">${fmtMoney(r.systemBalance)}</td>
+          <td class="amt" data-label="">${fmtMoney(r.actualBalance)}</td>
+          <td class="amt ${r.difference<0?'neg':'pos'}" data-label="">${r.difference>0?'+':''}${fmtMoney(r.difference)}</td>
+          <td data-label="">${r.source==='all' ? tt('مطابقة الكل','Reconcile All') : tt('فردي','Single')}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="6" class="empty">${tt('لا يوجد سجل مطابقة بعد','No reconciliation history yet')}</td></tr>`;
+    }
+  }
 }
 
 document.getElementById('view-accounts').addEventListener('change', e=>{
@@ -2455,8 +2615,14 @@ document.getElementById('view-accounts').addEventListener('change', e=>{
 document.getElementById('view-accounts').addEventListener('click', e=>{
   const editId = e.target.dataset.editAccount;
   const reconcileId = e.target.dataset.reconcileAccount;
+  const unhideId = e.target.dataset.unhideAccount;
   if(editId) return openModal('account', {accountId: editId});
   if(reconcileId) return openModal('reconcile', {accountId: reconcileId});
+  if(unhideId){
+    const a = accountById(unhideId);
+    if(a){ a.hiddenFromAccountsList = false; saveDB(); renderAll(); toast(tt('الحساب بقى ظاهر تاني','Account is visible again')); }
+    return;
+  }
   const id = e.target.dataset.delAccount;
   if(!id) return;
   const hasTxns = DB.transactions.some(t=>t.accountId===id);
@@ -2465,6 +2631,89 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
   if(!confirm(tt(`تأكيد حذف ${acc ? acc.name : 'الحساب'}؟ الإجراء ده مش قابل للتراجع.`, `Delete ${acc ? acc.name : 'this account'}? This can't be undone.`))) return;
   DB.accounts = DB.accounts.filter(a=>a.id!==id);
   saveDB(); renderAll(); toast(t('toast_account_deleted'));
+});
+
+/* ---------------------------- RENDER: WEALTH ---------------------------- */
+function renderWealth(){
+  const cardsEl = document.getElementById('wealth-cards');
+  if(!cardsEl) return; // view not in DOM yet on very first paint
+  const balancesEGP = wealthAccountBalancesEGP();
+  const assetsEGP = totalAssetsEGP();
+  const vehiclesEGP = totalVehicleValueEGP();
+  const liabilitiesEGP = totalWealthLiabilitiesEGP();
+  const netWorth = wealthNetWorthEGP();
+  cardsEl.innerHTML = `
+    <div class="card">
+      <h3>${tt('صافي الثروة','Net Worth')}</h3>
+      <div class="big" style="color:${netWorth>=0?'var(--positive)':'var(--negative)'}">EGP ${fmtMoney(netWorth)}</div>
+      <div class="delta">${tt('أرصدة + أصول + مركبات − التزامات','Balances + Assets + Vehicles − Liabilities')}</div>
+    </div>
+    <div class="card">
+      <h3>${tt('أرصدة الحسابات','Account Balances')}</h3>
+      <div class="big">EGP ${fmtMoney(balancesEGP)}</div>
+    </div>
+    <div class="card">
+      <h3>${tt('إجمالي الأصول','Total Assets')}</h3>
+      <div class="big" style="color:var(--positive)">EGP ${fmtMoney(assetsEGP + vehiclesEGP)}</div>
+      <div class="delta">${tt('يشمل قيمة المركبات الحالية','Includes current vehicle values')}</div>
+    </div>
+    <div class="card">
+      <h3>${tt('إجمالي الالتزامات','Total Liabilities')}</h3>
+      <div class="big" style="color:var(--warning)">EGP ${fmtMoney(liabilitiesEGP)}</div>
+    </div>
+  `;
+
+  document.getElementById('wealth-assets-body').innerHTML = (DB.assets||[]).map(a=>`
+    <tr>
+      <td class="td-date" data-label="">${a.name}</td>
+      <td data-label="${t('th_currency')}">${a.currency}</td>
+      <td class="amt" data-label="">${fmtMoney(a.value)}</td>
+      <td class="amt" data-label="">${fmtMoney(toEGP(a.value, a.currency))}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${a.note||''}</td>
+      <td class="td-actions">
+        <button class="btn ghost sm" data-edit-asset="${a.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-asset="${a.id}">${t('btn_delete')}</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="6" class="empty">${tt('لا يوجد أصول بعد','No assets yet')}</td></tr>`;
+
+  document.getElementById('wealth-liabilities-body').innerHTML = (DB.liabilities||[]).map(l=>`
+    <tr>
+      <td class="td-date" data-label="">${l.name}</td>
+      <td data-label="${t('th_currency')}">${l.currency}</td>
+      <td class="amt" data-label="">${fmtMoney(l.value)}</td>
+      <td class="amt" data-label="">${fmtMoney(toEGP(l.value, l.currency))}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${l.note||''}</td>
+      <td class="td-actions">
+        <button class="btn ghost sm" data-edit-liability="${l.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-liability="${l.id}">${t('btn_delete')}</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="6" class="empty">${tt('لا يوجد التزامات بعد','No liabilities yet')}</td></tr>`;
+
+  document.getElementById('wealth-vehicles-body').innerHTML = (DB.vehicles||[]).map(v=>`
+    <tr>
+      <td data-label="${t('th_vehicle')}">${v.name}</td>
+      <td class="amt" data-label="">${v.currentValue!=null ? fmtMoney(v.currentValue) : tt('غير محدد','Not set')}</td>
+    </tr>`).join('') || `<tr><td colspan="2" class="empty">${tt('لا يوجد مركبات بعد','No vehicles yet')}</td></tr>`;
+}
+document.getElementById('view-wealth').addEventListener('click', e=>{
+  const editAssetId = e.target.dataset.editAsset;
+  if(editAssetId) return openModal('asset', {assetId: editAssetId});
+  const delAssetId = e.target.dataset.delAsset;
+  if(delAssetId){
+    if(!confirm(tt('تأكيد حذف الأصل ده؟','Delete this asset?'))) return;
+    DB.assets = DB.assets.filter(a=>a.id!==delAssetId);
+    saveDB(); renderAll(); toast(tt('تم حذف الأصل','Asset deleted'));
+    return;
+  }
+  const editLiabId = e.target.dataset.editLiability;
+  if(editLiabId) return openModal('liability', {liabilityId: editLiabId});
+  const delLiabId = e.target.dataset.delLiability;
+  if(delLiabId){
+    if(!confirm(tt('تأكيد حذف الالتزام ده؟','Delete this liability?'))) return;
+    DB.liabilities = DB.liabilities.filter(l=>l.id!==delLiabId);
+    saveDB(); renderAll(); toast(tt('تم حذف الالتزام','Liability deleted'));
+    return;
+  }
 });
 
 /* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
@@ -2491,7 +2740,8 @@ function renderTransactions(){
     {k:'all', label:t('txn_filter_all')},
     {k:'income', label:t('txn_filter_income')},
     {k:'expense', label:t('txn_filter_expense')},
-    {k:'transfer', label:t('txn_filter_transfer')}
+    {k:'transfer', label:t('txn_filter_transfer')},
+    {k:'deleted', label:tt('المحذوفة','Deleted')}
   ];
   document.getElementById('txn-filters').innerHTML = filters.map(f=>
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
@@ -2516,7 +2766,10 @@ function renderTransactions(){
     DB.accounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}${a.excludeFromNetWorth?` (${t('archived_tag')})`:''}` + '</option>').join('');
 
   // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
-  let list = [...DB.transactions].sort((a,b)=> b.date.localeCompare(a.date));
+  // The "Deleted" filter shows only soft-deleted rows; every other filter shows only active ones.
+  const showDeleted = txnFilter==='deleted';
+  let list = DB.transactions.filter(t=> showDeleted ? !!t.deletedAt : !t.deletedAt)
+    .sort((a,b)=> compareTxnChronological(b,a));
   if(txnFilter==='income') list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
@@ -2550,22 +2803,43 @@ function renderTransactions(){
   if(txnPage >= pages) txnPage = pages - 1;
   const pageSlice = list.slice(txnPage*TXN_PG, (txnPage+1)*TXN_PG);
 
+  // Running Balance: only meaningful when exactly one account is selected. Computed over that
+  // account's FULL active transaction history (chronological: date then createdAt), independent
+  // of the month/category/type/search filters, so switching those never resets the balance.
+  const balanceTh = document.getElementById('th-txn-balance');
+  let balanceMap = null;
+  if(!showDeleted && txnAccountFilterVal){
+    const balAcc = accountById(txnAccountFilterVal);
+    if(balAcc){
+      balanceMap = new Map();
+      let running = Number(balAcc.openingBalance)||0;
+      const chrono = activeTransactions().filter(t=>t.accountId===balAcc.id).sort(compareTxnChronological);
+      chrono.forEach(t=>{
+        if(t.type==='income'||t.type==='transfer_in') running += Number(t.amount);
+        else if(t.type==='expense'||t.type==='transfer_out') running -= Number(t.amount);
+        balanceMap.set(t.id, running);
+      });
+    }
+  }
+  if(balanceTh) balanceTh.style.display = balanceMap ? '' : 'none';
+
   document.getElementById('txn-body').innerHTML = pageSlice.map(tx=>{
     const acc = accountById(tx.accountId);
     const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
     const cls = tx.type==='income'||tx.type==='transfer_in' ? 'pos':'neg';
-    return `<tr>
+    const balCell = balanceMap ? `<td class="amt" data-label="${tt('الرصيد بعد','Balance After')}">${balanceMap.has(tx.id) ? fmtMoney(balanceMap.get(tx.id)) : '—'}</td>` : '';
+    return `<tr${tx.deletedAt?' style="opacity:.6;"':''}>
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="${t('th_account')}">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
       <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
+      ${balCell}
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button>
-        <button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>
+        ${tx.deletedAt ? `<button class="btn ghost sm" data-restore-txn="${tx.id}">${tt('استرجاع','Restore')}</button>` : `<button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>`}
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
 
   const pgEl = document.getElementById('txn-pagination');
   if(pgEl){
@@ -2622,13 +2896,19 @@ document.getElementById('txn-reset').addEventListener('click', ()=>{
 // the person knows the linked record won't be touched and the two may go out of sync.
 function confirmIfLinked(txnId, action){
   const src = findLinkedSource(txnId);
-  if(src){
+  if(src && action==='edit'){
     return confirm(tt(
-      `المعاملة دي مربوطة بـ ${src.label} (${src.kind==='commitment'?'دفعة التزام':'سجل مركبة'}). ${action==='edit'?'تعديلها':'حذفها'} هنا مش هيحدّث السجل ده — ممكن يحصل عدم تطابق. تكمل؟`,
-      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ${action==='edit'?'Editing':'Deleting'} it here won't update that record — the two may go out of sync. Continue?`
+      `المعاملة دي مربوطة بـ ${src.label} (${src.kind==='commitment'?'دفعة التزام':'سجل مركبة'}). التعديل هيتزامن مع السجل ده تلقائياً (التاريخ/المبلغ/الحساب). تكمل؟`,
+      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). Your edit will automatically sync to that record (date/amount/account). Continue?`
     ));
   }
-  if(action==='delete') return confirm(tt('حذف المعاملة دي؟ الإجراء ده مش قابل للتراجع.','Delete this transaction? This can\'t be undone.'));
+  if(src && action==='delete'){
+    return confirm(tt(
+      `المعاملة دي مربوطة بـ ${src.label}. الحذف (نقل لسلة المهملات) مش هيحذف السجل المرتبط، وممكن يحصل عدم تطابق. تكمل؟`,
+      `This transaction is linked to ${src.label}. Deleting (moving to Deleted) won't remove that linked record, and the two may go out of sync. Continue?`
+    ));
+  }
+  if(action==='delete') return confirm(tt('نقل المعاملة دي لسلة المهملات؟ تقدر تسترجعها بعدين من فلتر "المحذوفة".','Move this transaction to Deleted? You can restore it later from the "Deleted" filter.'));
   return true;
 }
 document.getElementById('view-transactions').addEventListener('click', e=>{
@@ -2638,10 +2918,19 @@ document.getElementById('view-transactions').addEventListener('click', e=>{
     openModal('transaction', {txnId: editId});
     return;
   }
+  const restoreId = e.target.dataset.restoreTxn;
+  if(restoreId){
+    const t = DB.transactions.find(x=>x.id===restoreId);
+    if(t){ t.deletedAt = null; saveDB(); renderAll(); toast(tt('اتسترجعت المعاملة','Transaction restored')); }
+    return;
+  }
   const id = e.target.dataset.delTxn; if(!id) return;
   if(!confirmIfLinked(id, 'delete')) return;
-  DB.transactions = DB.transactions.filter(t=>t.id!==id);
-  saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف المعاملة':'Transaction deleted');
+  // Soft delete: the transaction stays stored (with deletedAt set) and excluded from every
+  // active calculation — balances, income/expense, reports, budgets — but stays recoverable.
+  const t = DB.transactions.find(x=>x.id===id);
+  if(t) t.deletedAt = Date.now();
+  saveDB(); renderAll(); toast(LANG==='ar'?'اتنقلت المعاملة لسلة المهملات':'Transaction moved to Deleted');
 });
 
 /* ---------------------------- RENDER: CATEGORIES ---------------------------- */
@@ -2946,8 +3235,9 @@ function _incInRange(from,to,catIds){
     return !cat || cat.type==='income';  // include if income or unknown
   })) : null;
   const useFilter = incCatIds && incCatIds.size > 0;
-  return DB.transactions.filter(t=>{
+  return activeTransactions().filter(t=>{
     if(t.type!=='income')return false;
+    if(isAdjustmentCategory(t.categoryId))return false;
     const mk=monthKey(t.date);
     if(from&&mk<from)return false;
     if(to&&mk>to)return false;
@@ -3296,6 +3586,9 @@ function renderVehicles(){
       <div class="stats" style="margin-top:4px;">
         <span>${LANG==='ar'?'تكلفة الشهر':'This month cost'}</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
       </div>
+      ${v.currentValue!=null ? `<div class="stats" style="margin-top:4px;">
+        <span>${tt('القيمة السوقية','Market value')}</span><span class="num">EGP ${fmtMoney(v.currentValue)}</span>
+      </div>` : ''}
       ${docsCount? `<div class="meta" style="margin-top:8px;">${tt(`${docsCount} مستند متابَع`, `${docsCount} document${docsCount===1?'':'s'} tracked`)}</div>` : ''}
       <div class="actions">
         <button class="btn secondary sm" data-view-vehicle="${v.id}">${t('veh_view_log')}</button>
@@ -3345,6 +3638,80 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: VEHICLES > ALL LOGS PANEL ---------------------------- */
+const VLOG_TYPE_LABELS = LANG==='ar'
+  ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'}
+  : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
+function vlogTypeLabels(){
+  return LANG==='ar'
+    ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'}
+    : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
+}
+// Options are built dynamically from whatever log types actually exist for the currently
+// selected vehicle (or across all vehicles when none is selected) — never a hardcoded list —
+// so a vehicle that has never had, say, an Oil entry simply doesn't clutter the filter with it.
+function vlogAvailableTypes(){
+  const pool = DB.vehicleLogs.filter(l=> _vlVehicle==='all' || l.vehicleId===_vlVehicle);
+  const set = new Set(pool.map(l=>l.type));
+  if(!set.size) ['fuel','maintenance','oil','asset'].forEach(x=>set.add(x));
+  return [...set];
+}
+function _vlogTypeDropdownRender(){
+  const listEl = document.getElementById('vlogs-type-list');
+  const labelEl = document.getElementById('vlogs-type-label');
+  if(!listEl) return;
+  const labels = vlogTypeLabels();
+  const types = vlogAvailableTypes();
+  // Selection semantics: empty set == "All types" (matches the old select's default).
+  listEl.innerHTML = types.map(ty=>{
+    const checked = _vlTypes.size===0 || _vlTypes.has(ty);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;border-radius:5px;margin:1px 4px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
+      <input type="checkbox" data-vlog-type="${ty}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+      <span style="font-size:12.5px;">${labels[ty]||ty}</span>
+    </label>`;
+  }).join('');
+  listEl.querySelectorAll('[data-vlog-type]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      // Build the explicit selected set from what's currently checked (an empty result
+      // collapses back to "All" so unchecking every box behaves the same as never filtering).
+      const allBoxes = [...listEl.querySelectorAll('[data-vlog-type]')];
+      const checkedNow = allBoxes.filter(b=>b.checked).map(b=>b.dataset.vlogType);
+      _vlTypes = checkedNow.length===allBoxes.length ? new Set() : new Set(checkedNow);
+      labelEl.textContent = _vlogTypeLabelText();
+      renderVehicleLogsPanel();
+    });
+  });
+  labelEl.textContent = _vlogTypeLabelText();
+}
+function _vlogTypeLabelText(){
+  const labels = vlogTypeLabels();
+  if(_vlTypes.size===0) return tt('كل الأنواع','All types');
+  const names = [..._vlTypes].map(ty=>labels[ty]||ty);
+  return names.length<=2 ? names.join(', ') : `${names[0]} +${names.length-1} ${tt('أخرى','more')}`;
+}
+(function(){
+  const btn = document.getElementById('vlogs-type-btn');
+  const dropdown = document.getElementById('vlogs-type-dropdown');
+  if(!btn||!dropdown) return;
+  btn.addEventListener('click', ev=>{
+    ev.stopPropagation();
+    const opening = dropdown.style.display==='none'||!dropdown.style.display;
+    document.querySelectorAll('.tree-dd-open').forEach(d=>{d.style.display='none';d.classList.remove('tree-dd-open');});
+    if(opening){ dropdown.style.display='block'; dropdown.classList.add('tree-dd-open'); _vlogTypeDropdownRender(); }
+    else { dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open'); }
+  });
+  document.addEventListener('click', ev=>{
+    if(!dropdown.contains(ev.target) && ev.target!==btn){
+      dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open');
+    }
+  });
+  document.getElementById('vlogs-type-all')?.addEventListener('click', ()=>{
+    _vlTypes = new Set(); _vlogTypeDropdownRender(); renderVehicleLogsPanel();
+  });
+  document.getElementById('vlogs-type-none')?.addEventListener('click', ()=>{
+    _vlTypes = new Set(vlogAvailableTypes().length ? ['__none__'] : []); // sentinel: nothing matches
+    _vlogTypeDropdownRender(); renderVehicleLogsPanel();
+  });
+})();
 function renderVehicleLogsPanel(){
   const vehSel = document.getElementById('vlogs-filter-vehicle');
   if(!vehSel) return; // shell not in DOM yet (shouldn't happen, but stay safe)
@@ -3355,7 +3722,7 @@ function renderVehicleLogsPanel(){
   if(vehSel.innerHTML !== vehOptionsHtml) vehSel.innerHTML = vehOptionsHtml;
   if(_vlVehicle!=='all' && !DB.vehicles.some(v=>v.id===_vlVehicle)) _vlVehicle = 'all';
   vehSel.value = _vlVehicle;
-  document.getElementById('vlogs-filter-type').value = _vlType;
+  document.getElementById('vlogs-type-label').textContent = _vlogTypeLabelText();
   document.getElementById('vlogs-filter-from').value = _vlFrom;
   document.getElementById('vlogs-filter-to').value = _vlTo;
   document.getElementById('vlogs-sort-toggle').textContent = LANG==='ar' ? ('التاريخ: ' + (_vlSort==='asc' ? 'الأقدم أولاً ↑' : 'الأحدث أولاً ↓')) : ('Date: ' + (_vlSort==='asc' ? 'Oldest first ↑' : 'Newest first ↓'));
@@ -3363,7 +3730,7 @@ function renderVehicleLogsPanel(){
   const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
-    .filter(l => _vlType==='all' || l.type===_vlType)
+    .filter(l => _vlTypes.size===0 || _vlTypes.has(l.type))
     .filter(l => !_vlFrom || l.date>=_vlFrom)
     .filter(l => !_vlTo || l.date<=_vlTo)
     .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
@@ -3418,7 +3785,7 @@ function renderVehicleLogsPanel(){
       name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
       total: allVehicleLogsComputed()
         .filter(l=>l.vehicleId===v.id)
-        .filter(l => _vlType==='all' || l.type===_vlType)
+        .filter(l => _vlTypes.size===0 || _vlTypes.has(l.type))
         .filter(l => !_vlFrom || l.date>=_vlFrom)
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
@@ -3433,8 +3800,7 @@ function renderVehicleLogsPanel(){
 (function(){
   const vehSel = document.getElementById('vlogs-filter-vehicle');
   if(!vehSel) return;
-  vehSel.addEventListener('change', e=>{ _vlVehicle = e.target.value; renderVehicleLogsPanel(); });
-  document.getElementById('vlogs-filter-type').addEventListener('change', e=>{ _vlType = e.target.value; renderVehicleLogsPanel(); });
+  vehSel.addEventListener('change', e=>{ _vlVehicle = e.target.value; _vlogTypeDropdownRender(); renderVehicleLogsPanel(); });
   document.getElementById('vlogs-filter-from').addEventListener('change', e=>{ _vlFrom = e.target.value; renderVehicleLogsPanel(); });
   document.getElementById('vlogs-filter-to').addEventListener('change', e=>{ _vlTo = e.target.value; renderVehicleLogsPanel(); });
   document.getElementById('vlogs-sort-toggle').addEventListener('click', ()=>{
@@ -3442,7 +3808,8 @@ function renderVehicleLogsPanel(){
     renderVehicleLogsPanel();
   });
   document.getElementById('vlogs-filter-reset').addEventListener('click', ()=>{
-    _vlVehicle='all'; _vlType='all'; _vlFrom=''; _vlTo=''; _vlSort='desc';
+    _vlVehicle='all'; _vlTypes=new Set(); _vlFrom=''; _vlTo=''; _vlSort='desc';
+    _vlogTypeDropdownRender();
     renderVehicleLogsPanel();
   });
   document.getElementById('veh-subtab-group').addEventListener('click', e=>{
@@ -3561,6 +3928,7 @@ function openModal(kind, ctx={}){
 
   if(kind==='account'){
     const editing = ctx.accountId ? accountById(ctx.accountId) : null;
+    const currencyLocked = editing ? DB.transactions.some(t=>t.accountId===editing.id) : false;
     html = `<div class="modal">
       <h2>${editing ? tt('تعديل الحساب','Edit Account') : tt('حساب جديد','New Account')}</h2>
       <form id="form-account">
@@ -3575,9 +3943,10 @@ function openModal(kind, ctx={}){
             </select>
           </div>
           <div class="field"><label>${tt('العملة','Currency')}</label>
-            <select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select>
+            ${currencyLocked ? `<select name="currency" disabled><option value="${editing.currency}" selected>${editing.currency}</option></select><input type="hidden" name="currency" value="${editing.currency}">` : `<select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select>`}
           </div>
         </div>
+        ${currencyLocked ? `<div class="help-text" style="margin-top:-6px;">${tt('الحساب ده عليه معاملات، فمينفعش تغيّر عملته — لو محتاج عملة تانية، اعمل حساب جديد بالعملة دي.','This account already has transactions, so its currency cannot be changed — create a new account with the desired currency instead.')}</div>` : ''}
         <div class="field-row">
           <div class="field"><label>${tt('الرصيد الافتتاحي','Opening Balance')}</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
           <div class="field"><label>${tt('تاريخ الافتتاح','Opening Date')}</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
@@ -3588,9 +3957,37 @@ function openModal(kind, ctx={}){
             ${tt('استثناء من صافي الثروة (مثلاً أرشيف تاريخي، مش رصيد حقيقي)','Exclude from Net Worth (e.g. a historical archive, not a real balance)')}
           </label>
         </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="hiddenFromAccountsList" style="width:auto;" ${editing&&editing.hiddenFromAccountsList?'checked':''}>
+            ${tt('إخفاء من قائمة الحسابات (الحساب هيفضل محفوظ ومتاح في الأرشيف)','Hide from Accounts list (the account stays stored and available in the Archived section)')}
+          </label>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${editing ? tt('حفظ التعديلات','Save Changes') : tt('إنشاء الحساب','Create Account')}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='asset' || kind==='liability'){
+    const isAsset = kind==='asset';
+    const editing = isAsset ? (ctx.assetId ? DB.assets.find(a=>a.id===ctx.assetId) : null) : (ctx.liabilityId ? DB.liabilities.find(l=>l.id===ctx.liabilityId) : null);
+    const idField = isAsset ? 'assetId' : 'liabilityId';
+    html = `<div class="modal">
+      <h2>${editing ? (isAsset?tt('تعديل الأصل','Edit Asset'):tt('تعديل الالتزام','Edit Liability')) : (isAsset?tt('أصل جديد','New Asset'):tt('التزام جديد','New Liability'))}</h2>
+      <form id="form-${kind}">
+        ${editing ? `<input type="hidden" name="${idField}" value="${editing.id}">` : ''}
+        <div class="field"><label>${tt('الاسم','Name')}</label><input name="name" required value="${editing?editing.name:''}" placeholder="${isAsset?tt('مثال: شقة، ذهب، محفظة استثمار','e.g. apartment, gold, investment portfolio'):tt('مثال: قرض شخصي','e.g. personal loan')}"></div>
+        <div class="field-row">
+          <div class="field"><label>${isAsset?tt('القيمة الحالية','Current Value'):tt('المبلغ المتبقي','Remaining Amount')}</label><input type="number" step="0.01" name="value" required value="${editing?editing.value:''}"></div>
+          <div class="field"><label>${tt('العملة','Currency')}</label><select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" value="${editing?(editing.note||''):''}"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
+          <button type="submit" class="btn">${editing ? tt('حفظ التعديلات','Save Changes') : tt('حفظ','Save')}</button>
         </div>
       </form>
     </div>`;
@@ -3720,6 +4117,14 @@ function openModal(kind, ctx={}){
             <label>${tt('الفئة','Category')}</label>
             <select name="categoryId" id="txn-category-select">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
           </div>
+          ${editing ? '' : `
+          <div class="field" id="txn-commitment-field" style="display:none;">
+            <label>${tt('الالتزام المرتبط','Linked Commitment')}</label>
+            <select name="commitmentId" id="txn-commitment-select">
+              <option value="">${tt('اختر الالتزام...','Choose a commitment...')}</option>
+              ${DB.commitments.filter(c=>c.status!=='completed').map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+            </select>
+          </div>`}
           ${editing ? '' : `
           <div class="field" id="txn-vehicle-field" style="display:none;">
             <label>${tt('المركبة','Vehicle')}</label>
@@ -3943,6 +4348,7 @@ function openModal(kind, ctx={}){
         </div>
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
+        <div class="field"><label>${tt('القيمة السوقية الحالية (ج.م، اختياري)','Current market value (EGP, optional)')}</label><input type="number" step="100" name="currentValue" placeholder="${tt('تُستخدم في حساب صافي الثروة','used in Net Worth calculation')}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('إنشاء المركبة','Create Vehicle')}</button>
@@ -3970,6 +4376,7 @@ function openModal(kind, ctx={}){
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" value="${v.plateNote||''}" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" value="${v.oilIntervalKm||''}" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
         <div class="field"><label>${tt('مدى الخزان (كم لكل تانك كامل، اختياري)','Tank range (km per full tank, optional)')}</label><input type="number" step="10" name="tankRangeKm" value="${v.tankRangeKm||''}" placeholder="${tt('مثال: 550','e.g. 550')}"></div>
+        <div class="field"><label>${tt('القيمة السوقية الحالية (ج.م، اختياري)','Current market value (EGP, optional)')}</label><input type="number" step="100" name="currentValue" value="${v.currentValue!=null?v.currentValue:''}" placeholder="${tt('تُستخدم في حساب صافي الثروة','used in Net Worth calculation')}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('حفظ التعديلات','Save Changes')}</button>
@@ -4390,6 +4797,11 @@ function wireModal(kind){
     const partField = backdrop.querySelector('#txn-part-field');
     const partSelect = backdrop.querySelector('#txn-part-select');
     const hint = backdrop.querySelector('#txn-vehicle-hint');
+    // These vehicle-aware fields only exist in the DOM when creating a brand-new transaction
+    // (see openModal): editing an existing transaction never shows them, since a linked Vehicle
+    // Log is kept in sync separately (date/amount/account/etc.) rather than re-picked here.
+    // Guard the whole block so editing a vehicle-linked transaction never hits a null field.
+    if(vehicleField && vehicleSelect && odoRow && litersField && litersInput && partField && partSelect && hint){
     const updatePartOptions = ()=>{
       if(!partSelect) return;
       const vid = vehicleSelect.value;
@@ -4426,6 +4838,22 @@ function wireModal(kind){
     vehicleSelect.addEventListener('change', updatePartOptions);
     amountInput?.addEventListener('input', recalcLiters);
     updateVehicleFields();
+    }
+
+    // Commitment category selected directly in the New Transaction form: reveal the linked
+    // Commitment selector and require it, so a plain expense never silently misses its
+    // Commitment Payment link (mirrors the dedicated "Record Payment" flow on Commitments page).
+    const commitField = backdrop.querySelector('#txn-commitment-field');
+    const commitSelect = backdrop.querySelector('#txn-commitment-select');
+    if(commitField && commitSelect){
+      const updateCommitField = ()=>{
+        const isCommit = catSelect.value === 'cat_commit';
+        commitField.style.display = isCommit ? 'block' : 'none';
+        commitSelect.required = isCommit;
+      };
+      catSelect.addEventListener('change', updateCommitField);
+      updateCommitField();
+    }
   }
 
   const form = backdrop.querySelector('form');
@@ -4452,17 +4880,45 @@ const submitHandlers = {
     if(data.accountId){
       const a = accountById(data.accountId);
       if(!a) throw new Error('Account not found');
-      a.name = data.name.trim(); a.type = data.type; a.currency = data.currency;
+      const currencyLocked = DB.transactions.some(t=>t.accountId===a.id);
+      a.name = data.name.trim(); a.type = data.type;
+      // Currency protection: once an account has transactions its currency is fixed — even if
+      // the form was somehow tampered with, never let a currency change slip through here.
+      if(!currencyLocked) a.currency = data.currency;
       a.openingBalance = Number(data.openingBalance)||0; a.openingDate = data.openingDate;
       a.excludeFromNetWorth = data.excludeFromNetWorth === 'on';
+      a.hiddenFromAccountsList = data.hiddenFromAccountsList === 'on';
       saveDB(); toast(tt('اتحدث الحساب','Account updated'));
     } else {
       DB.accounts.push({
         id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency,
         openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate,
-        excludeFromNetWorth: data.excludeFromNetWorth === 'on'
+        excludeFromNetWorth: data.excludeFromNetWorth === 'on',
+        hiddenFromAccountsList: data.hiddenFromAccountsList === 'on'
       });
       saveDB(); toast(tt('اتعمل الحساب','Account created'));
+    }
+  },
+  asset(data){
+    if(data.assetId){
+      const a = DB.assets.find(x=>x.id===data.assetId);
+      if(!a) throw new Error('Asset not found');
+      a.name = data.name.trim(); a.value = Number(data.value)||0; a.currency = data.currency; a.note = data.note||'';
+      saveDB(); toast(tt('تم تحديث الأصل','Asset updated'));
+    } else {
+      DB.assets.push({id: uid('asset'), name: data.name.trim(), value: Number(data.value)||0, currency: data.currency, note: data.note||'', createdAt: Date.now()});
+      saveDB(); toast(tt('تم إضافة الأصل','Asset added'));
+    }
+  },
+  liability(data){
+    if(data.liabilityId){
+      const l = DB.liabilities.find(x=>x.id===data.liabilityId);
+      if(!l) throw new Error('Liability not found');
+      l.name = data.name.trim(); l.value = Number(data.value)||0; l.currency = data.currency; l.note = data.note||'';
+      saveDB(); toast(tt('تم تحديث الالتزام','Liability updated'));
+    } else {
+      DB.liabilities.push({id: uid('liab'), name: data.name.trim(), value: Number(data.value)||0, currency: data.currency, note: data.note||'', createdAt: Date.now()});
+      saveDB(); toast(tt('تم إضافة الالتزام','Liability added'));
     }
   },
   reconcile(data){
@@ -4470,11 +4926,15 @@ const submitHandlers = {
     const computed = Number(data.computed);
     const actual = Number(data.actualBalance);
     const diff = actual - computed;
-    if(Math.abs(diff) < 0.01){ toast(tt('مفيش فرق للتسجيل','No difference to record')); return; }
+    DB.reconciliations.push({
+      id: uid('recon'), date: todayLocalISO(), accountId: a.id,
+      systemBalance: computed, actualBalance: actual, difference: diff, source: 'single'
+    });
+    if(Math.abs(diff) < 0.01){ saveDB(); toast(tt('مفيش فرق للتسجيل','No difference to record')); return; }
     DB.transactions.push({
-      id: uid('txn'), date: todayLocalISO(), accountId: a.id,
+      id: uid('txn'), date: todayLocalISO(), createdAt: Date.now(), accountId: a.id,
       categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
-      amount: Math.abs(diff), currency: a.currency,
+      amount: Math.abs(diff), currency: a.currency, deletedAt: null,
       note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
     });
     saveDB(); toast(tt('اتسجل التعديل — الرصيد بقى مطابق','Adjustment recorded — balance now matches'));
@@ -4489,17 +4949,22 @@ const submitHandlers = {
       if(!a) return;
       const computed = accountBalance(a);
       const diff = Number(data[key]) - computed;
+      DB.reconciliations.push({
+        id: uid('recon'), date: today, accountId: a.id,
+        systemBalance: computed, actualBalance: Number(data[key]), difference: diff, source: 'all'
+      });
       if(Math.abs(diff) < 0.01) return;
       DB.transactions.push({
-        id: uid('txn'), date: today, accountId: a.id,
+        id: uid('txn'), date: today, createdAt: Date.now(), accountId: a.id,
         categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
-        amount: Math.abs(diff), currency: a.currency,
+        amount: Math.abs(diff), currency: a.currency, deletedAt: null,
         note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
       });
       recorded++;
     });
-    if(recorded===0){ toast(tt('مفيش فروق للتسجيل','No differences to record')); return; }
-    saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
+    saveDB();
+    if(recorded===0){ toast(tt('مفيش فروق للتسجيل — الأرصدة متطابقة','No differences to record — balances already match')); return; }
+    toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
   },
   transaction(data){
     if(data.transferPairId){
@@ -4523,6 +4988,30 @@ const submitHandlers = {
       const acc = accountById(data.accountId);
       t.date = data.date; t.accountId = data.accountId; t.categoryId = data.categoryId;
       t.amount = Number(data.amount); t.currency = acc.currency; t.note = data.note; t.type = data.type;
+
+      // Keep a linked Commitment Payment in sync (date/amount/account/method), then
+      // recalculate the commitment's paid/remaining/installments/status.
+      const linkedPmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===t.id);
+      if(linkedPmt){
+        linkedPmt.date = t.date; linkedPmt.amount = t.amount; linkedPmt.accountId = t.accountId;
+        const c = DB.commitments.find(x=>x.id===linkedPmt.commitmentId);
+        if(c){
+          const paidCount = commitmentPayments(c.id).length;
+          if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+          else if(c.status==='completed') c.status='active';
+        }
+      }
+      // Keep a linked Vehicle Log in sync (date/account/amount/note) without breaking the
+      // relationship or deleting the transaction just because its category changed.
+      const linkedLog = DB.vehicleLogs.find(l=>l.linkedTransactionId===t.id);
+      if(linkedLog){
+        linkedLog.date = t.date; linkedLog.accountId = t.accountId; linkedLog.amount = t.amount; linkedLog.note = t.note;
+        const info = categoryVehicleInfo(t.categoryId);
+        if(info){
+          linkedLog.type = info.logType;
+          if(info.logType==='fuel') linkedLog.litersFilled = computeLitersFromAmount(t.amount);
+        }
+      }
       saveDB(); toast(tt('اتحدثت المعاملة','Transaction updated'));
       return;
     }
@@ -4532,15 +5021,30 @@ const submitHandlers = {
       const amount = Number(data.amount);
       const destAmount = from.currency===to.currency ? amount : amount * (fxRate(from.currency)/fxRate(to.currency));
       const pairId = uid('pair');
-      DB.transactions.push({id:uid('txn'), date:data.date, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
-      DB.transactions.push({id:uid('txn'), date:data.date, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
+      const _now = Date.now();
+      DB.transactions.push({id:uid('txn'), date:data.date, createdAt:_now, deletedAt:null, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
+      DB.transactions.push({id:uid('txn'), date:data.date, createdAt:_now+1, deletedAt:null, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
     } else {
       const acc = accountById(data.accountId);
       const txnId = uid('txn');
       DB.transactions.push({
-        id: txnId, date:data.date, accountId:data.accountId, categoryId:data.categoryId,
+        id: txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId:data.accountId, categoryId:data.categoryId,
         amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
       });
+      // Commitment category picked directly in the plain transaction form: this expense
+      // also represents a Commitment Payment, so create/link one — same relationship the
+      // dedicated "Record Payment" flow creates, just reached from a different entry point.
+      if(data.categoryId==='cat_commit' && data.type==='expense' && data.commitmentId){
+        const c = DB.commitments.find(x=>x.id===data.commitmentId);
+        if(c){
+          DB.commitmentPayments.push({
+            id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
+            method:'bank_transfer', accountId:data.accountId, linkedTransactionId: txnId
+          });
+          const paidCount = commitmentPayments(c.id).length;
+          if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+        }
+      }
       // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log
       // entry too, so odometer-based fuel efficiency, oil-change and part-wear tracking pick it up.
       const info = categoryVehicleInfo(data.categoryId);
@@ -4600,7 +5104,7 @@ const submitHandlers = {
       if(!accountId) throw new Error('Choose an account');
       const acc = accountById(accountId); currency = acc.currency;
       txnId = uid('txn');
-      DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
+      DB.transactions.push({id:txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
     }
     DB.commitmentPayments.push({
       id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
@@ -4613,7 +5117,7 @@ const submitHandlers = {
   payout(data){
     const c = DB.commitments.find(x=>x.id===data.commitmentId);
     const acc = accountById(data.accountId);
-    DB.transactions.push({id:uid('txn'), date:data.date, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
+    DB.transactions.push({id:uid('txn'), date:data.date, createdAt:Date.now(), deletedAt:null, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
     c.payoutReceived = true;
     const paidCount = commitmentPayments(c.id).length;
     if(paidCount >= c.totalInstallments) c.status='completed';
@@ -4622,7 +5126,8 @@ const submitHandlers = {
   vehicle(data){
     DB.vehicles.push({
       id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || '',
-      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
+      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null,
+      currentValue: data.currentValue ? Number(data.currentValue) : null
     });
     saveDB(); toast(tt('اتعملت المركبة','Vehicle created'));
   },
@@ -4634,6 +5139,7 @@ const submitHandlers = {
     v.plateNote = data.plateNote || '';
     v.oilIntervalKm = data.oilIntervalKm ? Number(data.oilIntervalKm) : null;
     v.tankRangeKm = data.tankRangeKm ? Number(data.tankRangeKm) : null;
+    v.currentValue = data.currentValue ? Number(data.currentValue) : null;
     saveDB(); toast(tt('اتحدثت المركبة','Vehicle updated'));
   },
   'vehicle-log'(data){
@@ -4661,7 +5167,7 @@ const submitHandlers = {
           t.amount = Number(data.amount); t.currency = currency; t.note = noteTxt; t.type = 'expense';
         } else {
           txnId = uid('txn');
-          DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:catId, amount:Number(data.amount), currency, note:noteTxt, type:'expense', transferPairId:null});
+          DB.transactions.push({id:txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId, categoryId:catId, amount:Number(data.amount), currency, note:noteTxt, type:'expense', transferPairId:null});
         }
       } else if(txnId){
         DB.transactions = DB.transactions.filter(t=>t.id!==txnId);
@@ -4682,7 +5188,7 @@ const submitHandlers = {
     if(accountId){
       txnId = uid('txn');
       DB.transactions.push({
-        id: txnId, date: data.date, accountId, categoryId: catId,
+        id: txnId, date: data.date, createdAt: Date.now(), deletedAt: null, accountId, categoryId: catId,
         amount: Number(data.amount), currency, note: noteTxt,
         type: 'expense', transferPairId: null
       });
@@ -4979,29 +5485,66 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
    All <th> elements get a resize handle on right edge.
    ================================================================ */
 (function initColResize(){
-  function makeTableResizable(table){
-    if(table.dataset.resizable) return;
-    table.dataset.resizable='1';
+  // Column widths persist per-table (keyed by that table's tbody id, since every table in this
+  // app already has a unique tbody id) and per-column-index, restored on every scan so widths
+  // survive re-renders, filtering, sorting, and language switches — and now also page reloads.
+  const COLW_KEY = 'fintrack_col_widths_v1';
+  function loadColWidths(){ try{ return JSON.parse(localStorage.getItem(COLW_KEY)) || {}; }catch(e){ return {}; } }
+  function saveColWidths(d){ try{ localStorage.setItem(COLW_KEY, JSON.stringify(d)); }catch(e){} }
+  function tableKey(table){
+    const tb = table.querySelector('tbody[id]');
+    if(tb && tb.id) return tb.id;
+    if(table.id) return table.id;
+    return 'table-' + [...document.querySelectorAll('table')].indexOf(table);
+  }
+  function applyStoredWidths(table, key){
+    const stored = loadColWidths()[key];
+    if(!stored) return;
     const ths = table.querySelectorAll('thead th');
-    ths.forEach(th=>{
-      if(th.dataset.resizable) return;
-      th.dataset.resizable='1';
-      th.style.position='relative';
-      const handle = document.createElement('div');
-      handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
-      handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
-      handle.onmouseleave=()=>handle.style.background='';
-      th.appendChild(handle);
-      let startX, startW;
-      handle.addEventListener('mousedown', ev=>{
-        ev.preventDefault(); ev.stopPropagation();
-        startX=ev.clientX; startW=th.offsetWidth;
-        const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
-        const mu=()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
-        document.addEventListener('mousemove',mm);
-        document.addEventListener('mouseup',mu);
+    ths.forEach((th, i)=>{ if(stored[i]) th.style.width = stored[i]; });
+  }
+  function makeTableResizable(table){
+    const key = tableKey(table);
+    if(!table.dataset.resizable){
+      table.dataset.resizable='1';
+      const ths = table.querySelectorAll('thead th');
+      ths.forEach((th, i)=>{
+        if(th.dataset.resizable) return;
+        th.dataset.resizable='1';
+        th.style.position='relative';
+        const handle = document.createElement('div');
+        handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
+        handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
+        handle.onmouseleave=()=>handle.style.background='';
+        handle.title = tt('اسحب لتغيير العرض — دبل كليك للحجم التلقائي','Drag to resize — double-click to auto-fit');
+        th.appendChild(handle);
+        let startX, startW;
+        handle.addEventListener('mousedown', ev=>{
+          ev.preventDefault(); ev.stopPropagation();
+          startX=ev.clientX; startW=th.offsetWidth;
+          const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
+          const mu=()=>{
+            document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+            // Persist this table's per-column widths (separately from every other table).
+            const d = loadColWidths();
+            d[key] = d[key] || {};
+            table.querySelectorAll('thead th').forEach((thh, ii)=>{ d[key][ii] = thh.style.width || d[key][ii]; });
+            saveColWidths(d);
+          };
+          document.addEventListener('mousemove',mm);
+          document.addEventListener('mouseup',mu);
+        });
+        // Double-click a resize handle: auto-fit that single column back to its natural content
+        // width (clear the manual override) and forget the saved width for just that column.
+        handle.addEventListener('dblclick', ev=>{
+          ev.preventDefault(); ev.stopPropagation();
+          th.style.width = '';
+          const d = loadColWidths();
+          if(d[key]) { delete d[key][i]; saveColWidths(d); }
+        });
       });
-    });
+    }
+    applyStoredWidths(table, key);
   }
 
   // Scan tables periodically (after renders)
@@ -5019,6 +5562,7 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 function renderAll(){
   renderDashboard();
   renderAccounts();
+  renderWealth();
   renderTransactions();
   renderCategories();
   renderCommitments();
@@ -5036,7 +5580,7 @@ const I18N = {
     brand_sub:'Wealth Platform',
     nav_dashboard:'Dashboard', nav_transactions:'Transactions',
     nav_commitments:'Commitments', nav_reports:'Reports',
-    nav_accounts:'Accounts', nav_vehicles:'Vehicles',
+    nav_accounts:'Accounts', nav_vehicles:'Vehicles', nav_wealth:'Wealth',
     nav_budgets:'Budgets', nav_categories:'Categories', nav_guide:'User Guide',
     btn_lang:'\ud83c\udf10 \u0627\u0644\u0639\u0631\u0628\u064a\u0629',
     btn_theme_light:'\u2600 Light Mode', btn_theme_dark:'\ud83c\udf19 Dark Mode',
@@ -5062,6 +5606,11 @@ const I18N = {
     th_current_balance:'Current Balance', th_vehicle:'Vehicle',
     rep_this_month_th:'This Month', rep_no_data:'No data yet', btn_close:'Close',
     page_accounts:'Accounts', page_accounts_sub:'Cash, banks & wallets',
+    page_wealth:'Wealth', page_wealth_sub:'Net worth, assets & liabilities',
+    wealth_assets:'Assets', wealth_liabilities:'Liabilities', wealth_vehicles:'Vehicle Market Values',
+    wealth_vehicles_hint:'Set each vehicle\u2019s current market value from the Vehicles page \u2014 it is included in Net Worth automatically below.',
+    wealth_value:'Value', wealth_value_egp:'Value (EGP)',
+    btn_new_asset:'+ New Asset', btn_new_liability:'+ New Liability',
     all_accounts:'All Accounts', btn_new_account:'+ New Account',
     exchange_rates:'Exchange Rates', exchange_rates_hint:'used to convert balances to EGP',
     th_rate_egp:'Rate to EGP', btn_edit:'Edit', btn_reconcile:'Reconcile', btn_delete:'Delete',
@@ -5108,7 +5657,7 @@ const I18N = {
     brand_sub:'\u0645\u0646\u0635\u0629 \u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u062b\u0631\u0648\u0629',
     nav_dashboard:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629', nav_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
     nav_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', nav_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631',
-    nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a',
+    nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', nav_wealth:'الثروة',
     nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0641\u0626\u0627\u062a', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
     btn_lang:'\ud83c\udf10 English',
     btn_theme_light:'\u2600 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d', btn_theme_dark:'\ud83c\udf19 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
@@ -5134,6 +5683,11 @@ const I18N = {
     th_current_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a', th_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     rep_this_month_th:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_no_data:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0639\u062f', btn_close:'\u0625\u063a\u0644\u0627\u0642',
     page_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', page_accounts_sub:'\u0643\u0627\u0634\u060c \u0628\u0646\u0648\u0643 \u0648\u0645\u062d\u0627\u0641\u0638 \u0628\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u062a',
+    page_wealth:'الثروة', page_wealth_sub:'صافي الثروة، الأصول والالتزامات',
+    wealth_assets:'الأصول', wealth_liabilities:'الالتزامات', wealth_vehicles:'القيمة السوقية للمركبات',
+    wealth_vehicles_hint:'حدّد القيمة السوقية الحالية لكل مركبة من صفحة المركبات — وهتتحسب تلقائياً في صافي الثروة تحت.',
+    wealth_value:'القيمة', wealth_value_egp:'القيمة (ج.م)',
+    btn_new_asset:'+ أصل جديد', btn_new_liability:'+ التزام جديد',
     all_accounts:'\u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', btn_new_account:'+ \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f',
     exchange_rates:'\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0635\u0631\u0641', exchange_rates_hint:'\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0644\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
     th_rate_egp:'\u0627\u0644\u0633\u0639\u0631 \u0644\u0644\u062c\u0646\u064a\u0647', btn_edit:'\u062a\u0639\u062f\u064a\u0644', btn_reconcile:'\u0645\u0637\u0627\u0628\u0642\u0629', btn_delete:'\u062d\u0630\u0641',
@@ -5201,6 +5755,7 @@ function applyLang(lang){
   // Nav labels
   var navMap = {dashboard:'nav_dashboard',transactions:'nav_transactions',
     commitments:'nav_commitments',reports:'nav_reports',accounts:'nav_accounts',
+    wealth:'nav_wealth',
     vehicles:'nav_vehicles',budgets:'nav_budgets',categories:'nav_categories',guide:'nav_guide'};
   document.querySelectorAll('.nav button[data-view]').forEach(function(btn){
     var lbl = btn.querySelector('.lbl');
@@ -5238,6 +5793,31 @@ function applyLang(lang){
     });
   });
 
+  // Wealth page
+  var wealthMap = {
+    'wealth-h1':'page_wealth', 'wealth-sub':'page_wealth_sub',
+    'wealth-assets-title':'wealth_assets', 'wealth-new-asset-btn':'btn_new_asset',
+    'wealth-liabilities-title':'wealth_liabilities', 'wealth-new-liability-btn':'btn_new_liability',
+    'wealth-vehicles-title':'wealth_vehicles', 'wealth-vehicles-hint':'wealth_vehicles_hint',
+    'th-wealth-a-name':'th_name', 'th-wealth-a-cur':'th_currency', 'th-wealth-a-val':'wealth_value', 'th-wealth-a-valegp':'wealth_value_egp', 'th-wealth-a-note':'th_note',
+    'th-wealth-l-name':'th_name', 'th-wealth-l-cur':'th_currency', 'th-wealth-l-val':'wealth_value', 'th-wealth-l-valegp':'wealth_value_egp', 'th-wealth-l-note':'th_note',
+    'th-wealth-v-name':'th_vehicle', 'th-wealth-v-val':'wealth_value_egp',
+    'hidden-accounts-title': null, 'th-hacc-name':'th_name', 'th-hacc-type':'th_type', 'th-hacc-cur':'th_currency', 'th-hacc-opening':'th_opening', 'th-hacc-curbal':'th_current_balance',
+    'recon-history-title': null, 'th-recon-date':'th_date', 'th-recon-acc':'th_account', 'th-recon-src': null,
+    'th-txn-balance': null
+  };
+  Object.keys(wealthMap).forEach(function(id){
+    var key = wealthMap[id]; if(!key) return;
+    var el = document.getElementById(id); if(el) el.textContent = t(key);
+  });
+  var thBal = document.getElementById('th-txn-balance'); if(thBal) thBal.textContent = tt('الرصيد بعد','Balance After');
+  var hat = document.getElementById('hidden-accounts-title'); if(hat) hat.textContent = tt('حسابات مخفية / مؤرشفة','Hidden / Archived Accounts');
+  var rht = document.getElementById('recon-history-title'); if(rht) rht.textContent = tt('سجل المطابقة','Reconciliation History');
+  var trs = document.getElementById('th-recon-src'); if(trs) trs.textContent = tt('المصدر','Source');
+  var trsys = document.getElementById('th-recon-sys'); if(trsys) trsys.textContent = tt('النظام','System');
+  var tract = document.getElementById('th-recon-actual'); if(tract) tract.textContent = tt('الفعلي','Actual');
+  var trdiff = document.getElementById('th-recon-diff'); if(trdiff) trdiff.textContent = tt('الفرق','Difference');
+
   // Table headers (desktop <th> + mobile data-label via CSS content:attr)
   var thMap = {
     'th-dash-acc':'th_account','th-dash-type':'th_type','th-dash-bal':'th_balance',
@@ -5258,11 +5838,11 @@ function applyLang(lang){
   var vlMap = {
     'vlogs-lbl-vehicle': tt('المركبة','Vehicle'), 'vlogs-lbl-type': tt('النوع','Type'),
     'vlogs-lbl-from': tt('من','From'), 'vlogs-lbl-to': tt('إلى','To'),
-    'vlogs-opt-all': tt('كل الأنواع','All types'), 'vlogs-opt-fuel': tt('⛽ وقود','⛽ Fuel'),
-    'vlogs-opt-maint': tt('🔧 صيانة','🔧 Maintenance'), 'vlogs-opt-oil': tt('🛢 تغيير زيت','🛢 Oil Change'),
-    'vlogs-opt-asset': tt('💰 مقتنيات','💰 Asset'), 'vlogs-filter-reset': tt('مسح الفلاتر','Reset')
+    'vlogs-type-all': tt('الكل','All'), 'vlogs-type-none': tt('إلغاء','Clear'),
+    'vlogs-filter-reset': tt('مسح الفلاتر','Reset')
   };
   Object.keys(vlMap).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent = vlMap[id]; });
+  if(typeof _vlogTypeDropdownRender==='function') _vlogTypeDropdownRender();
 
   // Static page texts
   [['#view-accounts h1','page_accounts'],['#view-accounts .today','page_accounts_sub'],

@@ -189,16 +189,15 @@
   /* ---------- Tables ---------- */
   table{width:100%;border-collapse:collapse;}
   thead th{
-    text-align:left;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;
-    padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;
+    text-align:center;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;
+    padding:8px 12px;border:1px solid var(--border);font-weight:600;
   }
-  tbody td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;}
-  tbody tr:last-child td{border-bottom:none;}
+  tbody td{padding:11px 12px;border:1px solid var(--border);font-size:13px;}
   tbody tr:hover{background:var(--surface-2);}
   td.amt{font-family:var(--font-mono);text-align:right;}
   td.amt.pos{color:var(--positive);}
   td.amt.neg{color:var(--negative);}
-  th.amt{text-align:right;}
+  th.amt{text-align:center;}
   .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
   .table-wrap .head-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
   .table-wrap .head-row h3{margin:0;font-size:14px;font-weight:600;font-family:var(--font-display);}
@@ -650,15 +649,14 @@
   .g-table-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:0 0 16px;}
   .g-table-wrap table{width:100%;border-collapse:collapse;}
   .g-table-wrap thead th{
-    text-align:right;font-size:11px;color:var(--text-faint);text-transform:uppercase;
-    letter-spacing:.05em;padding:9px 14px;border-bottom:1px solid var(--border);
+    text-align:center;font-size:11px;color:var(--text-faint);text-transform:uppercase;
+    letter-spacing:.05em;padding:9px 14px;border:1px solid var(--border);
     font-weight:700;background:var(--surface-2);
   }
   .g-table-wrap tbody td{
-    padding:10px 14px;border-bottom:1px solid var(--border);
+    padding:10px 14px;border:1px solid var(--border);
     font-size:13px;color:var(--text-muted);
   }
-  .g-table-wrap tbody tr:last-child td{border-bottom:none;}
   .g-table-wrap tbody td strong{color:var(--text);font-weight:600;}
   .g-table-wrap tbody td code{font-family:monospace;font-size:11.5px;background:var(--surface-3);padding:1px 6px;border-radius:4px;color:var(--accent-bright);}
 
@@ -2065,6 +2063,7 @@ function categoryAndDescendantIds(catId){
 }
 // Maps a vehicle log entry to the category it represents (car vs scooter, fuel/maintenance/oil/asset).
 function vehicleLogCategoryId(log){
+  if(log.categoryId && categoryById(log.categoryId)) return log.categoryId;
   const v = vehicleById(log.vehicleId);
   if(!v) return null;
   const sets = {
@@ -2074,19 +2073,38 @@ function vehicleLogCategoryId(log){
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
 }
+// Walks a category's parentId chain up to its top-level ancestor (e.g. any subcategory nested
+// under "Car Expenses", however deep or however the user named it, resolves back to cat_car).
+function categoryRootAncestor(categoryId){
+  let cur = categoryById(categoryId);
+  let guard = 0;
+  while(cur && cur.parentId && guard++ < 6){
+    const parent = categoryById(cur.parentId);
+    if(!parent) break;
+    cur = parent;
+  }
+  return cur ? cur.id : null;
+}
 // Reverse of vehicleLogCategoryId: given a category id picked in the regular Transaction form,
 // tells us it's a vehicle-tracked category and what vehicle type / log type it implies.
 // Returns null for any non-vehicle category (so the vehicle fields stay hidden).
+//
+// This is intentionally NOT a fixed lookup of the 6 built-in categories: it walks up to the
+// category's root ancestor (cat_car / cat_scooter) so ANY subcategory the user creates under
+// "Car Expenses" or "Scooter Expenses" — however many, however named — is automatically
+// recognized as vehicle-tracked, not just the handful shipped by default.
 function categoryVehicleInfo(categoryId){
-  const map = {
-    cat_car_fuel: {vehicleType:'car', logType:'fuel'},
-    cat_car_maint: {vehicleType:'car', logType:'maintenance'},
-    cat_car_oil: {vehicleType:'car', logType:'oil'},
-    cat_scooter_fuel: {vehicleType:'scooter', logType:'fuel'},
-    cat_scooter_maint: {vehicleType:'scooter', logType:'maintenance'},
-    cat_scooter_oil: {vehicleType:'scooter', logType:'oil'}
-  };
-  return map[categoryId] || null;
+  const root = categoryRootAncestor(categoryId);
+  if(root!=='cat_car' && root!=='cat_scooter') return null;
+  const vehicleType = root==='cat_scooter' ? 'scooter' : 'car';
+  const cat = categoryById(categoryId);
+  const hay = (categoryId + ' ' + (cat?cat.name:'')).toLowerCase();
+  let logType = 'other';
+  if(/fuel|وقود|بنزين|بترول|غاز/.test(hay)) logType = 'fuel';
+  else if(/oil|زيت/.test(hay)) logType = 'oil';
+  else if(/maint|repair|صيان|اصلاح|إصلاح|تصليح/.test(hay)) logType = 'maintenance';
+  else if(/asset|مقتني|قطع|قطعه|قطعة|شراء/.test(hay)) logType = 'asset';
+  return {vehicleType, logType, categoryId};
 }
 // The single source of truth for computing liters from money spent: amount ÷ the global fuel
 // price on the Vehicles page. Always used at save time for fuel-type logs, regardless of what a
@@ -3638,43 +3656,67 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: VEHICLES > ALL LOGS PANEL ---------------------------- */
-const VLOG_TYPE_LABELS = LANG==='ar'
-  ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'}
-  : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
-function vlogTypeLabels(){
-  return LANG==='ar'
-    ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'}
-    : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
+// Small icon prefix for the 4 built-in log types; custom categories just show their own name.
+const VLOG_TYPE_ICONS = {fuel:'⛽', maintenance:'🔧', oil:'🛢', asset:'💰', other:'📋'};
+// The filter's real unit is a CATEGORY, not a coarse type bucket — so any subcategory the user
+// creates under "Car/Scooter Expenses" (however many, however named) shows up on its own,
+// exactly matching what's configured on the Categories page. Older log entries recorded before
+// categoryId was tracked fall back to a legacy "type:xxx" bucket so they stay filterable too.
+function vlogFilterKey(log){
+  return log.categoryId || ('type:' + log.type);
 }
-// Options are built dynamically from whatever log types actually exist for the currently
-// selected vehicle (or across all vehicles when none is selected) — never a hardcoded list —
-// so a vehicle that has never had, say, an Oil entry simply doesn't clutter the filter with it.
-function vlogAvailableTypes(){
+function vlogFilterLabel(key){
+  if(key.startsWith('type:')){
+    const ty = key.slice(5);
+    const labels = LANG==='ar'
+      ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'📋 أخرى'}
+      : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'📋 Other'};
+    return labels[ty] || ty;
+  }
+  const cat = categoryById(key);
+  if(!cat) return key;
+  const icon = VLOG_TYPE_ICONS[categoryVehicleInfo(key)?.logType] || '';
+  return (icon ? icon+' ' : '') + cat.name;
+}
+// Options are built dynamically from whatever categories actually exist on logs for the
+// currently selected vehicle (or across all vehicles when none is selected) — never a
+// hardcoded list — so a brand-new custom subcategory (e.g. "Add Oil") appears automatically
+// as soon as it has been used, with no code change needed.
+function vlogAvailableFilterKeys(){
   const pool = DB.vehicleLogs.filter(l=> _vlVehicle==='all' || l.vehicleId===_vlVehicle);
-  const set = new Set(pool.map(l=>l.type));
-  if(!set.size) ['fuel','maintenance','oil','asset'].forEach(x=>set.add(x));
+  const set = new Set(pool.map(vlogFilterKey));
+  if(!set.size){
+    // No logs recorded yet: fall back to listing the vehicle-tracked categories that exist
+    // (from the Categories page) so the filter isn't empty before any data has been entered.
+    const wantRoot = _vlVehicle==='all' ? null : (vehicleById(_vlVehicle)?.type==='scooter' ? 'cat_scooter' : 'cat_car');
+    DB.categories.forEach(c=>{
+      const root = categoryRootAncestor(c.id);
+      if(root==='cat_car' || root==='cat_scooter'){
+        if(!wantRoot || root===wantRoot) set.add(c.id);
+      }
+    });
+  }
   return [...set];
 }
 function _vlogTypeDropdownRender(){
   const listEl = document.getElementById('vlogs-type-list');
   const labelEl = document.getElementById('vlogs-type-label');
   if(!listEl) return;
-  const labels = vlogTypeLabels();
-  const types = vlogAvailableTypes();
-  // Selection semantics: empty set == "All types" (matches the old select's default).
-  listEl.innerHTML = types.map(ty=>{
-    const checked = _vlTypes.size===0 || _vlTypes.has(ty);
+  const keys = vlogAvailableFilterKeys();
+  // Selection semantics: empty set == "All" (matches the old select's default).
+  listEl.innerHTML = keys.map(key=>{
+    const checked = _vlTypes.size===0 || _vlTypes.has(key);
     return `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;border-radius:5px;margin:1px 4px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
-      <input type="checkbox" data-vlog-type="${ty}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
-      <span style="font-size:12.5px;">${labels[ty]||ty}</span>
+      <input type="checkbox" data-vlog-key="${key}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+      <span style="font-size:12.5px;">${vlogFilterLabel(key)}</span>
     </label>`;
   }).join('');
-  listEl.querySelectorAll('[data-vlog-type]').forEach(cb=>{
+  listEl.querySelectorAll('[data-vlog-key]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       // Build the explicit selected set from what's currently checked (an empty result
       // collapses back to "All" so unchecking every box behaves the same as never filtering).
-      const allBoxes = [...listEl.querySelectorAll('[data-vlog-type]')];
-      const checkedNow = allBoxes.filter(b=>b.checked).map(b=>b.dataset.vlogType);
+      const allBoxes = [...listEl.querySelectorAll('[data-vlog-key]')];
+      const checkedNow = allBoxes.filter(b=>b.checked).map(b=>b.dataset.vlogKey);
       _vlTypes = checkedNow.length===allBoxes.length ? new Set() : new Set(checkedNow);
       labelEl.textContent = _vlogTypeLabelText();
       renderVehicleLogsPanel();
@@ -3683,9 +3725,8 @@ function _vlogTypeDropdownRender(){
   labelEl.textContent = _vlogTypeLabelText();
 }
 function _vlogTypeLabelText(){
-  const labels = vlogTypeLabels();
   if(_vlTypes.size===0) return tt('كل الأنواع','All types');
-  const names = [..._vlTypes].map(ty=>labels[ty]||ty);
+  const names = [..._vlTypes].map(vlogFilterLabel);
   return names.length<=2 ? names.join(', ') : `${names[0]} +${names.length-1} ${tt('أخرى','more')}`;
 }
 (function(){
@@ -3708,7 +3749,7 @@ function _vlogTypeLabelText(){
     _vlTypes = new Set(); _vlogTypeDropdownRender(); renderVehicleLogsPanel();
   });
   document.getElementById('vlogs-type-none')?.addEventListener('click', ()=>{
-    _vlTypes = new Set(vlogAvailableTypes().length ? ['__none__'] : []); // sentinel: nothing matches
+    _vlTypes = new Set(vlogAvailableFilterKeys().length ? ['__none__'] : []); // sentinel: nothing matches
     _vlogTypeDropdownRender(); renderVehicleLogsPanel();
   });
 })();
@@ -3730,7 +3771,7 @@ function renderVehicleLogsPanel(){
   const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
-    .filter(l => _vlTypes.size===0 || _vlTypes.has(l.type))
+    .filter(l => _vlTypes.size===0 || _vlTypes.has(vlogFilterKey(l)))
     .filter(l => !_vlFrom || l.date>=_vlFrom)
     .filter(l => !_vlTo || l.date<=_vlTo)
     .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
@@ -3738,7 +3779,7 @@ function renderVehicleLogsPanel(){
   // Table
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
       <td class="td-date" data-label="">${fmtDate(l.date)} · ${l.vehicleIcon} ${l.vehicleName}</td>
-      <td data-label="${t('th_type')}"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
+      <td data-label="${t('th_type')}"><span class="tag">${vlogFilterLabel(vlogFilterKey(l))}</span></td>
       <td class="amt neg" data-label="${t('th_amount')}">${fmtMoney(l.amount)}</td>
       <td class="amt" data-label="${t('th_km')}">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
       <td class="amt" data-label="${t('th_dist')}">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
@@ -3785,7 +3826,7 @@ function renderVehicleLogsPanel(){
       name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
       total: allVehicleLogsComputed()
         .filter(l=>l.vehicleId===v.id)
-        .filter(l => _vlTypes.size===0 || _vlTypes.has(l.type))
+        .filter(l => _vlTypes.size===0 || _vlTypes.has(vlogFilterKey(l)))
         .filter(l => !_vlFrom || l.date>=_vlFrom)
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
@@ -5008,7 +5049,7 @@ const submitHandlers = {
         linkedLog.date = t.date; linkedLog.accountId = t.accountId; linkedLog.amount = t.amount; linkedLog.note = t.note;
         const info = categoryVehicleInfo(t.categoryId);
         if(info){
-          linkedLog.type = info.logType;
+          linkedLog.type = info.logType; linkedLog.categoryId = t.categoryId;
           if(info.logType==='fuel') linkedLog.litersFilled = computeLitersFromAmount(t.amount);
         }
       }
@@ -5052,7 +5093,7 @@ const submitHandlers = {
         const v = vehicleById(data.vehicleId);
         if(v){
           DB.vehicleLogs.push({
-            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
+            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType, categoryId: data.categoryId,
             amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
             litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
             partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
@@ -5174,7 +5215,7 @@ const submitHandlers = {
         txnId = null;
       }
       Object.assign(editing, {
-        date: data.date, type: data.type, amount: Number(data.amount),
+        date: data.date, type: data.type, categoryId: catId, amount: Number(data.amount),
         odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
         litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
         partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
@@ -5194,7 +5235,7 @@ const submitHandlers = {
       });
     }
     DB.vehicleLogs.push({
-      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type,
+      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type, categoryId: catId,
       amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
       litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
       partId: (data.type==='maintenance' && data.partId) ? data.partId : null,

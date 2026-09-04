@@ -1974,8 +1974,22 @@ function vehicleCurrentOdometer(vehicleId){
   const logs = vehicleLogsRaw(vehicleId).filter(l=>l.odometerKm != null);
   return logs.length ? logs[logs.length-1].odometerKm : null;
 }
+// Distinguishes a REAL oil change (resets the interval countdown) from a partial oil top-up
+// like "Add Oil" / "تزويد زيت" — both get the broad logType 'oil' for filtering/UI purposes,
+// but only a log whose category is the built-in Oil Change category, or explicitly says
+// "change"/"تغيير" (not just "oil"/"زيت" generally), should count as resetting the milestone.
+// Without this, topping off oil would falsely reset "km until next oil change" to the full interval.
+function isFullOilChangeLog(log){
+  if(log.type !== 'oil') return false;
+  const catId = log.categoryId;
+  if(!catId) return true; // legacy logs recorded before categoryId existed: assume a real change
+  if(catId==='cat_car_oil' || catId==='cat_scooter_oil') return true;
+  const cat = categoryById(catId);
+  const hay = (catId + ' ' + (cat?cat.name:'')).toLowerCase();
+  return /change|تغيير|استبدال/.test(hay);
+}
 function vehicleLastOilChangeKm(vehicleId){
-  const oilLogs = vehicleLogsRaw(vehicleId).filter(l=>l.type==='oil' && l.odometerKm != null);
+  const oilLogs = vehicleLogsRaw(vehicleId).filter(l=> isFullOilChangeLog(l) && l.odometerKm != null);
   return oilLogs.length ? oilLogs[oilLogs.length-1].odometerKm : null;
 }
 // Returns null if not enough info to judge (no interval set, or no odometer readings yet).
@@ -3812,6 +3826,18 @@ function renderVehicleLogsPanel(){
     summaryCards.push({
       l: LANG==='ar' ? 'آخر قراءة عداد' : 'Last Odometer',
       v: lastOdo!=null ? fmtMoney(lastOdo)+' '+tt('كم','km') : '—'
+    });
+
+    // Distance covered WITHIN the current filter: first odometer reading to last odometer
+    // reading among the filtered/displayed log entries — unlike the card above, this one is
+    // meant to move as the filters change (date range, category, etc).
+    const logsWithOdo = logs.filter(l=>l.odometerKm!=null).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    const filteredDistance = logsWithOdo.length>=2
+      ? logsWithOdo[logsWithOdo.length-1].odometerKm - logsWithOdo[0].odometerKm
+      : null;
+    summaryCards.push({
+      l: LANG==='ar' ? 'المسافة (حسب الفلتر)' : 'Distance (filtered)',
+      v: filteredDistance!=null ? fmtMoney(filteredDistance)+' '+tt('كم','km') : '—'
     });
   }
   document.getElementById('vlogs-summary-strip').innerHTML = summaryCards.map(s=>`

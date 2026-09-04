@@ -3800,6 +3800,20 @@ function renderVehicleLogsPanel(){
     {l:LANG==='ar'?'إجمالي الإنفاق':'Total Spend', v: 'EGP '+fmtMoney(totalSpend)},
     {l:LANG==='ar'?'متوسط كم/لتر':'Avg km/L', v: avgKmL!=null ? avgKmL.toFixed(2) : '—'}
   ];
+  // Last known odometer reading for the vehicle selected in the filter — read from ALL of that
+  // vehicle's logs (ignoring the current type/date filters, since "last known KM" should reflect
+  // the vehicle's real-world state, not just whatever subset happens to be filtered right now).
+  if(_vlVehicle!=='all'){
+    const allVehLogs = vehicleLogsRaw(_vlVehicle); // ascending chronological
+    let lastOdo = null;
+    for(let i=allVehLogs.length-1;i>=0;i--){
+      if(allVehLogs[i].odometerKm!=null){ lastOdo = allVehLogs[i].odometerKm; break; }
+    }
+    summaryCards.push({
+      l: LANG==='ar' ? 'آخر قراءة عداد' : 'Last Odometer',
+      v: lastOdo!=null ? fmtMoney(lastOdo)+' '+tt('كم','km') : '—'
+    });
+  }
   document.getElementById('vlogs-summary-strip').innerHTML = summaryCards.map(s=>`
     <div class="card" style="padding:10px 14px;flex:1;min-width:120px;">
       <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>

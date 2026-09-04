@@ -1890,17 +1890,17 @@ function _scooterKmLBaseline(rawValues){
 }
 function vehicleLogsComputed(vehicleId){
   const v = vehicleById(vehicleId);
-  let prevOdo = null, prevFuelOdo = null;
+  // Distance-since-previous is tracked PER CATEGORY (same idea fuel already used: km since the
+  // last fuel fill-up) — not since the last log of any kind. So "Gearbox Oil Change" compares
+  // against the previous gearbox oil change, "Motor Oil Change" against the previous motor oil
+  // change, etc., instead of whatever unrelated log happened to be entered right before it.
+  const prevOdoByKey = {};
   const rows = vehicleLogsRaw(vehicleId).map(l=>{
     let distance = null, kmPerLiter = null, kmPerLiterRaw = null;
     if(l.odometerKm != null){
-      if(l.type === 'fuel'){
-        if(prevFuelOdo != null) distance = l.odometerKm - prevFuelOdo;
-        prevFuelOdo = l.odometerKm;
-      } else if(prevOdo != null){
-        distance = l.odometerKm - prevOdo;
-      }
-      prevOdo = l.odometerKm;
+      const key = vlogFilterKey(l);
+      if(prevOdoByKey[key] != null) distance = l.odometerKm - prevOdoByKey[key];
+      prevOdoByKey[key] = l.odometerKm;
     }
     if(l.type === 'fuel' && l.litersFilled && distance != null && distance > 0){
       kmPerLiterRaw = +(distance / l.litersFilled).toFixed(2);

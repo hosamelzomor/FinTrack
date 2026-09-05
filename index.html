@@ -1575,6 +1575,26 @@ function migrateDB(db){
     if(p.createdDate===undefined) p.createdDate = todayLocalISO();
   });
   db.vehicleLogs = db.vehicleLogs || [];
+  // Backfill categoryId on any vehicle log that predates it (recorded before this field existed,
+  // or later hand-edited via the "type" dropdown without a category attached). Without this,
+  // those older entries fall back to a generic "type:maintenance" bucket in the filter/table
+  // while newer entries use the real "cat_car_maint" category — visually splitting one category
+  // into two duplicate-looking "Maintenance" entries. This merges them back into a single one.
+  // Self-contained (doesn't call vehicleById/categoryById, which read the global DB — not yet
+  // pointed at this object while migration is still running).
+  (function backfillVehicleLogCategoryIds(){
+    const catSets = {
+      car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
+      scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
+    };
+    db.vehicleLogs.forEach(log=>{
+      if(log.categoryId) return; // already tagged (real category or custom) — leave untouched
+      const v = (db.vehicles||[]).find(x=>x.id===log.vehicleId);
+      const vt = (v && v.type==='scooter') ? 'scooter' : 'car';
+      const set = catSets[vt];
+      log.categoryId = set[log.type] || (vt==='scooter' ? 'cat_scooter' : 'cat_car');
+    });
+  })();
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
   db.assets = db.assets || [];

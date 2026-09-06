@@ -1642,15 +1642,15 @@ function migrateDB(db){
   const catIds = new Set((db.categories||[]).map(c=>c.id));
   const defaultCats = [
     { id:'cat_car', name:'مصاريف العربية (Car Expenses)', type:'expense', parentId:null },
-    { id:'cat_car_fuel', name:'وقود (Fuel)', type:'expense', parentId:'cat_car' },
-    { id:'cat_car_maint', name:'صيانة (Maintenance)', type:'expense', parentId:'cat_car' },
-    { id:'cat_car_oil', name:'تغيير زيت (Oil Change)', type:'expense', parentId:'cat_car' },
-    { id:'cat_car_asset', name:'مقتنيات (Assets)', type:'expense', parentId:'cat_car' },
+    { id:'cat_car_fuel', name:'وقود (Fuel)', type:'expense', parentId:'cat_car', vehicleLogType:'fuel' },
+    { id:'cat_car_maint', name:'صيانة (Maintenance)', type:'expense', parentId:'cat_car', vehicleLogType:'maintenance' },
+    { id:'cat_car_oil', name:'تغيير زيت (Oil Change)', type:'expense', parentId:'cat_car', vehicleLogType:'oil_change' },
+    { id:'cat_car_asset', name:'مقتنيات (Assets)', type:'expense', parentId:'cat_car', vehicleLogType:'asset' },
     { id:'cat_scooter', name:'مصاريف الاسكوتر (Scooter Expenses)', type:'expense', parentId:null },
-    { id:'cat_scooter_fuel', name:'وقود (Fuel)', type:'expense', parentId:'cat_scooter' },
-    { id:'cat_scooter_maint', name:'صيانة (Maintenance)', type:'expense', parentId:'cat_scooter' },
-    { id:'cat_scooter_oil', name:'تغيير زيت (Oil Change)', type:'expense', parentId:'cat_scooter' },
-    { id:'cat_scooter_asset', name:'مقتنيات (Assets)', type:'expense', parentId:'cat_scooter' },
+    { id:'cat_scooter_fuel', name:'وقود (Fuel)', type:'expense', parentId:'cat_scooter', vehicleLogType:'fuel' },
+    { id:'cat_scooter_maint', name:'صيانة (Maintenance)', type:'expense', parentId:'cat_scooter', vehicleLogType:'maintenance' },
+    { id:'cat_scooter_oil', name:'تغيير زيت (Oil Change)', type:'expense', parentId:'cat_scooter', vehicleLogType:'oil_change' },
+    { id:'cat_scooter_asset', name:'مقتنيات (Assets)', type:'expense', parentId:'cat_scooter', vehicleLogType:'asset' },
     { id:'cat_sheimaa', name:'مصاريف شيماء (Sheimaa)', type:'expense', parentId:null },
     { id:'cat_celia', name:'مصاريف سيليا (Celia)', type:'expense', parentId:null },
     { id:'cat_celia_school', name:'مدرسة سيليا (Celia School)', type:'expense', parentId:'cat_celia' },
@@ -1665,6 +1665,34 @@ function migrateDB(db){
     (db.transactions||[]).forEach(t=>{ if(oldToNew[t.categoryId]) t.categoryId = oldToNew[t.categoryId]; });
     db.categories = db.categories.filter(c=>!oldToNew[c.id]);
   }
+  // Backfill vehicleLogType on any vehicle category that doesn't have it yet — built-in
+  // categories already ship with it above, but custom ones a user created before this field
+  // existed get a one-time keyword-based guess here, which then becomes the explicit,
+  // editable value going forward (see the category edit form) instead of being re-guessed
+  // from the name every time the app runs.
+  (function backfillCategoryVehicleLogTypes(){
+    function rootOf(catId){
+      let cur = db.categories.find(c=>c.id===catId);
+      let guard = 0;
+      while(cur && cur.parentId && guard++ < 6){
+        const parent = db.categories.find(c=>c.id===cur.parentId);
+        if(!parent) break;
+        cur = parent;
+      }
+      return cur ? cur.id : null;
+    }
+    db.categories.forEach(cat=>{
+      if(cat.vehicleLogType) return; // already explicit — never overwrite
+      const root = rootOf(cat.id);
+      if(root!=='cat_car' && root!=='cat_scooter') return; // not a vehicle category at all
+      const hay = (cat.id + ' ' + (cat.name||'')).toLowerCase();
+      if(/fuel|وقود|بنزين|بترول|غاز/.test(hay)) cat.vehicleLogType = 'fuel';
+      else if(/oil|زيت/.test(hay)) cat.vehicleLogType = /change|تغيير|استبدال/.test(hay) ? 'oil_change' : 'oil_topup';
+      else if(/maint|repair|صيان|اصلاح|إصلاح|تصليح/.test(hay)) cat.vehicleLogType = 'maintenance';
+      else if(/asset|مقتني|قطع|قطعه|قطعة|شراء/.test(hay)) cat.vehicleLogType = 'asset';
+      else cat.vehicleLogType = 'other';
+    });
+  })();
   return db;
 }
 
@@ -2014,18 +2042,15 @@ function vehicleCurrentOdometer(vehicleId){
   return logs.length ? logs[logs.length-1].odometerKm : null;
 }
 // Distinguishes a REAL oil change (resets the interval countdown) from a partial oil top-up
-// like "Add Oil" / "تزويد زيت" — both get the broad logType 'oil' for filtering/UI purposes,
-// but only a log whose category is the built-in Oil Change category, or explicitly says
-// "change"/"تغيير" (not just "oil"/"زيت" generally), should count as resetting the milestone.
-// Without this, topping off oil would falsely reset "km until next oil change" to the full interval.
+// like "Add Oil" / "تزويد زيت" — both share the broad logType 'oil' for filtering/UI purposes,
+// but only a category explicitly marked vehicleLogType:'oil_change' (set on creation/edit, or
+// backfilled by migration) counts as resetting the milestone. Without this, topping off oil
+// would falsely reset "km until next oil change" to the full interval.
 function isFullOilChangeLog(log){
   if(log.type !== 'oil') return false;
-  const catId = log.categoryId;
-  if(!catId) return true; // legacy logs recorded before categoryId existed: assume a real change
-  if(catId==='cat_car_oil' || catId==='cat_scooter_oil') return true;
-  const cat = categoryById(catId);
-  const hay = (catId + ' ' + (cat?cat.name:'')).toLowerCase();
-  return /change|تغيير|استبدال/.test(hay);
+  if(!log.categoryId) return true; // legacy logs recorded before categoryId existed: assume a real change
+  const info = categoryVehicleInfo(log.categoryId);
+  return !!info && info.vehicleLogType === 'oil_change';
 }
 function vehicleLastOilChangeKm(vehicleId){
   const oilLogs = vehicleLogsRaw(vehicleId).filter(l=> isFullOilChangeLog(l) && l.odometerKm != null);
@@ -2146,18 +2171,32 @@ function categoryRootAncestor(categoryId){
 // category's root ancestor (cat_car / cat_scooter) so ANY subcategory the user creates under
 // "Car Expenses" or "Scooter Expenses" — however many, however named — is automatically
 // recognized as vehicle-tracked, not just the handful shipped by default.
+//
+// The category's own `vehicleLogType` field (set explicitly when the category is created/edited,
+// or backfilled once by migration for older categories) is the source of truth. Guessing from the
+// category's name/id is only a LAST-RESORT fallback for a category that somehow still has neither
+// — it should not normally be hit, since migration backfills every vehicle category up front.
 function categoryVehicleInfo(categoryId){
   const root = categoryRootAncestor(categoryId);
   if(root!=='cat_car' && root!=='cat_scooter') return null;
   const vehicleType = root==='cat_scooter' ? 'scooter' : 'car';
   const cat = categoryById(categoryId);
+  const vehicleLogType = (cat && cat.vehicleLogType) || guessVehicleLogType(categoryId, cat);
+  // logType is the coarse bucket used throughout the app for field visibility / icons; both
+  // oil_change and oil_topup collapse to 'oil' here (the full-vs-partial distinction only
+  // matters for the "does this reset the interval" check in isFullOilChangeLog).
+  const logType = (vehicleLogType==='oil_change' || vehicleLogType==='oil_topup') ? 'oil' : vehicleLogType;
+  return {vehicleType, logType, vehicleLogType, categoryId};
+}
+// Last-resort keyword guess, used only when a vehicle category has no explicit vehicleLogType
+// (shouldn't normally happen — migration backfills this — but kept as a safety net).
+function guessVehicleLogType(categoryId, cat){
   const hay = (categoryId + ' ' + (cat?cat.name:'')).toLowerCase();
-  let logType = 'other';
-  if(/fuel|وقود|بنزين|بترول|غاز/.test(hay)) logType = 'fuel';
-  else if(/oil|زيت/.test(hay)) logType = 'oil';
-  else if(/maint|repair|صيان|اصلاح|إصلاح|تصليح/.test(hay)) logType = 'maintenance';
-  else if(/asset|مقتني|قطع|قطعه|قطعة|شراء/.test(hay)) logType = 'asset';
-  return {vehicleType, logType, categoryId};
+  if(/fuel|وقود|بنزين|بترول|غاز/.test(hay)) return 'fuel';
+  if(/oil|زيت/.test(hay)) return /change|تغيير|استبدال/.test(hay) ? 'oil_change' : 'oil_topup';
+  if(/maint|repair|صيان|اصلاح|إصلاح|تصليح/.test(hay)) return 'maintenance';
+  if(/asset|مقتني|قطع|قطعه|قطعة|شراء/.test(hay)) return 'asset';
+  return 'other';
 }
 // The single source of truth for computing liters from money spent: amount ÷ the global fuel
 // price on the Vehicles page. Always used at save time for fuel-type logs, regardless of what a
@@ -4051,6 +4090,17 @@ function categoryParentOptions(type, selected){
   return DB.categories.filter(c=>c.type===type && !c.parentId)
     .map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${c.name}</option>`).join('');
 }
+function vehicleLogTypeOptions(selected){
+  const opts = [
+    ['fuel', tt('⛽ وقود','⛽ Fuel')],
+    ['maintenance', tt('🔧 صيانة','🔧 Maintenance')],
+    ['oil_change', tt('🛢 تغيير زيت كامل (بيصفّر الموعد)','🛢 Full oil change (resets the reminder)')],
+    ['oil_topup', tt('🛢 تزويد/إضافة زيت جزئي (مبيصفّرش الموعد)','🛢 Partial oil top-up (does not reset the reminder)')],
+    ['asset', tt('💰 مقتنيات','💰 Asset')],
+    ['other', tt('📋 أخرى','📋 Other')]
+  ];
+  return opts.map(([v,l])=>`<option value="${v}" ${v===selected?'selected':''}>${l}</option>`).join('');
+}
 
 function openModal(kind, ctx={}){
   const root = document.getElementById('modal-root');
@@ -4301,6 +4351,11 @@ function openModal(kind, ctx={}){
           <label>${tt('الفئة الرئيسية (اختياري)','Parent category (optional)')}</label>
           <select name="parentId" id="cat-parent-select"><option value="">${tt('— بدون (رئيسية) —','— None (top-level) —')}</option>${categoryParentOptions('expense')}</select>
         </div>
+        <div class="field" id="cat-vlt-field" style="display:none;">
+          <label>${tt('نوع سجل المركبة','Vehicle log type')}</label>
+          <select name="vehicleLogType">${vehicleLogTypeOptions()}</select>
+          <div class="help-text">${tt('بيحدد سلوك الفئة دي في متابعة المركبة (إظهار حقل العداد، حساب اللترات، تصفير موعد تغيير الزيت..) — بدل ما النظام يخمّن من الاسم.','Determines how this category behaves for vehicle tracking (odometer field, liters calc, oil-change reset...) — instead of the system guessing from the name.')}</div>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('إنشاء الفئة','Create Category')}</button>
@@ -4317,6 +4372,7 @@ function openModal(kind, ctx={}){
     // Build parent options for the same type, excluding the category itself and its own children
     const parentOpts = DB.categories.filter(c=>c.type===cat.type && !c.parentId && c.id!==cat.id)
       .map(c=>`<option value="${c.id}" ${c.id===cat.parentId?'selected':''}>${c.name}</option>`).join('');
+    const isVehicleParent = cat.parentId==='cat_car' || cat.parentId==='cat_scooter';
     html = `<div class="modal">
       <h2>${tt('تعديل الفئة','Edit Category')}</h2>
       <form id="form-category-edit">
@@ -4328,10 +4384,15 @@ function openModal(kind, ctx={}){
         <div class="field"><label>${tt('الاسم','Name')}</label><input name="name" required value="${cat.name}" placeholder="${tt('مثال: كهرباء','e.g. Electricity')}"></div>
         <div class="field">
           <label>${tt('الفئة الرئيسية (اختياري)','Parent category (optional)')}</label>
-          <select name="parentId">
+          <select name="parentId" id="cat-edit-parent-select">
             <option value="" ${!cat.parentId?'selected':''}>${tt('— بدون (رئيسية) —','— None (top-level) —')}</option>
             ${parentOpts}
           </select>
+        </div>
+        <div class="field" id="cat-edit-vlt-field" style="display:${isVehicleParent?'block':'none'};">
+          <label>${tt('نوع سجل المركبة','Vehicle log type')}</label>
+          <select name="vehicleLogType">${vehicleLogTypeOptions(cat.vehicleLogType)}</select>
+          <div class="help-text">${tt('بيحدد سلوك الفئة دي في متابعة المركبة (إظهار حقل العداد، حساب اللترات، تصفير موعد تغيير الزيت..) — بدل ما النظام يخمّن من الاسم.','Determines how this category behaves for vehicle tracking (odometer field, liters calc, oil-change reset...) — instead of the system guessing from the name.')}</div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
@@ -4892,6 +4953,8 @@ function wireModal(kind){
       if(group.id==='cat-type-group'){
         const val = opt.dataset.val;
         document.getElementById('cat-parent-select').innerHTML = '<option value="">— None (top-level) —</option>' + categoryParentOptions(val);
+        const vltField = document.getElementById('cat-vlt-field');
+        if(vltField) vltField.style.display = 'none'; // parent reset to "none" above, so hide until re-picked
       }
       if(group.id==='commit-type-group'){
         document.getElementById('commit-payout-field').style.display = opt.dataset.val==='rotating_saving' ? 'block' : 'none';
@@ -4912,6 +4975,28 @@ function wireModal(kind){
       }
     });
   });
+
+  // Category modal: only categories nested directly under "Car Expenses" / "Scooter Expenses"
+  // can be vehicle-tracked, so the Vehicle Log Type field only makes sense (and only shows) once
+  // one of those two is picked as the parent.
+  if(kind==='category'){
+    const parentSel = backdrop.querySelector('#cat-parent-select');
+    const vltField = backdrop.querySelector('#cat-vlt-field');
+    if(parentSel && vltField){
+      parentSel.addEventListener('change', ()=>{
+        vltField.style.display = (parentSel.value==='cat_car' || parentSel.value==='cat_scooter') ? 'block' : 'none';
+      });
+    }
+  }
+  if(kind==='category-edit'){
+    const parentSel = backdrop.querySelector('#cat-edit-parent-select');
+    const vltField = backdrop.querySelector('#cat-edit-vlt-field');
+    if(parentSel && vltField){
+      parentSel.addEventListener('change', ()=>{
+        vltField.style.display = (parentSel.value==='cat_car' || parentSel.value==='cat_scooter') ? 'block' : 'none';
+      });
+    }
+  }
 
   // Transaction modal: when the picked category is a vehicle category (fuel/maintenance/oil,
   // car or scooter), reveal Vehicle + Odometer (+ Liters / Part) fields so this transaction also
@@ -5005,6 +5090,34 @@ function wireModal(kind){
   });
 }
 
+// Single source of truth for "record a Commitment Payment" — used by both the dedicated
+// Record Payment modal AND picking the Commitments category directly on the regular
+// Transaction form, so the paid/remaining/status logic only ever lives in one place.
+function recordCommitmentPayment(commitmentId, {date, amount, method='bank_transfer', accountId=null, linkedTransactionId=null}){
+  const c = DB.commitments.find(x=>x.id===commitmentId);
+  if(!c) return null;
+  const payment = {
+    id: uid('pmt'), commitmentId: c.id, date, amount: Number(amount),
+    method, accountId, linkedTransactionId
+  };
+  DB.commitmentPayments.push(payment);
+  const paidCount = commitmentPayments(c.id).length;
+  if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status = 'completed';
+  return payment;
+}
+// Single source of truth for a Vehicle Log's derived fields (liters-from-amount, part-only-for-
+// maintenance) — used when a transaction auto-creates a log, when the dedicated modal creates
+// one, and when it edits one, so that logic only ever lives in one place.
+function buildVehicleLogFields({date, type, categoryId, amount, odometerKm, partId, note, method, accountId, linkedTransactionId}){
+  return {
+    date, type, categoryId,
+    amount: Number(amount),
+    odometerKm: odometerKm ? Number(odometerKm) : null,
+    litersFilled: type==='fuel' ? computeLitersFromAmount(amount) : null,
+    partId: (type==='maintenance' && partId) ? partId : null,
+    note: note || '', method, accountId, linkedTransactionId
+  };
+}
 const submitHandlers = {
   account(data){
     if(data.accountId){
@@ -5165,15 +5278,7 @@ const submitHandlers = {
       // also represents a Commitment Payment, so create/link one — same relationship the
       // dedicated "Record Payment" flow creates, just reached from a different entry point.
       if(data.categoryId==='cat_commit' && data.type==='expense' && data.commitmentId){
-        const c = DB.commitments.find(x=>x.id===data.commitmentId);
-        if(c){
-          DB.commitmentPayments.push({
-            id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
-            method:'bank_transfer', accountId:data.accountId, linkedTransactionId: txnId
-          });
-          const paidCount = commitmentPayments(c.id).length;
-          if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
-        }
+        recordCommitmentPayment(data.commitmentId, {date:data.date, amount:data.amount, method:'bank_transfer', accountId:data.accountId, linkedTransactionId:txnId});
       }
       // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log
       // entry too, so odometer-based fuel efficiency, oil-change and part-wear tracking pick it up.
@@ -5181,20 +5286,22 @@ const submitHandlers = {
       if(info && data.vehicleId){
         const v = vehicleById(data.vehicleId);
         if(v){
-          DB.vehicleLogs.push({
-            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType, categoryId: data.categoryId,
-            amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-            litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
-            partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
-            note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
-          });
+          DB.vehicleLogs.push(Object.assign({id: uid('vlog'), vehicleId: v.id}, buildVehicleLogFields({
+            date: data.date, type: info.logType, categoryId: data.categoryId, amount: data.amount,
+            odometerKm: data.odometerKm, partId: data.partId, note: data.note,
+            method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
+          })));
         }
       }
     }
     saveDB(); toast(tt('اتسجلت المعاملة','Transaction saved'));
   },
   category(data){
-    DB.categories.push({id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null});
+    const isVehicleParent = data.parentId==='cat_car' || data.parentId==='cat_scooter';
+    DB.categories.push({
+      id:uid('cat'), name:data.name.trim(), type:data.type, parentId: data.parentId || null,
+      vehicleLogType: isVehicleParent ? (data.vehicleLogType || 'other') : undefined
+    });
     saveDB(); toast(tt('اتعملت الفئة','Category created'));
   },
   'category-edit'(data){
@@ -5202,6 +5309,9 @@ const submitHandlers = {
     if(!cat) throw new Error('Category not found');
     cat.name = data.name.trim();
     cat.parentId = data.parentId || null;
+    const isVehicleParent = cat.parentId==='cat_car' || cat.parentId==='cat_scooter';
+    if(isVehicleParent) cat.vehicleLogType = data.vehicleLogType || cat.vehicleLogType || 'other';
+    else delete cat.vehicleLogType; // no longer under a vehicle parent — the field is meaningless here
     saveDB(); toast(t('cat_updated'));
   },
   commitment(data){
@@ -5236,12 +5346,7 @@ const submitHandlers = {
       txnId = uid('txn');
       DB.transactions.push({id:txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
     }
-    DB.commitmentPayments.push({
-      id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
-      method, accountId, linkedTransactionId: txnId
-    });
-    const paidCount = commitmentPayments(c.id).length;
-    if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+    recordCommitmentPayment(c.id, {date:data.date, amount:data.amount, method, accountId, linkedTransactionId:txnId});
     saveDB(); toast(tt('اتسجلت الدفعة','Payment recorded'));
   },
   payout(data){
@@ -5303,13 +5408,11 @@ const submitHandlers = {
         DB.transactions = DB.transactions.filter(t=>t.id!==txnId);
         txnId = null;
       }
-      Object.assign(editing, {
-        date: data.date, type: data.type, categoryId: catId, amount: Number(data.amount),
-        odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-        litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
-        partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
-        note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
-      });
+      Object.assign(editing, buildVehicleLogFields({
+        date: data.date, type: data.type, categoryId: catId, amount: data.amount,
+        odometerKm: data.odometerKm, partId: data.partId, note: data.note,
+        method: data.method, accountId, linkedTransactionId: txnId
+      }));
       saveDB(); toast(tt('اتحدث السجل','Log entry updated'));
       return;
     }
@@ -5323,13 +5426,11 @@ const submitHandlers = {
         type: 'expense', transferPairId: null
       });
     }
-    DB.vehicleLogs.push({
-      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type, categoryId: catId,
-      amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-      litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
-      partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
-      note: data.note || '', method: data.method, accountId, linkedTransactionId: txnId
-    });
+    DB.vehicleLogs.push(Object.assign({id: uid('vlog'), vehicleId: v.id}, buildVehicleLogFields({
+      date: data.date, type: data.type, categoryId: catId, amount: data.amount,
+      odometerKm: data.odometerKm, partId: data.partId, note: data.note,
+      method: data.method, accountId, linkedTransactionId: txnId
+    })));
     saveDB(); toast(tt('اتسجل السجل','Log entry saved'));
   },
   'vehicle-part'(data){
@@ -5400,6 +5501,13 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
 document.getElementById('btn-import').addEventListener('click', ()=> document.getElementById('file-import').click());
 document.getElementById('file-import').addEventListener('change', e=>{
   const file = e.target.files[0]; if(!file) return;
+  if(!confirm(tt(
+    'استرجاع النسخة دي هيستبدل كل بياناتك الحالية بالكامل. الإجراء ده مش قابل للتراجع إلا لو عندك نسخة احتياطية تانية. متأكد إنك عايز تكمل؟',
+    'Restoring this backup will completely replace all your current data. This cannot be undone unless you have another backup. Are you sure you want to continue?'
+  ))){
+    e.target.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = ()=>{
     try{

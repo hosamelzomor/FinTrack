@@ -166,7 +166,9 @@
   .grid{display:grid;gap:16px;}
   .grid.cols-3{grid-template-columns:repeat(3,1fr);}
   .grid.cols-2{grid-template-columns:2fr 1fr;}
-  @media(max-width:900px){.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:900px){.grid.cols-3,.grid.cols-2,.grid.cols-4{grid-template-columns:1fr;}}
+  @media(max-width:640px){.grid.cols-4{grid-template-columns:repeat(2,1fr);}}
 
   .card{
     background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
@@ -187,16 +189,23 @@
   /* ---------- Tables ---------- */
   table{width:100%;border-collapse:collapse;}
   thead th{
-    text-align:left;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;
-    padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;
+    text-align:center;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;
+    padding:8px 12px;border:1px solid var(--border);font-weight:600;
   }
-  tbody td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;}
-  tbody tr:last-child td{border-bottom:none;}
+  tbody td{padding:11px 12px;border:1px solid var(--border);font-size:13px;}
   tbody tr:hover{background:var(--surface-2);}
+  /* Notes routinely mix Arabic and English/numbers in the same line (e.g. "تزويد زيت Castrol 5W-30").
+     dir="auto" + unicode-bidi:plain-text (mirrored on the note <input> in every form) lets the
+     Unicode Bidi Algorithm resolve each note independently from its own content instead of
+     inheriting the page's RTL/LTR direction, and text-align:start keeps it aligned to match
+     whichever direction that resolves to — so a note that happens to start in English isn't
+     force-aligned to the right (or vice-versa), which is what produced the "jumbled" look. */
+  td.td-note, .field input[name="note"]{ unicode-bidi:plain-text; }
+  td.td-note{ text-align:start; }
   td.amt{font-family:var(--font-mono);text-align:right;}
   td.amt.pos{color:var(--positive);}
   td.amt.neg{color:var(--negative);}
-  th.amt{text-align:right;}
+  th.amt{text-align:center;}
   .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
   .table-wrap .head-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
   .table-wrap .head-row h3{margin:0;font-size:14px;font-weight:600;font-family:var(--font-display);}
@@ -648,15 +657,14 @@
   .g-table-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:0 0 16px;}
   .g-table-wrap table{width:100%;border-collapse:collapse;}
   .g-table-wrap thead th{
-    text-align:right;font-size:11px;color:var(--text-faint);text-transform:uppercase;
-    letter-spacing:.05em;padding:9px 14px;border-bottom:1px solid var(--border);
+    text-align:center;font-size:11px;color:var(--text-faint);text-transform:uppercase;
+    letter-spacing:.05em;padding:9px 14px;border:1px solid var(--border);
     font-weight:700;background:var(--surface-2);
   }
   .g-table-wrap tbody td{
-    padding:10px 14px;border-bottom:1px solid var(--border);
+    padding:10px 14px;border:1px solid var(--border);
     font-size:13px;color:var(--text-muted);
   }
-  .g-table-wrap tbody tr:last-child td{border-bottom:none;}
   .g-table-wrap tbody td strong{color:var(--text);font-weight:600;}
   .g-table-wrap tbody td code{font-family:monospace;font-size:11.5px;background:var(--surface-3);padding:1px 6px;border-radius:4px;color:var(--accent-bright);}
 
@@ -723,10 +731,10 @@
 <script>
   // Match guide-tab button labels (icon + text) to the current language.
   var GUIDE_TAB_LABELS = {
-    en: {overview:'🧭 Overview', accounts:'🏦 Accounts', transactions:'💸 Transactions',
+    en: {overview:'🧭 Overview', accounts:'🏦 Accounts', wealth:'💎 Wealth', transactions:'💸 Transactions',
       categories:'🏷️ Categories', commitments:'🔄 Commitments', vehicles:'🚗 Vehicles',
       budgets:'🎯 Budgets', reports:'📈 Reports', drive:'☁️ Google Drive'},
-    ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', transactions:'💸 المعاملات',
+    ar: {overview:'🧭 نظرة عامة', accounts:'🏦 الحسابات', wealth:'💎 الثروة', transactions:'💸 المعاملات',
       categories:'🏷️ الفئات', commitments:'🔄 الالتزامات', vehicles:'🚗 المركبات',
       budgets:'🎯 الميزانيات', reports:'📈 التقارير', drive:'☁️ Google Drive'}
   };
@@ -749,24 +757,28 @@
       }
     },
     accounts: {
-      ar: {'guide-content-accounts': '<div class="g-section-title">🏦 الحسابات (Accounts)</div><p class="g-p">الحسابات هي الأساس اللي بتقوم عليه كل حاجة. كل معاملة لازم تكون مربوطة بحساب معين.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash — كاش</div><div class="g-card-body">الفلوس اللي معاك في إيدك أو في الدرج. مثال: "محفظتي"، "كاش البيت".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank — بنك</div><div class="g-card-body">حساباتك البنكية. تقدر تضيف أكثر من حساب لو عندك أكثر من بنك.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">محافظ إلكترونية زي فودافون كاش، اورنج موني، إنستاباي.</div></div></div><div class="g-section-title">إضافة حساب جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">افتح صفحة Accounts</div><div class="g-step-desc">من القائمة الجانبية اضغط على <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">اضغط Add Account</div><div class="g-step-desc">هيفتح نموذج — اكتب اسم الحساب وحدد نوعه وعملته.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">حدد الرصيد الافتتاحي</div><div class="g-step-desc">أدخل الرصيد الفعلي الموجود دلوقتي في الحساب. ده المبلغ اللي بيبدأ منه النظام الحساب.</div></div></div></div><div class="g-callout warning">⚠️ <strong>مهم جداً:</strong> الرصيد الافتتاحي لازم يكون دقيق. لو غلطت فيه، كل أرصدتك هتبقى غلط. استخدم زر <strong>Reconcile</strong> بعد كده عشان تصحح أي فرق.</div><div class="g-section-title">Reconcile — مطابقة الأرصدة</div><p class="g-p">لو لاحظت فرق بين رصيد النظام والرصيد الحقيقي، استخدم زر <strong>Reconcile</strong> بجانب كل حساب. النظام هيسألك عن الرصيد الحقيقي ويسجّل معاملة تعديل تلقائياً.</p><div class="g-section-title">أسعار الصرف</div><p class="g-p">لو عندك حسابات بعملات مختلفة (دولار، ريال..)، ضبط أسعار الصرف من نفس الصفحة. النظام بيحوّل كل حاجة لـ EGP في التقارير والداشبورد.</p>'},
-      en: {'guide-content-accounts': '<div class="g-section-title">🏦 Accounts</div><p class="g-p">Accounts are the foundation everything else builds on. Every transaction must be linked to a specific account.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash</div><div class="g-card-body">Money in your hand or at home. Example: "My wallet", "Cash at home".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank</div><div class="g-card-body">Your bank accounts. You can add more than one if you bank with several banks.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">E-wallets like Vodafone Cash, Orange Money, InstaPay.</div></div></div><div class="g-section-title">Adding a New Account</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open the Accounts page</div><div class="g-step-desc">From the sidebar, click <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Click Add Account</div><div class="g-step-desc">A form opens — enter the account name and choose its type and currency.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Set the opening balance</div><div class="g-step-desc">Enter the actual balance currently in the account. This is the starting point the system calculates from.</div></div></div></div><div class="g-callout warning">⚠️ <strong>Very important:</strong> The opening balance needs to be accurate. Get it wrong and every balance downstream will be wrong too. Use the <strong>Reconcile</strong> button afterward to fix any discrepancy.</div><div class="g-section-title">Reconcile — Matching Balances</div><p class="g-p">If you notice a difference between the system balance and the real one, use the <strong>Reconcile</strong> button next to that account. The system will ask for the real balance and automatically log an adjustment transaction.</p><div class="g-section-title">Exchange Rates</div><p class="g-p">If you have accounts in different currencies (USD, SAR...), set the exchange rates on the same page. The system converts everything to EGP in reports and the dashboard.</p>'}
+      ar: {'guide-content-accounts': '<div class="g-section-title">🏦 الحسابات (Accounts)</div><p class="g-p">الحسابات هي الأساس اللي بتقوم عليه كل حاجة. كل معاملة لازم تكون مربوطة بحساب معين.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash — كاش</div><div class="g-card-body">الفلوس اللي معاك في إيدك أو في الدرج. مثال: "محفظتي"، "كاش البيت".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank — بنك</div><div class="g-card-body">حساباتك البنكية. تقدر تضيف أكثر من حساب لو عندك أكثر من بنك.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">محافظ إلكترونية زي فودافون كاش، اورنج موني، إنستاباي.</div></div></div><div class="g-section-title">إضافة حساب جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">افتح صفحة Accounts</div><div class="g-step-desc">من القائمة الجانبية اضغط على <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">اضغط Add Account</div><div class="g-step-desc">هيفتح نموذج — اكتب اسم الحساب وحدد نوعه وعملته.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">حدد الرصيد الافتتاحي</div><div class="g-step-desc">أدخل الرصيد الفعلي الموجود دلوقتي في الحساب. ده المبلغ اللي بيبدأ منه النظام الحساب.</div></div></div></div><div class="g-callout warning">⚠️ <strong>مهم جداً:</strong> الرصيد الافتتاحي لازم يكون دقيق. لو غلطت فيه، كل أرصدتك هتبقى غلط. استخدم زر <strong>Reconcile</strong> بعد كده عشان تصحح أي فرق.</div><div class="g-section-title">Reconcile — مطابقة الأرصدة</div><p class="g-p">لو لاحظت فرق بين رصيد النظام والرصيد الحقيقي، استخدم زر <strong>Reconcile</strong> بجانب كل حساب. النظام هيسألك عن الرصيد الحقيقي ويسجّل معاملة تعديل تلقائياً (تعديل المطابقة مبيتحسبش دخل أو مصروف في التقارير). كل عملية مطابقة بتتسجل في جدول <strong>سجل المطابقة</strong> تحت أسعار الصرف عشان تراجع تصحيحاتك القديمة.</p><div class="g-callout tip">🔒 <strong>حماية العملة:</strong> لو الحساب عليه معاملات مسجّلة، مش هتقدر تغيّر عملته من فورم التعديل — اعمل حساب جديد بالعملة اللي محتاجها بدل كده.</div><div class="g-callout tip">🗂️ <strong>إخفاء حساب:</strong> عايز تشيل حساب قديم من القائمة الرئيسية من غير ما تحذفه أو تفقد بياناته؟ فعّل خيار &quot;إخفاء من قائمة الحسابات&quot; من فورم التعديل — هيفضل متاح في قسم Hidden/Archived Accounts بنفس الصفحة، وترجّعه في أي وقت.</div><div class="g-section-title">أسعار الصرف</div><p class="g-p">لو عندك حسابات بعملات مختلفة (دولار، ريال..)، ضبط أسعار الصرف من نفس الصفحة. النظام بيحوّل كل حاجة لـ EGP في التقارير والداشبورد.</p>'},
+      en: {'guide-content-accounts': '<div class="g-section-title">🏦 Accounts</div><p class="g-p">Accounts are the foundation everything else builds on. Every transaction must be linked to a specific account.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">💵 Cash</div><div class="g-card-body">Money in your hand or at home. Example: "My wallet", "Cash at home".</div></div><div class="g-card"><div class="g-card-title">🏛️ Bank</div><div class="g-card-body">Your bank accounts. You can add more than one if you bank with several banks.</div></div><div class="g-card"><div class="g-card-title">📱 Mobile Wallet</div><div class="g-card-body">E-wallets like Vodafone Cash, Orange Money, InstaPay.</div></div></div><div class="g-section-title">Adding a New Account</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Open the Accounts page</div><div class="g-step-desc">From the sidebar, click <strong>Accounts</strong>.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Click Add Account</div><div class="g-step-desc">A form opens — enter the account name and choose its type and currency.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Set the opening balance</div><div class="g-step-desc">Enter the actual balance currently in the account. This is the starting point the system calculates from.</div></div></div></div><div class="g-callout warning">⚠️ <strong>Very important:</strong> The opening balance needs to be accurate. Get it wrong and every balance downstream will be wrong too. Use the <strong>Reconcile</strong> button afterward to fix any discrepancy.</div><div class="g-section-title">Reconcile — Matching Balances</div><p class="g-p">If you notice a difference between the system balance and the real one, use the <strong>Reconcile</strong> button next to that account. The system will ask for the real balance and automatically log an adjustment transaction (reconciliation adjustments are never counted as income or expense in reports). Every reconciliation is logged in the <strong>Reconciliation History</strong> table below the exchange rates, so past corrections can always be reviewed.</p><div class="g-callout tip">🔒 <strong>Currency protection:</strong> once an account has recorded transactions, its currency can no longer be changed from the edit form &mdash; create a new account with the desired currency instead.</div><div class="g-callout tip">🗂️ <strong>Hiding an account:</strong> want an old account off the main list without deleting it or losing its data? Turn on &quot;Hide from Accounts list&quot; in the edit form &mdash; it stays available in the Hidden/Archived Accounts section on the same page, and can be unhidden any time.</div><div class="g-section-title">Exchange Rates</div><p class="g-p">If you have accounts in different currencies (USD, SAR...), set the exchange rates on the same page. The system converts everything to EGP in reports and the dashboard.</p>'}
+    },
+    wealth: {
+      ar: {'guide-content-wealth': '<div class="g-section-title">💎 الثروة (Wealth)</div><p class="g-p">صفحة الثروة بتديك نظرة شاملة على صافي ثروتك الحقيقي — مش بس أرصدة الحسابات، لكن كمان الأصول والمركبات وخصم الالتزامات.</p><div class="g-callout tip">🧮 <strong>معادلة صافي الثروة:</strong> أرصدة الحسابات + الأصول + القيمة السوقية للمركبات − الالتزامات (كل حاجة بتتحول لجنيه مصري تلقائياً حسب أسعار الصرف).</div><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 الأصول (Assets)</div><div class="g-card-body">أي حاجة ليها قيمة مالية عندك: شقة، ذهب، محفظة استثمار.. أضفها من صفحة الثروة بقيمتها الحالية وعملتها.</div></div><div class="g-card"><div class="g-card-title">📉 الالتزامات (Liabilities)</div><div class="g-card-body">أي مبلغ متبقي عليك: قرض، دين شخصي.. بيتخصم من صافي الثروة تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🚗 قيمة المركبات</div><div class="g-card-body">حدد القيمة السوقية الحالية لكل مركبة من صفحة المركبات — وهتدخل في حساب الثروة تلقائياً.</div></div></div><div class="g-callout tip">🔄 <strong>الالتزامات (Commitments):</strong> المبلغ المتبقي من أي التزام نشط (قسط، جمعية..) بيتخصم من صافي الثروة تلقائياً — مش محتاج تضيفه تاني كالتزام يدوي في صفحة الثروة، إلا لو حابب تسجل دين مش متابعه كالتزام بأقساط.</div><div class="g-section-title">🗑️ الحذف الآمن والاسترجاع (Soft Delete)</div><p class="g-p">لما تحذف معاملة، النظام مش بيمسحها نهائياً — بينقلها لسلة المحذوفات وبيستبعدها من كل الحسابات والتقارير والميزانيات فوراً. تقدر تسترجعها في أي وقت من فلتر <strong>المحذوفة</strong> في صفحة المعاملات.</p><div class="g-callout warning">⚠️ المعاملة المحذوفة بتفضل محفوظة في النظام لحد ما تسترجعها أو الفلتر يوريها — مفيش حذف نهائي.</div><div class="g-section-title">📊 الرصيد بعد كل معاملة (Running Balance)</div><p class="g-p">لما تفلتر صفحة المعاملات بحساب معين، هيظهر عمود إضافي <strong>الرصيد بعد</strong> بيوريك رصيد الحساب لحظة بلحظة بعد كل معاملة، مرتب زمنياً من الرصيد الافتتاحي. الرصيد ده بيفضل صحيح حتى لو فلترت كمان بالفئة أو النوع أو الشهر.</p><div class="g-section-title">🗂️ الحسابات المخفية / المؤرشفة</div><p class="g-p">تقدر تخفي أي حساب قديم مش بتستخدمه من قائمة الحسابات الرئيسية (بدون ما تحذفه أو تفقد بياناته). الحساب المخفي بيفضل متاح في قسم <strong>Hidden / Archived Accounts</strong> بنفس الصفحة، وتقدر تظهره تاني في أي وقت.</p><div class="g-section-title">🧾 سجل المطابقة (Reconciliation History)</div><p class="g-p">كل مرة تعمل <strong>Reconcile</strong> لحساب (فردي أو Reconcile All)، النظام بيسجل التاريخ والرصيد قبل وبعد والفرق في سجل تاريخي تحت جدول أسعار الصرف في صفحة الحسابات — عشان تقدر تراجع تصحيحاتك القديمة. تعديلات المطابقة دي بتأثر على رصيد الحساب بس مش بتتحسب كدخل أو مصروف في التقارير.</p>'},
+      en: {'guide-content-wealth': '<div class="g-section-title">💎 Wealth</div><p class="g-p">The Wealth page gives you a full picture of your real net worth &mdash; not just account balances, but assets and vehicles too, minus your liabilities.</p><div class="g-callout tip">🧮 <strong>Net Worth formula:</strong> Account Balances + Assets + Vehicle Market Values &minus; Liabilities (everything is auto-converted to EGP using the exchange rates).</div><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Assets</div><div class="g-card-body">Anything with financial value: an apartment, gold, an investment portfolio... Add it from the Wealth page with its current value and currency.</div></div><div class="g-card"><div class="g-card-title">📉 Liabilities</div><div class="g-card-body">Any amount still owed: a loan, a personal debt... automatically subtracted from net worth.</div></div><div class="g-card"><div class="g-card-title">🚗 Vehicle Values</div><div class="g-card-body">Set the current market value for each vehicle from the Vehicles page (the &quot;Current market value&quot; field) &mdash; it flows into the net worth calculation automatically.</div></div></div><div class="g-callout tip">🔄 <strong>Commitments:</strong> the remaining balance of any active Commitment (installment, gam3eya/rotating saving...) is subtracted from net worth automatically &mdash; no need to also add it as a manual Liability, unless it is a debt not tracked as an installment Commitment.</div><div class="g-section-title">🗑️ Soft Delete &amp; Restore</div><p class="g-p">When a transaction is deleted, the system does not erase it &mdash; it moves it to a &quot;Deleted&quot; bucket and immediately excludes it from every balance, report, and budget. It can be restored any time from the <strong>Deleted</strong> filter on the Transactions page.</p><div class="g-callout warning">⚠️ A deleted transaction stays stored in the system until it is restored or viewed via the filter &mdash; nothing is permanently erased.</div><div class="g-section-title">📊 Running Balance</div><p class="g-p">When the Transactions page is filtered by a specific account, an extra <strong>Balance After</strong> column appears, showing the account balance moment-by-moment after each transaction, ordered chronologically from the opening balance. This stays accurate even when also filtering by category, type, or month.</p><div class="g-section-title">🗂️ Hidden / Archived Accounts</div><p class="g-p">Any old account no longer in use can be hidden from the main Accounts list (without deleting it or losing its data). A hidden account stays available in the <strong>Hidden / Archived Accounts</strong> section on the same page, and can be unhidden at any time.</p><div class="g-section-title">🧾 Reconciliation History</div><p class="g-p">Every time an account is Reconciled (single or Reconcile All), the system logs the date, the before/after balance, and the difference in a history table beneath the exchange rates on the Accounts page &mdash; so past corrections can always be reviewed. These reconciliation adjustments affect the account balance but are never counted as income or expense in reports.</p>'}
     },
     transactions: {
-      ar: {'guide-content-transactions': '<div class="g-section-title">💸 المعاملات (Transactions)</div><p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span> مصروف</div><div class="g-card-body">أي حاجة بتصرفها: أكل، مواصلات، فواتير، إيجار. بتخصم من رصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span> دخل</div><div class="g-card-body">أي حاجة بتدخل: مرتب، فلوس من حد، أرباح. بتضيف لرصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span> تحويل</div><div class="g-card-body">نقل فلوس من حساب لحساب تاني عندك. مش مصروف ولا دخل — بس إعادة توزيع.</div></div></div><div class="g-section-title">حقول المعاملة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense / Income / Transfer</td><td>لازم يتحدد أول حاجة</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr><tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr><tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr><tr><td><strong>الفئة</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr><tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت فئة مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div><div class="g-section-title">البحث والفلترة</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>النوع:</strong> All / Income / Expense / Transfers<br><strong>الشهر:</strong> اعرض معاملات شهر معين<br><strong>الحساب:</strong> معاملات حساب معين<br><strong>الفئة:</strong> من القائمة المنسدلة الشجرية<br><strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ</div></div>'},
-      en: {'guide-content-transactions': '<div class="g-section-title">💸 Transactions</div><p class="g-p">Transactions are the backbone of the system. Every income, expense, or transfer between accounts needs to be logged here.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span></div><div class="g-card-body">Anything you spend: food, transport, bills, rent. Deducted from the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span></div><div class="g-card-body">Anything coming in: salary, money from someone, profits. Added to the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span></div><div class="g-card-body">Moving money between two of your own accounts. Not an expense or income — just redistribution.</div></div></div><div class="g-section-title">Transaction Fields</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th><th>Note</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense / Income / Transfer</td><td>Must be chosen first</td></tr><tr><td><strong>Date</strong></td><td>Date of the transaction</td><td>Doesn\'t have to be today</td></tr><tr><td><strong>Amount</strong></td><td>Value in the account\'s currency</td><td>—</td></tr><tr><td><strong>Account</strong></td><td>Which account it came from</td><td>—</td></tr><tr><td><strong>Category</strong></td><td>Classification of the expense or income</td><td>Not present for transfers</td></tr><tr><td><strong>Note</strong></td><td>Optional description</td><td>Helps when searching later</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>Vehicle integration:</strong> If you pick a vehicle-related category (fuel, maintenance, oil), extra fields appear for the vehicle and odometer — letting the system calculate fuel efficiency and track oil changes automatically.</div><div class="g-section-title">Search &amp; Filter</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>Type:</strong> All / Income / Expense / Transfers<br><strong>Month:</strong> Show a specific month\'s transactions<br><strong>Account:</strong> A specific account\'s transactions<br><strong>Category:</strong> From the tree dropdown<br><strong>Search:</strong> Search text in the Note or Amount</div></div>'}
+      ar: {'guide-content-transactions': '<div class="g-section-title">💸 المعاملات (Transactions)</div><p class="g-p">المعاملات هي العمود الفقري للنظام. كل دخل أو مصروف أو تحويل بين حسابات لازم تسجّله هنا.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span> مصروف</div><div class="g-card-body">أي حاجة بتصرفها: أكل، مواصلات، فواتير، إيجار. بتخصم من رصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span> دخل</div><div class="g-card-body">أي حاجة بتدخل: مرتب، فلوس من حد، أرباح. بتضيف لرصيد الحساب.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span> تحويل</div><div class="g-card-body">نقل فلوس من حساب لحساب تاني عندك. مش مصروف ولا دخل — بس إعادة توزيع.</div></div></div><div class="g-section-title">حقول المعاملة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th><th>ملاحظة</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense / Income / Transfer</td><td>لازم يتحدد أول حاجة</td></tr><tr><td><strong>التاريخ</strong></td><td>تاريخ المعاملة</td><td>مش لازم يكون النهارده</td></tr><tr><td><strong>المبلغ</strong></td><td>القيمة بعملة الحساب</td><td>—</td></tr><tr><td><strong>الحساب</strong></td><td>انهي حساب اتصرفت منه</td><td>—</td></tr><tr><td><strong>الفئة</strong></td><td>تصنيف المصروف أو الدخل</td><td>مش موجود في التحويلات</td></tr><tr><td><strong>Note</strong></td><td>وصف اختياري</td><td>بيساعد في البحث لاحقاً</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>تكامل المركبات:</strong> لو اخترت فئة مرتبطة بعربية (وقود، صيانة، زيت)، هتظهر حقول إضافية للعربية والعداد — اللي بيخلي النظام يحسب كفاءة الوقود ويتابع تغيير الزيت تلقائياً.</div><div class="g-section-title">البحث والفلترة</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>النوع:</strong> All / Income / Expense / Transfers<br><strong>الشهر:</strong> اعرض معاملات شهر معين<br><strong>الحساب:</strong> معاملات حساب معين<br><strong>الفئة:</strong> من القائمة المنسدلة الشجرية<br><strong>البحث:</strong> ابحث بالنص في الـ Note أو المبلغ</div></div><div class="g-section-title">الحذف الآمن والرصيد بعد كل معاملة</div><p class="g-p">حذف معاملة بينقلها لفلتر <strong>المحذوفة</strong> بدل ما يمسحها نهائياً — تقدر تسترجعها في أي وقت من نفس الفلتر. ولو فلترت بحساب معين، هيظهر عمود إضافي <strong>الرصيد بعد</strong> بيوريك رصيد الحساب لحظة بلحظة بعد كل معاملة.</p><div class="g-callout tip">🔄 <strong>ربط الالتزامات:</strong> لو اخترت فئة "التزامات/أقساط" هنا مباشرة، هيظهر اختيار "الالتزام المرتبط" — وتسجيل المعاملة هيسجل دفعة على الالتزام ده تلقائياً، زي ما لو استخدمت زر "تسجيل دفعة" من صفحة الالتزامات.</div>'},
+      en: {'guide-content-transactions': '<div class="g-section-title">💸 Transactions</div><p class="g-p">Transactions are the backbone of the system. Every income, expense, or transfer between accounts needs to be logged here.</p><div class="g-cards"><div class="g-card"><div class="g-card-title"><span class="g-badge red">Expense</span></div><div class="g-card-body">Anything you spend: food, transport, bills, rent. Deducted from the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge green">Income</span></div><div class="g-card-body">Anything coming in: salary, money from someone, profits. Added to the account balance.</div></div><div class="g-card"><div class="g-card-title"><span class="g-badge">Transfer</span></div><div class="g-card-body">Moving money between two of your own accounts. Not an expense or income — just redistribution.</div></div></div><div class="g-section-title">Transaction Fields</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th><th>Note</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense / Income / Transfer</td><td>Must be chosen first</td></tr><tr><td><strong>Date</strong></td><td>Date of the transaction</td><td>Doesn\'t have to be today</td></tr><tr><td><strong>Amount</strong></td><td>Value in the account\'s currency</td><td>—</td></tr><tr><td><strong>Account</strong></td><td>Which account it came from</td><td>—</td></tr><tr><td><strong>Category</strong></td><td>Classification of the expense or income</td><td>Not present for transfers</td></tr><tr><td><strong>Note</strong></td><td>Optional description</td><td>Helps when searching later</td></tr></tbody></table></div><div class="g-callout tip">🚗 <strong>Vehicle integration:</strong> If you pick a vehicle-related category (fuel, maintenance, oil), extra fields appear for the vehicle and odometer — letting the system calculate fuel efficiency and track oil changes automatically.</div><div class="g-section-title">Search &amp; Filter</div><div class="g-card" style="margin-bottom:0"><div class="g-card-body"><strong>Type:</strong> All / Income / Expense / Transfers<br><strong>Month:</strong> Show a specific month\'s transactions<br><strong>Account:</strong> A specific account\'s transactions<br><strong>Category:</strong> From the tree dropdown<br><strong>Search:</strong> Search text in the Note or Amount</div></div><div class="g-section-title">Soft Delete &amp; Running Balance</div><p class="g-p">Deleting a transaction moves it to the <strong>Deleted</strong> filter instead of erasing it &mdash; it can be restored any time from that same filter. When filtered to a specific account, an extra <strong>Balance After</strong> column shows the account balance moment-by-moment after each transaction.</p><div class="g-callout tip">🔄 <strong>Linking a Commitment:</strong> pick the "Commitments" category right here and a "Linked Commitment" selector appears &mdash; saving the transaction records a payment against that commitment automatically, the same as using "Record Payment" from the Commitments page.</div>'}
     },
     categories: {
-      ar: {'guide-content-categories': '<div class="g-section-title">🏷️ الفئات (Categories)</div><p class="g-p">الفئات هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p><div class="g-section-title">هيكل الفئات — مستويين</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category (فئة رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>📂 <strong>Sub-Category (تحت-فئة):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت فئة رئيسية<br><br><em>التقارير والميزانيات بتشتغل على المستويين — المجاميع بترتفع للـ parent تلقائياً.</em></div></div><div class="g-section-title">إضافة فئة جديدة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense (مصروف) أو Income (دخل)</td></tr><tr><td><strong>الاسم</strong></td><td>اسم التصنيف — تقدر تكتب عربي وإنجليزي مع بعض</td></tr><tr><td><strong>Parent</strong></td><td>لو عايزها sub-category اختار الـ parent. لو None هتبقى رئيسية.</td></tr></tbody></table></div><div class="g-section-title">تعديل وحذف</div><p class="g-p">اضغط <strong>تعديل</strong> بجانب أي فئة رئيسية، أو أيقونة <strong>✎</strong> بجانب أي فئة فرعية لتغيير الاسم أو الـ parent.</p><div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف فئة عليها معاملات مسجّلة.</div>'},
-      en: {'guide-content-categories': '<div class="g-section-title">🏷️ Categories</div><p class="g-p">Categories are how you classify your expenses and income. The system ships with many ready-made categories, and you can add, edit, or delete freely.</p><div class="g-section-title">Category Structure — Two Levels</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category:</strong> like "Home Expenses" or "Vehicle Expenses"<br><br>📂 <strong>Sub-Category:</strong> like "Fuel" or "Maintenance" nested under a parent category<br><br><em>Reports and budgets work on both levels — totals automatically roll up to the parent.</em></div></div><div class="g-section-title">Adding a New Category</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense or Income</td></tr><tr><td><strong>Name</strong></td><td>The category name — you can write it in Arabic and English together</td></tr><tr><td><strong>Parent</strong></td><td>Pick a parent if it should be a sub-category. Leave as None to make it a parent.</td></tr></tbody></table></div><div class="g-section-title">Editing &amp; Deleting</div><p class="g-p">Click <strong>Edit</strong> next to any parent category, or the <strong>✎</strong> icon next to any sub-category, to change its name or parent.</p><div class="g-callout warning">⚠️ You can\'t delete a parent category while it still has sub-categories — delete those first. You also can\'t delete a category that has transactions logged against it.</div>'}
+      ar: {'guide-content-categories': '<div class="g-section-title">🏷️ الفئات (Categories)</div><p class="g-p">الفئات هي طريقة تصنيف مصاريفك ودخلك. النظام جاهز بتصنيفات كتير، وتقدر تضيف وتعدّل وتحذف براحتك.</p><div class="g-section-title">هيكل الفئات — مستويين</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category (فئة رئيسية):</strong> زي "Home Expenses" أو "مصاريف العربية"<br><br>📂 <strong>Sub-Category (تحت-فئة):</strong> زي "وقود" أو "صيانة" اللي بتندرج تحت فئة رئيسية<br><br><em>التقارير والميزانيات بتشتغل على المستويين — المجاميع بترتفع للـ parent تلقائياً.</em></div></div><div class="g-section-title">إضافة فئة جديدة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>النوع</strong></td><td>Expense (مصروف) أو Income (دخل)</td></tr><tr><td><strong>الاسم</strong></td><td>اسم التصنيف — تقدر تكتب عربي وإنجليزي مع بعض</td></tr><tr><td><strong>Parent</strong></td><td>لو عايزها sub-category اختار الـ parent. لو None هتبقى رئيسية.</td></tr></tbody></table></div><div class="g-section-title">تعديل وحذف</div><p class="g-p">اضغط <strong>تعديل</strong> بجانب أي فئة رئيسية، أو أيقونة <strong>✎</strong> بجانب أي فئة فرعية لتغيير الاسم أو الـ parent.</p><div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف فئة عليها معاملات مسجّلة.</div><div class="g-callout tip">🚗 <strong>فئات المركبات:</strong> أي فئة فرعية تضيفها تحت "مصاريف العربية" أو "مصاريف السكوتر" بتتحول تلقائياً لفئة متابعة للمركبة — مهما كان اسمها أو عددها. لما تختارها في فورم المعاملة، هتظهر حقول العربية والعداد، وهيتعمل لها سجل مركبة تلقائياً، ولو اسمها فيه كلمة "زيت" هتظهر في متابعة تغيير الزيت (لكن التصفير الفعلي للعداد بيحصل بس مع الفئات اللي فيها كلمة "تغيير" — مش أي إضافة زيت جزئية).</div>'},
+      en: {'guide-content-categories': '<div class="g-section-title">🏷️ Categories</div><p class="g-p">Categories are how you classify your expenses and income. The system ships with many ready-made categories, and you can add, edit, or delete freely.</p><div class="g-section-title">Category Structure — Two Levels</div><div class="g-card"><div class="g-card-body">🗂️ <strong>Parent Category:</strong> like "Home Expenses" or "Vehicle Expenses"<br><br>📂 <strong>Sub-Category:</strong> like "Fuel" or "Maintenance" nested under a parent category<br><br><em>Reports and budgets work on both levels — totals automatically roll up to the parent.</em></div></div><div class="g-section-title">Adding a New Category</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Type</strong></td><td>Expense or Income</td></tr><tr><td><strong>Name</strong></td><td>The category name — you can write it in Arabic and English together</td></tr><tr><td><strong>Parent</strong></td><td>Pick a parent if it should be a sub-category. Leave as None to make it a parent.</td></tr></tbody></table></div><div class="g-section-title">Editing &amp; Deleting</div><p class="g-p">Click <strong>Edit</strong> next to any parent category, or the <strong>✎</strong> icon next to any sub-category, to change its name or parent.</p><div class="g-callout warning">⚠️ You can\'t delete a parent category while it still has sub-categories — delete those first. You also can\'t delete a category that has transactions logged against it.</div><div class="g-callout tip">🚗 <strong>Vehicle categories:</strong> any sub-category added under "Car Expenses" or "Scooter Expenses" automatically becomes vehicle-tracked &mdash; however many you create, however they are named. Picking one on the transaction form reveals the vehicle/odometer fields and auto-creates a vehicle log; if its name contains "oil", it feeds the oil-change tracker (though the interval only resets for categories whose name contains "change" &mdash; a partial top-up will not reset it).</div>'}
     },
     commitments: {
-      ar: {'guide-content-commitments': '<div class="g-section-title">🔄 الالتزامات والأقساط (Commitments)</div><p class="g-p">الـ Commitments قسم مخصص لتتبع الأقساط والجمعيات — اللي ليها جدول دفعات منتظم.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment — قسط</div><div class="g-card-body">لو اشتريت حاجة بالأقساط (تابلت، موبايل، ديب فريزر..) النظام بيتابع كام قسط اتدفع وكام باقي.</div></div><div class="g-card"><div class="g-card-title">🤝 جمعية</div><div class="g-card-body">النظام بيتابع الدفعات الشهرية وتاريخ استلام الدور (Payout) تلقائياً.</div></div></div><div class="g-section-title">تسجيل التزام جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اضغط التزام جديد</div><div class="g-step-desc">من صفحة الالتزامات اضغط الزر واختار النوع (Installment أو جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">ادخل التفاصيل</div><div class="g-step-desc">المبلغ الكلي، قيمة القسط الشهري، تاريخ البداية، عدد الأقساط.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">سجّل الدفعات شهرياً</div><div class="g-step-desc">كل شهر اضغط <strong>Record Payment</strong>. الدفعة هتتسجل كمعاملة في حسابك تلقائياً.</div></div></div></div><div class="g-callout tip">📍 <strong>تنبيه تلقائي:</strong> الداشبورد بيوضح أي التزامات قسطها جاي خلال أقل من 10 أيام — عشان متنساش.</div>'},
-      en: {'guide-content-commitments': '<div class="g-section-title">🔄 Commitments</div><p class="g-p">Commitments is a dedicated section for tracking installments and rotating savings groups (جمعية) — anything with a regular payment schedule.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment</div><div class="g-card-body">If you bought something on installments (tablet, phone, freezer...) the system tracks how many payments are done and how many remain.</div></div><div class="g-card"><div class="g-card-title">🤝 Rotating Savings (جمعية)</div><div class="g-card-body">The system tracks the monthly payments and the payout date automatically.</div></div></div><div class="g-section-title">Logging a New Commitment</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Click Add Commitment</div><div class="g-step-desc">From the Commitments page, click the button and choose the type (Installment or جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Enter the details</div><div class="g-step-desc">Total amount, monthly installment value, start date, number of installments.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Log payments each month</div><div class="g-step-desc">Every month click <strong>Record Payment</strong>. The payment is logged as a transaction in your account automatically.</div></div></div></div><div class="g-callout tip">📍 <strong>Automatic reminder:</strong> The dashboard shows any commitments due within less than 10 days — so you don\'t forget.</div>'}
+      ar: {'guide-content-commitments': '<div class="g-section-title">🔄 الالتزامات والأقساط (Commitments)</div><p class="g-p">الـ Commitments قسم مخصص لتتبع الأقساط والجمعيات — اللي ليها جدول دفعات منتظم.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment — قسط</div><div class="g-card-body">لو اشتريت حاجة بالأقساط (تابلت، موبايل، ديب فريزر..) النظام بيتابع كام قسط اتدفع وكام باقي.</div></div><div class="g-card"><div class="g-card-title">🤝 جمعية</div><div class="g-card-body">النظام بيتابع الدفعات الشهرية وتاريخ استلام الدور (Payout) تلقائياً.</div></div></div><div class="g-section-title">تسجيل التزام جديد</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اضغط التزام جديد</div><div class="g-step-desc">من صفحة الالتزامات اضغط الزر واختار النوع (Installment أو جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">ادخل التفاصيل</div><div class="g-step-desc">المبلغ الكلي، قيمة القسط الشهري، تاريخ البداية، عدد الأقساط.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">سجّل الدفعات شهرياً</div><div class="g-step-desc">كل شهر اضغط <strong>Record Payment</strong>. الدفعة هتتسجل كمعاملة في حسابك تلقائياً.</div></div></div></div><div class="g-callout tip">📍 <strong>تنبيه تلقائي:</strong> الداشبورد بيوضح أي التزامات قسطها جاي خلال أقل من 10 أيام — عشان متنساش.</div><div class="g-callout tip">💎 <strong>صافي الثروة:</strong> المبلغ المتبقي من أي التزام نشط بيتخصم تلقائياً من صافي ثروتك في صفحة الثروة — مش محتاج تسجله تاني كـ Liability يدوي.</div><div class="g-callout tip">💸 <strong>تسجيل من فورم المعاملة العادي:</strong> بدل ما تفتح مودال Record Payment، تقدر تختار فئة التزامات/أقساط مباشرة من فورم المعاملة الجديدة — هيظهر اختيار الالتزام المرتبط، وتسجيل المعاملة هيسجل الدفعة تلقائياً.</div>'},
+      en: {'guide-content-commitments': '<div class="g-section-title">🔄 Commitments</div><p class="g-p">Commitments is a dedicated section for tracking installments and rotating savings groups (جمعية) — anything with a regular payment schedule.</p><div class="g-cards"><div class="g-card"><div class="g-card-title">📦 Installment</div><div class="g-card-body">If you bought something on installments (tablet, phone, freezer...) the system tracks how many payments are done and how many remain.</div></div><div class="g-card"><div class="g-card-title">🤝 Rotating Savings (جمعية)</div><div class="g-card-body">The system tracks the monthly payments and the payout date automatically.</div></div></div><div class="g-section-title">Logging a New Commitment</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Click Add Commitment</div><div class="g-step-desc">From the Commitments page, click the button and choose the type (Installment or جمعية).</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Enter the details</div><div class="g-step-desc">Total amount, monthly installment value, start date, number of installments.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Log payments each month</div><div class="g-step-desc">Every month click <strong>Record Payment</strong>. The payment is logged as a transaction in your account automatically.</div></div></div></div><div class="g-callout tip">📍 <strong>Automatic reminder:</strong> The dashboard shows any commitments due within less than 10 days — so you don\'t forget.</div><div class="g-callout tip">💎 <strong>Net Worth:</strong> the remaining balance of any active Commitment is automatically subtracted from your net worth on the Wealth page &mdash; no need to also log it as a manual Liability.</div><div class="g-callout tip">💸 <strong>Recording from the regular transaction form:</strong> instead of opening the Record Payment modal, you can pick the Commitments category directly on the New Transaction form &mdash; a Linked Commitment selector appears, and saving the transaction records the payment automatically.</div>'}
     },
     vehicles: {
-      ar: {'guide-content-vehicles': '<div class="g-section-title">🚗 المركبات (Vehicles)</div><p class="g-p">قسم المركبات بيتتبع كل تفاصيل مصاريف عربيتك أو سكوترك: الوقود، الصيانة، تغيير الزيت، المستندات، والقطع القابلة للاستهلاك.</p><div class="g-section-title">إضافة مركبة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>الاسم</strong></td><td>اسم تعرفه (العربية، السكوتر..)</td></tr><tr><td><strong>النوع</strong></td><td>🚗 Car أو 🛵 Scooter</td></tr><tr><td><strong>رقم اللوحة</strong></td><td>اختياري — للمرجع فقط</td></tr><tr><td><strong>فترة تغيير الزيت</strong></td><td>مثلاً 5000 كم — النظام يحذّرك لما تقرب</td></tr><tr><td><strong>مدى الخزان</strong></td><td>كم كيلو بالتانك الكامل</td></tr></tbody></table></div><div class="g-section-title">أنواع اللوجات</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel — وقود</div><div class="g-card-body">أدخل المبلغ والعداد — النظام يحسب كفاءة الوقود (km/L) تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance — صيانة</div><div class="g-card-body">أي صيانة عامة مرتبطة بقطعة محددة لتتبع عمرها.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change — زيت</div><div class="g-card-body">تغيير الزيت — بيصفّر عداد الـ Oil Interval تلقائياً.</div></div><div class="g-card"><div class="g-card-title">💰 Asset — مقتنيات</div><div class="g-card-body">أي شراء مرتبط بالمركبة (إكسسوار، إطارات، بطارية..).</div></div></div><div class="g-section-title">تعديل مركبة</div><p class="g-p">اضغط زر <strong>تعديل</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p><div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة المعاملات واخترت فئة "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div>'},
-      en: {'guide-content-vehicles': '<div class="g-section-title">🚗 Vehicles</div><p class="g-p">The Vehicles section tracks every detail of your car or scooter expenses: fuel, maintenance, oil changes, documents, and consumable parts.</p><div class="g-section-title">Adding a Vehicle</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Name</strong></td><td>A name you\'ll recognize (the car, the scooter...)</td></tr><tr><td><strong>Type</strong></td><td>🚗 Car or 🛵 Scooter</td></tr><tr><td><strong>Plate Number</strong></td><td>Optional — reference only</td></tr><tr><td><strong>Oil Change Interval</strong></td><td>e.g. 5000 km — the system warns you as you approach it</td></tr><tr><td><strong>Tank Range</strong></td><td>How many km on a full tank</td></tr></tbody></table></div><div class="g-section-title">Log Types</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel</div><div class="g-card-body">Enter the amount and odometer — the system calculates fuel efficiency (km/L) automatically.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance</div><div class="g-card-body">Any general maintenance linked to a specific part, to track its lifespan.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change</div><div class="g-card-body">Logging an oil change automatically resets the Oil Interval counter.</div></div><div class="g-card"><div class="g-card-title">💰 Asset</div><div class="g-card-body">Any purchase linked to the vehicle (accessories, tires, battery...).</div></div></div><div class="g-section-title">Editing a Vehicle</div><p class="g-p">Click the <strong>Edit</strong> button next to a vehicle to change its name, type, oil interval, or tank range at any time.</p><div class="g-callout tip">🔗 <strong>Transaction integration:</strong> If you log a fuel expense from the Transactions page and pick the "Fuel" category while specifying the vehicle and odometer — the system adds a vehicle log automatically.</div>'}
+      ar: {'guide-content-vehicles': '<div class="g-section-title">🚗 المركبات (Vehicles)</div><p class="g-p">قسم المركبات بيتتبع كل تفاصيل مصاريف عربيتك أو سكوترك: الوقود، الصيانة، تغيير الزيت، المستندات، والقطع القابلة للاستهلاك.</p><div class="g-section-title">إضافة مركبة</div><div class="g-table-wrap"><table><thead><tr><th>الحقل</th><th>الشرح</th></tr></thead><tbody><tr><td><strong>الاسم</strong></td><td>اسم تعرفه (العربية، السكوتر..)</td></tr><tr><td><strong>النوع</strong></td><td>🚗 Car أو 🛵 Scooter</td></tr><tr><td><strong>رقم اللوحة</strong></td><td>اختياري — للمرجع فقط</td></tr><tr><td><strong>فترة تغيير الزيت</strong></td><td>مثلاً 5000 كم — النظام يحذّرك لما تقرب</td></tr><tr><td><strong>مدى الخزان</strong></td><td>كم كيلو بالتانك الكامل</td></tr></tbody></table></div><div class="g-section-title">أنواع اللوجات</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel — وقود</div><div class="g-card-body">أدخل المبلغ والعداد — النظام يحسب كفاءة الوقود (km/L) تلقائياً.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance — صيانة</div><div class="g-card-body">أي صيانة عامة مرتبطة بقطعة محددة لتتبع عمرها.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change — زيت</div><div class="g-card-body">تغيير الزيت — بيصفّر عداد الـ Oil Interval تلقائياً.</div></div><div class="g-card"><div class="g-card-title">💰 Asset — مقتنيات</div><div class="g-card-body">أي شراء مرتبط بالمركبة (إكسسوار، إطارات، بطارية..).</div></div></div><div class="g-section-title">تعديل مركبة</div><p class="g-p">اضغط زر <strong>تعديل</strong> بجانب المركبة عشان تغيّر اسمها، نوعها، فترة الزيت، أو مدى الخزان في أي وقت.</p><div class="g-callout tip">🔗 <strong>تكامل مع المعاملات:</strong> لو سجّلت مصروف وقود من صفحة المعاملات واخترت فئة "وقود" مع تحديد العربية والعداد — النظام بيضيف لوج للمركبة تلقائياً.</div><div class="g-section-title">كل السجلات — الفلترة والمسافة</div><p class="g-p">من تبويب <strong>كل السجلات</strong> تقدر تشوف كل سجلات المركبة في جدول واحد، مع كروت ملخّص للعدد وإجمالي الإنفاق ومتوسط كم/لتر — ولو حددت مركبة معينة، هيظهر كمان آخر قراءة عداد معروفة والمسافة المقطوعة حسب الفلتر الحالي.</p><div class="g-callout tip">🔍 <strong>فلتر النوع متعدد الاختيار:</strong> القائمة بتعرض الفئات الفعلية المستخدمة في سجلات المركبة دي مش قايمة ثابتة — يعني فئة مخصصة زي تزويد زيت هتظهر كخيار مستقل، منفصل عن تغيير زيت.</div><div class="g-callout tip">📏 <strong>المسافة لكل فئة:</strong> عمود المسافة بيتحسب من آخر سجل من نفس الفئة، بنفس فكرة حساب كفاءة الوقود من آخر تعبئة — يعني تغيير زيت الفتيس بيتقاس من آخر مرة غيّرت فيها زيت الفتيس، مش من أي سجل تاني حصل قبله.</div><div class="g-callout tip">🛢️ <strong>تغيير الزيت مقابل التزويد:</strong> تنبيه باقي كام كيلو على تغيير الزيت بيتصفّر بس مع فئة اسمها فيه كلمة تغيير — فئة تزويد جزئي زي تزويد زيت بتتسجل وتظهر في السجل، لكن مبتصفرش العداد.</div>'},
+      en: {'guide-content-vehicles': '<div class="g-section-title">🚗 Vehicles</div><p class="g-p">The Vehicles section tracks every detail of your car or scooter expenses: fuel, maintenance, oil changes, documents, and consumable parts.</p><div class="g-section-title">Adding a Vehicle</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Name</strong></td><td>A name you\'ll recognize (the car, the scooter...)</td></tr><tr><td><strong>Type</strong></td><td>🚗 Car or 🛵 Scooter</td></tr><tr><td><strong>Plate Number</strong></td><td>Optional — reference only</td></tr><tr><td><strong>Oil Change Interval</strong></td><td>e.g. 5000 km — the system warns you as you approach it</td></tr><tr><td><strong>Tank Range</strong></td><td>How many km on a full tank</td></tr></tbody></table></div><div class="g-section-title">Log Types</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel</div><div class="g-card-body">Enter the amount and odometer — the system calculates fuel efficiency (km/L) automatically.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance</div><div class="g-card-body">Any general maintenance linked to a specific part, to track its lifespan.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change</div><div class="g-card-body">Logging an oil change automatically resets the Oil Interval counter.</div></div><div class="g-card"><div class="g-card-title">💰 Asset</div><div class="g-card-body">Any purchase linked to the vehicle (accessories, tires, battery...).</div></div></div><div class="g-section-title">Editing a Vehicle</div><p class="g-p">Click the <strong>Edit</strong> button next to a vehicle to change its name, type, oil interval, or tank range at any time.</p><div class="g-callout tip">🔗 <strong>Transaction integration:</strong> If you log a fuel expense from the Transactions page and pick the "Fuel" category while specifying the vehicle and odometer — the system adds a vehicle log automatically.</div><div class="g-section-title">All Logs &mdash; Filtering &amp; Distance</div><p class="g-p">Switch to <strong>All Logs</strong> to see every entry across a vehicle history in one table, with summary cards for entry count, total spend, average km/L, and (once a specific vehicle is selected) its last known odometer reading and the distance covered within the current filter.</p><div class="g-callout tip">🔍 <strong>Multi-select Type filter:</strong> the Type dropdown lists the actual categories used on that vehicle logs (not a fixed list) &mdash; so a custom category like "Add Oil" shows up as its own filterable option, distinct from "Oil Change".</div><div class="g-callout tip">📏 <strong>Distance per category:</strong> the Distance column is calculated since the previous entry of the SAME category, just like fuel efficiency is calculated since the previous fill-up &mdash; so "Gearbox Oil Change" is measured against the last gearbox oil change, not whatever log happened to be entered right before it.</div><div class="g-callout tip">🛢️ <strong>Oil change vs. top-up:</strong> the "km until next oil change" reminder only resets on a category whose name contains "change" (e.g. "Oil Change") &mdash; a partial top-up category like "Add Oil" is tracked and shown in the log, but does not reset the interval.</div>'}
     },
     budgets: {
       ar: {'guide-content-budgets': '<div class="g-section-title">🎯 الميزانيات (Budgets)</div><p class="g-p">من صفحة الميزانيات تقدر تحدد حد شهري لكل فئة. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p><div class="g-section-title">كيف تستخدمها</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل فئة في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل فئة بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div></div>'},
@@ -809,6 +821,7 @@
       <button data-view="commitments"><span class="ic">◷</span><span class="lbl">Commitments</span></button>
       <button data-view="reports"><span class="ic">📊</span><span class="lbl">Reports</span></button>
       <button data-view="accounts"><span class="ic">▦</span><span class="lbl">Accounts</span></button>
+      <button data-view="wealth"><span class="ic">💎</span><span class="lbl">Wealth</span></button>
       <button data-view="vehicles"><span class="ic">🚗</span><span class="lbl">Vehicles</span></button>
       <button data-view="budgets"><span class="ic">🎯</span><span class="lbl">Budgets</span></button>
       <button data-view="categories"><span class="ic">◫</span><span class="lbl">Categories</span></button>
@@ -874,11 +887,79 @@
         </table>
       </div>
 
+      <div class="table-wrap" id="hidden-accounts-wrap" style="display:none;">
+        <div class="head-row"><h3 id="hidden-accounts-title">Hidden / Archived Accounts</h3></div>
+        <table>
+          <thead><tr><th id="th-hacc-name">Name</th><th id="th-hacc-type">Type</th><th id="th-hacc-cur">Currency</th><th class="amt" id="th-hacc-opening">Opening</th><th class="amt" id="th-hacc-curbal">Current Balance</th><th></th></tr></thead>
+          <tbody id="hidden-accounts-body"></tbody>
+        </table>
+      </div>
+
       <div class="section-title" id="exchange-rates-title">Exchange Rates<span class="hint" id="exchange-rates-hint">used to convert balances to EGP</span></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th id="th-fx-cur">Currency</th><th class="amt" id="th-fx-rate">Rate to EGP</th><th></th></tr></thead>
           <tbody id="fx-body"></tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap" id="recon-history-wrap">
+        <div class="head-row"><h3 id="recon-history-title">Reconciliation History</h3></div>
+        <table>
+          <thead><tr><th id="th-recon-date">Date</th><th id="th-recon-acc">Account</th><th class="amt" id="th-recon-sys">System</th><th class="amt" id="th-recon-actual">Actual</th><th class="amt" id="th-recon-diff">Difference</th><th id="th-recon-src">Source</th></tr></thead>
+          <tbody id="recon-history-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- WEALTH -->
+    <section class="view" id="view-wealth">
+      <div class="topbar">
+        <div><h1 id="wealth-h1">Wealth</h1><div class="today" id="wealth-sub">Net worth, assets & liabilities</div></div>
+      </div>
+      <div class="grid cols-4" id="wealth-cards"></div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-assets-title">Assets</h3>
+        <button class="btn" data-open-modal="asset" id="wealth-new-asset-btn">+ New Asset</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-a-name">Name</th><th id="th-wealth-a-cur">Currency</th><th class="amt" id="th-wealth-a-val">Value</th><th class="amt" id="th-wealth-a-valegp">Value (EGP)</th><th id="th-wealth-a-note">Note</th><th></th></tr></thead>
+          <tbody id="wealth-assets-body"></tbody>
+        </table>
+      </div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-liabilities-title">Liabilities</h3>
+        <button class="btn" data-open-modal="liability" id="wealth-new-liability-btn">+ New Liability</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-l-name">Name</th><th id="th-wealth-l-cur">Currency</th><th class="amt" id="th-wealth-l-val">Remaining</th><th class="amt" id="th-wealth-l-valegp">Value (EGP)</th><th id="th-wealth-l-note">Note</th><th></th></tr></thead>
+          <tbody id="wealth-liabilities-body"></tbody>
+        </table>
+      </div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-commitments-title">Commitments (included automatically)</h3>
+      </div>
+      <div class="help-text" id="wealth-commitments-hint">The remaining balance of every active Commitment is included in Net Worth automatically — no need to also add it as a Liability.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-c-name">Commitment</th><th class="amt" id="th-wealth-c-remaining">Remaining (EGP)</th></tr></thead>
+          <tbody id="wealth-commitments-body"></tbody>
+        </table>
+      </div>
+
+      <div class="head-row" style="margin-top:22px;">
+        <h3 id="wealth-vehicles-title">Vehicle Market Values</h3>
+      </div>
+      <div class="help-text" id="wealth-vehicles-hint">Set each vehicle's current market value from the Vehicles page — it's included in Net Worth automatically below.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th id="th-wealth-v-name">Vehicle</th><th class="amt" id="th-wealth-v-val">Current Value (EGP)</th></tr></thead>
+          <tbody id="wealth-vehicles-body"></tbody>
         </table>
       </div>
     </section>
@@ -923,7 +1004,7 @@
       <div class="pill-row" id="txn-filters"></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th></th></tr></thead>
+          <thead><tr><th id="th-txn-date">Date</th><th id="th-txn-acc">Account</th><th id="th-txn-cat">Category</th><th id="th-txn-note">Note</th><th class="amt" id="th-txn-amt">Amount</th><th class="amt" id="th-txn-balance" style="display:none;">Balance After</th><th></th></tr></thead>
           <tbody id="txn-body"></tbody>
         </table>
       </div>
@@ -982,15 +1063,18 @@
             <label id="vlogs-lbl-vehicle">Vehicle</label>
             <select id="vlogs-filter-vehicle"></select>
           </div>
-          <div class="field" style="margin:0;min-width:150px;flex:1;">
+          <div class="field" style="margin:0;min-width:150px;flex:1;position:relative;">
             <label id="vlogs-lbl-type">Type</label>
-            <select id="vlogs-filter-type">
-              <option value="all" id="vlogs-opt-all">All types</option>
-              <option value="fuel" id="vlogs-opt-fuel">⛽ Fuel</option>
-              <option value="maintenance" id="vlogs-opt-maint">🔧 Maintenance</option>
-              <option value="oil" id="vlogs-opt-oil">🛢 Oil Change</option>
-              <option value="asset" id="vlogs-opt-asset">💰 Asset</option>
-            </select>
+            <button type="button" id="vlogs-type-btn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <span id="vlogs-type-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">All types</span><span style="flex:none;font-size:10px;">▾</span>
+            </button>
+            <div id="vlogs-type-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:10px;width:200px;max-height:260px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.5);">
+              <div style="padding:4px 0;" id="vlogs-type-list"></div>
+              <div style="padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:6px;position:sticky;bottom:0;background:var(--surface);">
+                <button type="button" class="btn ghost sm" id="vlogs-type-all">All</button>
+                <button type="button" class="btn ghost sm" id="vlogs-type-none">Clear</button>
+              </div>
+            </div>
           </div>
           <div class="field" style="margin:0;flex:1;">
             <label id="vlogs-lbl-from">From</label>
@@ -1016,7 +1100,7 @@
 
         <div class="table-wrap" style="margin-bottom:18px;">
           <table>
-            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-vehicle">Vehicle</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
+            <thead><tr><th id="th-veh-date">Date</th><th id="th-veh-type">Type</th><th class="amt" id="th-veh-amt">Amount</th><th class="amt" id="th-veh-km">KM</th><th class="amt" id="th-veh-dist">Dist.</th><th class="amt" id="th-veh-kmpl">km/L</th><th id="th-veh-note">Note</th><th></th></tr></thead>
             <tbody id="vlogs-table-body"></tbody>
           </table>
         </div>
@@ -1125,6 +1209,7 @@
         <div class="guide-tabs" id="guide-tabs">
           <button class="guide-tab active" data-tab="overview">🧭 نظرة عامة</button>
           <button class="guide-tab" data-tab="accounts">🏦 الحسابات</button>
+          <button class="guide-tab" data-tab="wealth">💎 الثروة</button>
           <button class="guide-tab" data-tab="transactions">💸 المعاملات</button>
           <button class="guide-tab" data-tab="categories">🏷️ الفئات</button>
           <button class="guide-tab" data-tab="commitments">🔄 الالتزامات</button>
@@ -1208,6 +1293,11 @@
           </div>
         </div>
 
+        <!-- ===== TAB: WEALTH ===== -->
+        <div class="guide-panel" id="guide-tab-wealth">
+          <div id="guide-content-wealth"></div>
+        </div>
+
         <!-- ===== TAB: TRANSACTIONS ===== -->
         <div class="guide-panel" id="guide-tab-transactions">
           <div id="guide-content-transactions">
@@ -1271,7 +1361,7 @@
 
           <div class="g-section-title">تعديل وحذف</div>
           <p class="g-p">اضغط <strong>تعديل</strong> بجانب أي فئة رئيسية، أو أيقونة <strong>✎</strong> بجانب أي فئة فرعية لتغيير الاسم أو الـ parent.</p>
-          <div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف فئة عليها معاملات مسجّلة.</div>
+          <div class="g-callout warning">⚠️ مش تقدر تحذف parent category لو فيها sub-categories. احذف الـ sub-categories الأول. كمان مش تقدر تحذف فئة عليها معاملات مسجّلة.</div><div class="g-callout tip">🚗 <strong>فئات المركبات:</strong> أي فئة فرعية تضيفها تحت "مصاريف العربية" أو "مصاريف السكوتر" بتتحول تلقائياً لفئة متابعة للمركبة — مهما كان اسمها أو عددها. لما تختارها في فورم المعاملة، هتظهر حقول العربية والعداد، وهيتعمل لها سجل مركبة تلقائياً، ولو اسمها فيه كلمة "زيت" هتظهر في متابعة تغيير الزيت (لكن التصفير الفعلي للعداد بيحصل بس مع الفئات اللي فيها كلمة "تغيير" — مش أي إضافة زيت جزئية).</div>
           </div>
         </div>
 
@@ -1482,16 +1572,7 @@ function loadDB(){
   }
   return seedDB();
 }
-function saveDB(){
-  // Some transaction flows are created outside the main transaction form. Make sure every
-  // newly-created transaction has a registration timestamp before persisting it.
-  const stampBase = Date.now();
-  (DB.transactions||[]).forEach((t, i)=>{
-    if(!t.createdAt) t.createdAt = new Date(stampBase + i).toISOString();
-  });
-  localStorage.setItem(DB_KEY, JSON.stringify(DB));
-  queueDrivePush();
-}
+function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); queueDrivePush(); }
 function saveLocalOnly(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
 
 function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
@@ -1505,6 +1586,7 @@ function migrateDB(db){
     if(v.tankRangeKm===undefined) v.tankRangeKm = null;
   });
   db.fuelPricePerLiter = db.fuelPricePerLiter || 22.25;
+  db.vehicles.forEach(v=>{ if(v.currentValue===undefined) v.currentValue = null; });
   db.vehicleParts = db.vehicleParts || [];
   db.vehicleParts.forEach(p=>{
     if(p.intervalType===undefined) p.intervalType = 'km';
@@ -1512,9 +1594,51 @@ function migrateDB(db){
     if(p.createdDate===undefined) p.createdDate = todayLocalISO();
   });
   db.vehicleLogs = db.vehicleLogs || [];
+  // Backfill categoryId on any vehicle log that predates it (recorded before this field existed,
+  // or later hand-edited via the "type" dropdown without a category attached). Without this,
+  // those older entries fall back to a generic "type:maintenance" bucket in the filter/table
+  // while newer entries use the real "cat_car_maint" category — visually splitting one category
+  // into two duplicate-looking "Maintenance" entries. This merges them back into a single one.
+  // Self-contained (doesn't call vehicleById/categoryById, which read the global DB — not yet
+  // pointed at this object while migration is still running).
+  (function backfillVehicleLogCategoryIds(){
+    const catSets = {
+      car: {fuel:'cat_car_fuel', maintenance:'cat_car_maint', oil:'cat_car_oil', asset:'cat_car_asset'},
+      scooter: {fuel:'cat_scooter_fuel', maintenance:'cat_scooter_maint', oil:'cat_scooter_oil', asset:'cat_scooter_asset'}
+    };
+    db.vehicleLogs.forEach(log=>{
+      if(log.categoryId) return; // already tagged (real category or custom) — leave untouched
+      const v = (db.vehicles||[]).find(x=>x.id===log.vehicleId);
+      const vt = (v && v.type==='scooter') ? 'scooter' : 'car';
+      const set = catSets[vt];
+      log.categoryId = set[log.type] || (vt==='scooter' ? 'cat_scooter' : 'cat_car');
+    });
+  })();
   db.vehicleDocs = db.vehicleDocs || [];
   db.budgets = db.budgets || [];
-  (db.accounts||[]).forEach(a=>{ if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false; });
+  db.assets = db.assets || [];
+  db.liabilities = db.liabilities || [];
+  db.reconciliations = db.reconciliations || [];
+  (db.accounts||[]).forEach(a=>{
+    if(a.excludeFromNetWorth===undefined) a.excludeFromNetWorth = false;
+    if(a.hiddenFromAccountsList===undefined) a.hiddenFromAccountsList = false;
+  });
+  // Transactions: createdAt / deletedAt normalization — idempotent & non-destructive.
+  // Existing transactions (that never had createdAt) get a safe fallback derived from their
+  // date plus original array position, so same-date ties keep their current relative order
+  // instead of being shuffled around once createdAt-based ordering is turned on everywhere.
+  (db.transactions||[]).forEach((tx,idx)=>{
+    if(tx.deletedAt===undefined) tx.deletedAt = null;
+    if(!tx.createdAt){
+      const base = tx.date ? new Date(tx.date+'T00:00:00').getTime() : Date.now();
+      tx.createdAt = (isNaN(base)?Date.now():base) + idx;
+    }
+    // Missing transaction currency where it can safely be inferred from the linked account.
+    if(!tx.currency){
+      const acc = (db.accounts||[]).find(a=>a.id===tx.accountId);
+      tx.currency = acc ? acc.currency : 'EGP';
+    }
+  });
   const catIds = new Set((db.categories||[]).map(c=>c.id));
   const defaultCats = [
     { id:'cat_car', name:'مصاريف العربية (Car Expenses)', type:'expense', parentId:null },
@@ -1534,46 +1658,6 @@ function migrateDB(db){
     { id:'cat_adjustment_inc', name:'Balance Adjustments', type:'income', parentId:null }
   ];
   defaultCats.forEach(c=>{ if(!catIds.has(c.id)){ db.categories.push(c); catIds.add(c.id); } });
-  // Registration timestamp for transaction ordering. Older databases did not store this,
-  // so preserve their existing array order as a stable fallback during migration.
-  db.transactions = db.transactions || [];
-  const legacyCreatedBase = Date.UTC(2000, 0, 1);
-  db.transactions.forEach((t, i)=>{
-    if(!t.createdAt) t.createdAt = new Date(legacyCreatedBase + i).toISOString();
-    // Every transaction must belong to an account. Keep legacy records usable by
-    // attaching missing account links to the first available account when possible.
-    if(!t.accountId && db.accounts && db.accounts.length) t.accountId = db.accounts[0].id;
-    const linkedAcc = (db.accounts||[]).find(a=>a.id===t.accountId);
-    if(linkedAcc && !t.currency) t.currency = linkedAcc.currency;
-  });
-
-  // Commitment payments are a first-class mirror of their transaction. Older versions
-  // allowed cash payments without a transaction, and could leave a stale linkedTransactionId
-  // after the transaction was deleted. Normalize those records so reports never silently
-  // lose the payment, and recreate the transaction when the payment still has an account.
-  db.commitments = db.commitments || [];
-  db.commitmentPayments = db.commitmentPayments || [];
-  const txnIds = new Set(db.transactions.map(t=>t.id));
-  db.commitmentPayments.forEach(p=>{
-    if(p.linkedTransactionId && !txnIds.has(p.linkedTransactionId)){
-      const c = db.commitments.find(x=>x.id===p.commitmentId);
-      const acc = p.accountId ? (db.accounts||[]).find(a=>a.id===p.accountId) : null;
-      if(c && acc){
-        const txnId = uid('txn');
-        db.transactions.push({
-          id: txnId, date:p.date, createdAt:new Date().toISOString(),
-          accountId:acc.id, categoryId:'cat_commit', amount:Number(p.amount)||0,
-          currency:acc.currency, note:c.name, type:'expense', transferPairId:null,
-          commitmentPaymentId:p.id
-        });
-        p.linkedTransactionId = txnId;
-        txnIds.add(txnId);
-      } else {
-        p.linkedTransactionId = null;
-      }
-    }
-  });
-
   // Old shared "Vehicle Expenses" categories from an earlier version — migrate any existing
   // transactions off them onto the new Car-specific ones, then drop the old categories.
   const oldToNew = { cat_vehicle:'cat_car', cat_fuel:'cat_car_fuel', cat_vehicle_maint:'cat_car_maint', cat_vehicle_oil:'cat_car_oil', cat_vehicle_asset:'cat_car_asset' };
@@ -1614,6 +1698,9 @@ function seedDB(){
     vehicleParts: [],
     fuelPricePerLiter: 22.25,
     budgets: [],
+    assets: [],
+    liabilities: [],
+    reconciliations: [],
     fxRates: [
       { currency: 'EGP', rateToEGP: 1 },
       { currency: 'SAR', rateToEGP: 13.68 },
@@ -1670,7 +1757,7 @@ function categoryById(id){ return DB.categories.find(c=>c.id===id); }
 
 function accountBalance(acc){
   let bal = Number(acc.openingBalance)||0;
-  DB.transactions.forEach(t=>{
+  activeTransactions().forEach(t=>{
     if(t.accountId !== acc.id) return;
     if(t.type === 'income') bal += Number(t.amount);
     else if(t.type === 'expense') bal -= Number(t.amount);
@@ -1682,6 +1769,36 @@ function accountBalance(acc){
 
 function netWorthEGP(){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
+}
+
+/* ---------------------------- SOFT DELETE / ORDERING ---------------------------- */
+// Single source of truth for "is this transaction still active" — every calculation that
+// represents live data (balances, reports, budgets, dashboards...) must go through this
+// instead of reading DB.transactions directly, or soft-deleted rows leak back into totals.
+function activeTransactions(){ return DB.transactions.filter(tx=>!tx.deletedAt); }
+function deletedTransactionsList(){ return DB.transactions.filter(tx=>!!tx.deletedAt); }
+// Reconciliation adjustments move money but aren't a "real" income/expense — reports, budgets
+// and category totals must exclude them so a balance fix never looks like spending or earning.
+function isAdjustmentCategory(catId){ return catId==='cat_adjustment' || catId==='cat_adjustment_inc'; }
+// Canonical chronological ordering used everywhere transactions are listed or accumulated:
+// 1) transaction date, 2) createdAt as a secondary/tiebreaker, 3) array position as a last resort.
+function compareTxnChronological(a,b){
+  if(a.date!==b.date) return (a.date||'') < (b.date||'') ? -1 : 1;
+  const ca = a.createdAt||0, cb = b.createdAt||0;
+  if(ca!==cb) return ca-cb;
+  return 0;
+}
+
+/* ---------------------------- WEALTH ---------------------------- */
+function totalAssetsEGP(){ return (DB.assets||[]).reduce((s,a)=> s + toEGP(a.value, a.currency), 0); }
+function totalWealthLiabilitiesEGP(){ return (DB.liabilities||[]).reduce((s,l)=> s + toEGP(l.value, l.currency), 0); }
+function totalVehicleValueEGP(){ return (DB.vehicles||[]).reduce((s,v)=> s + (Number(v.currentValue)||0), 0); }
+// Net Worth = Account Balances + Assets + Vehicle Values − Liabilities (all converted to EGP).
+function wealthAccountBalancesEGP(){
+  return DB.accounts.filter(a=>!a.excludeFromNetWorth).reduce((sum,a)=> sum + toEGP(accountBalance(a), a.currency), 0);
+}
+function wealthNetWorthEGP(){
+  return wealthAccountBalancesEGP() + totalAssetsEGP() + totalVehicleValueEGP() - totalWealthLiabilitiesEGP() - totalLiabilitiesEGP();
 }
 
 // Outstanding commitments (installments/جمعية still owed) — assumed EGP, matching how commitments are entered.
@@ -1701,7 +1818,7 @@ function monthTotals(mKey){
   // excludeFromNetWorth should only affect balance/net-worth calculations, not
   // monthly income/expense totals — previously this silently dropped archived-
   // account transactions whenever the month also had at least one "live" transaction.
-  const src = DB.transactions.filter(t=>monthKey(t.date)===mKey);
+  const src = activeTransactions().filter(t=>monthKey(t.date)===mKey && !isAdjustmentCategory(t.categoryId));
   let income=0,expense=0;
   src.forEach(t=>{
     if(t.type==='income') income+=toEGP(Number(t.amount),t.currency);
@@ -1748,13 +1865,13 @@ function isArchiveTxn(t){
   if(!acc) return false;
   return acc.excludeFromNetWorth === true;
 }
-function liveTransactions(){ return DB.transactions.filter(t=>!isArchiveTxn(t)); }
-function archiveTransactions(){ return DB.transactions.filter(t=>isArchiveTxn(t)); }
+function liveTransactions(){ return activeTransactions().filter(t=>!isArchiveTxn(t)); }
+function archiveTransactions(){ return activeTransactions().filter(t=>isArchiveTxn(t)); }
 
 /* ---------------------------- VEHICLES ---------------------------- */
 // State for the full-page "All Logs" panel (Vehicles > All Logs tab) — persists across
 // re-renders within the current page session.
-let _vlVehicle='all', _vlType='all', _vlFrom='', _vlTo='', _vlSort='desc', _vlSubtab='cards';
+let _vlVehicle='all', _vlTypes=new Set(), _vlFrom='', _vlTo='', _vlSort='desc', _vlSubtab='cards';
 function vehicleById(id){ return DB.vehicles.find(v=>v.id===id); }
 function vehicleLogsRaw(vehicleId){
   // DB.vehicleLogs is always appended to (push) and never reordered by edits, so its array index
@@ -1812,17 +1929,17 @@ function _scooterKmLBaseline(rawValues){
 }
 function vehicleLogsComputed(vehicleId){
   const v = vehicleById(vehicleId);
-  let prevOdo = null, prevFuelOdo = null;
+  // Distance-since-previous is tracked PER CATEGORY (same idea fuel already used: km since the
+  // last fuel fill-up) — not since the last log of any kind. So "Gearbox Oil Change" compares
+  // against the previous gearbox oil change, "Motor Oil Change" against the previous motor oil
+  // change, etc., instead of whatever unrelated log happened to be entered right before it.
+  const prevOdoByKey = {};
   const rows = vehicleLogsRaw(vehicleId).map(l=>{
     let distance = null, kmPerLiter = null, kmPerLiterRaw = null;
     if(l.odometerKm != null){
-      if(l.type === 'fuel'){
-        if(prevFuelOdo != null) distance = l.odometerKm - prevFuelOdo;
-        prevFuelOdo = l.odometerKm;
-      } else if(prevOdo != null){
-        distance = l.odometerKm - prevOdo;
-      }
-      prevOdo = l.odometerKm;
+      const key = vlogFilterKey(l);
+      if(prevOdoByKey[key] != null) distance = l.odometerKm - prevOdoByKey[key];
+      prevOdoByKey[key] = l.odometerKm;
     }
     if(l.type === 'fuel' && l.litersFilled && distance != null && distance > 0){
       kmPerLiterRaw = +(distance / l.litersFilled).toFixed(2);
@@ -1896,8 +2013,22 @@ function vehicleCurrentOdometer(vehicleId){
   const logs = vehicleLogsRaw(vehicleId).filter(l=>l.odometerKm != null);
   return logs.length ? logs[logs.length-1].odometerKm : null;
 }
+// Distinguishes a REAL oil change (resets the interval countdown) from a partial oil top-up
+// like "Add Oil" / "تزويد زيت" — both get the broad logType 'oil' for filtering/UI purposes,
+// but only a log whose category is the built-in Oil Change category, or explicitly says
+// "change"/"تغيير" (not just "oil"/"زيت" generally), should count as resetting the milestone.
+// Without this, topping off oil would falsely reset "km until next oil change" to the full interval.
+function isFullOilChangeLog(log){
+  if(log.type !== 'oil') return false;
+  const catId = log.categoryId;
+  if(!catId) return true; // legacy logs recorded before categoryId existed: assume a real change
+  if(catId==='cat_car_oil' || catId==='cat_scooter_oil') return true;
+  const cat = categoryById(catId);
+  const hay = (catId + ' ' + (cat?cat.name:'')).toLowerCase();
+  return /change|تغيير|استبدال/.test(hay);
+}
 function vehicleLastOilChangeKm(vehicleId){
-  const oilLogs = vehicleLogsRaw(vehicleId).filter(l=>l.type==='oil' && l.odometerKm != null);
+  const oilLogs = vehicleLogsRaw(vehicleId).filter(l=> isFullOilChangeLog(l) && l.odometerKm != null);
   return oilLogs.length ? oilLogs[oilLogs.length-1].odometerKm : null;
 }
 // Returns null if not enough info to judge (no interval set, or no odometer readings yet).
@@ -1985,6 +2116,7 @@ function categoryAndDescendantIds(catId){
 }
 // Maps a vehicle log entry to the category it represents (car vs scooter, fuel/maintenance/oil/asset).
 function vehicleLogCategoryId(log){
+  if(log.categoryId && categoryById(log.categoryId)) return log.categoryId;
   const v = vehicleById(log.vehicleId);
   if(!v) return null;
   const sets = {
@@ -1994,19 +2126,38 @@ function vehicleLogCategoryId(log){
   const set = sets[v.type] || sets.car;
   return set[log.type] || (v.type==='scooter' ? 'cat_scooter' : 'cat_car');
 }
+// Walks a category's parentId chain up to its top-level ancestor (e.g. any subcategory nested
+// under "Car Expenses", however deep or however the user named it, resolves back to cat_car).
+function categoryRootAncestor(categoryId){
+  let cur = categoryById(categoryId);
+  let guard = 0;
+  while(cur && cur.parentId && guard++ < 6){
+    const parent = categoryById(cur.parentId);
+    if(!parent) break;
+    cur = parent;
+  }
+  return cur ? cur.id : null;
+}
 // Reverse of vehicleLogCategoryId: given a category id picked in the regular Transaction form,
 // tells us it's a vehicle-tracked category and what vehicle type / log type it implies.
 // Returns null for any non-vehicle category (so the vehicle fields stay hidden).
+//
+// This is intentionally NOT a fixed lookup of the 6 built-in categories: it walks up to the
+// category's root ancestor (cat_car / cat_scooter) so ANY subcategory the user creates under
+// "Car Expenses" or "Scooter Expenses" — however many, however named — is automatically
+// recognized as vehicle-tracked, not just the handful shipped by default.
 function categoryVehicleInfo(categoryId){
-  const map = {
-    cat_car_fuel: {vehicleType:'car', logType:'fuel'},
-    cat_car_maint: {vehicleType:'car', logType:'maintenance'},
-    cat_car_oil: {vehicleType:'car', logType:'oil'},
-    cat_scooter_fuel: {vehicleType:'scooter', logType:'fuel'},
-    cat_scooter_maint: {vehicleType:'scooter', logType:'maintenance'},
-    cat_scooter_oil: {vehicleType:'scooter', logType:'oil'}
-  };
-  return map[categoryId] || null;
+  const root = categoryRootAncestor(categoryId);
+  if(root!=='cat_car' && root!=='cat_scooter') return null;
+  const vehicleType = root==='cat_scooter' ? 'scooter' : 'car';
+  const cat = categoryById(categoryId);
+  const hay = (categoryId + ' ' + (cat?cat.name:'')).toLowerCase();
+  let logType = 'other';
+  if(/fuel|وقود|بنزين|بترول|غاز/.test(hay)) logType = 'fuel';
+  else if(/oil|زيت/.test(hay)) logType = 'oil';
+  else if(/maint|repair|صيان|اصلاح|إصلاح|تصليح/.test(hay)) logType = 'maintenance';
+  else if(/asset|مقتني|قطع|قطعه|قطعة|شراء/.test(hay)) logType = 'asset';
+  return {vehicleType, logType, categoryId};
 }
 // The single source of truth for computing liters from money spent: amount ÷ the global fuel
 // price on the Vehicles page. Always used at save time for fuel-type logs, regardless of what a
@@ -2031,14 +2182,14 @@ function vehicleOptionsAll(selectedId){
 // were paid in cash (no linked transaction). Logs paid by bank transfer already have a matching
 // transaction with the same category, so they're skipped here to avoid double-counting.
 function allExpenseEntries(){
-  const txnEntries = DB.transactions.filter(t=>t.type==='expense')
+  const txnEntries = activeTransactions().filter(t=>t.type==='expense' && !isAdjustmentCategory(t.categoryId))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
   return txnEntries.concat(cmPmtEntries);
 }
 function liveExpenseEntries(){
-  const txnEntries = liveTransactions().filter(t=>t.type==='expense')
+  const txnEntries = liveTransactions().filter(t=>t.type==='expense' && !isAdjustmentCategory(t.categoryId))
     .map(t=>({categoryId:t.categoryId,amount:t.amount,currency:t.currency,date:t.date,source:'transaction',note:t.note}));
   const cmPmtEntries = DB.commitmentPayments.filter(p=>!p.linkedTransactionId)
     .map(p=>({categoryId:'cat_commit',amount:p.amount,currency:'EGP',date:p.date,source:'commitment'}));
@@ -2452,11 +2603,7 @@ function renderDashboard(){
       <div style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">${fmtDate(d.date)}</div>
     </div>`).join('') : `<div class="empty" style="border:1px solid var(--border);border-radius:10px;">${t('empty_due_soon')}</div>`;
 
-  const recent = liveTransactions().sort((a,b)=>{
-    const dateCmp = (b.date||'').localeCompare(a.date||'');
-    if(dateCmp !== 0) return dateCmp;
-    return (b.createdAt||'').localeCompare(a.createdAt||'');
-  }).slice(0,8);
+  const recent = liveTransactions().sort((a,b)=> compareTxnChronological(b,a)).slice(0,8);
   document.getElementById('dash-recent-body').innerHTML = recent.map(tx=>{
     const acc = accountById(tx.accountId);
     const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
@@ -2472,11 +2619,10 @@ function renderDashboard(){
 }
 
 /* ---------------------------- RENDER: ACCOUNTS ---------------------------- */
-function renderAccounts(){
-  document.getElementById('accounts-body').innerHTML = DB.accounts.map(a=>{
-    const bal = accountBalance(a);
-    return `<tr>
-      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
+function accountRowHTML(a, archivedView){
+  const bal = accountBalance(a);
+  return `<tr>
+      <td class="td-date" data-label="">${a.name}${a.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}${a.hiddenFromAccountsList?` <span class="tag">${tt('مخفي','Hidden')}</span>`:''}</td>
       <td data-label="${t('th_type')}"><span class="tag">${a.type}</span></td>
       <td data-label="${t('th_currency')}">${a.currency}</td>
       <td class="amt" data-label="${t('th_opening')}">${fmtMoney(a.openingBalance)}</td>
@@ -2484,10 +2630,23 @@ function renderAccounts(){
       <td class="td-actions">
         <button class="btn ghost sm" data-edit-account="${a.id}">${t('btn_edit')}</button>
         <button class="btn ghost sm" data-reconcile-account="${a.id}">${t('btn_reconcile')}</button>
+        ${archivedView ? `<button class="btn ghost sm" data-unhide-account="${a.id}">${tt('إظهار','Unhide')}</button>` : ''}
         <button class="btn ghost sm" data-del-account="${a.id}">${t('btn_delete')}</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
+}
+function renderAccounts(){
+  const visible = DB.accounts.filter(a=>!a.hiddenFromAccountsList);
+  const hidden = DB.accounts.filter(a=>a.hiddenFromAccountsList);
+  document.getElementById('accounts-body').innerHTML = visible.map(a=>accountRowHTML(a,false)).join('')
+    || `<tr><td colspan="6" class="empty">${t('empty_no_accounts_long')}</td></tr>`;
+
+  const hiddenWrap = document.getElementById('hidden-accounts-wrap');
+  if(hiddenWrap){
+    hiddenWrap.style.display = hidden.length ? 'block' : 'none';
+    const hiddenBody = document.getElementById('hidden-accounts-body');
+    if(hiddenBody) hiddenBody.innerHTML = hidden.map(a=>accountRowHTML(a,true)).join('');
+  }
 
   document.getElementById('fx-body').innerHTML = DB.fxRates.map(r=>`
     <tr>
@@ -2497,6 +2656,25 @@ function renderAccounts(){
           style="width:110px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;text-align:right;font-family:var(--font-mono);">
       </td>
     </tr>`).join('');
+
+  const reconWrap = document.getElementById('recon-history-wrap');
+  if(reconWrap){
+    const recent = [...(DB.reconciliations||[])].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const reconBody = document.getElementById('recon-history-body');
+    if(reconBody){
+      reconBody.innerHTML = recent.map(r=>{
+        const acc = accountById(r.accountId);
+        return `<tr>
+          <td class="td-date" data-label="">${fmtDate(r.date)}</td>
+          <td data-label="${t('th_account')}">${acc?acc.name:'—'}</td>
+          <td class="amt" data-label="">${fmtMoney(r.systemBalance)}</td>
+          <td class="amt" data-label="">${fmtMoney(r.actualBalance)}</td>
+          <td class="amt ${r.difference<0?'neg':'pos'}" data-label="">${r.difference>0?'+':''}${fmtMoney(r.difference)}</td>
+          <td data-label="">${r.source==='all' ? tt('مطابقة الكل','Reconcile All') : tt('فردي','Single')}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="6" class="empty">${tt('لا يوجد سجل مطابقة بعد','No reconciliation history yet')}</td></tr>`;
+    }
+  }
 }
 
 document.getElementById('view-accounts').addEventListener('change', e=>{
@@ -2508,8 +2686,14 @@ document.getElementById('view-accounts').addEventListener('change', e=>{
 document.getElementById('view-accounts').addEventListener('click', e=>{
   const editId = e.target.dataset.editAccount;
   const reconcileId = e.target.dataset.reconcileAccount;
+  const unhideId = e.target.dataset.unhideAccount;
   if(editId) return openModal('account', {accountId: editId});
   if(reconcileId) return openModal('reconcile', {accountId: reconcileId});
+  if(unhideId){
+    const a = accountById(unhideId);
+    if(a){ a.hiddenFromAccountsList = false; saveDB(); renderAll(); toast(tt('الحساب بقى ظاهر تاني','Account is visible again')); }
+    return;
+  }
   const id = e.target.dataset.delAccount;
   if(!id) return;
   const hasTxns = DB.transactions.some(t=>t.accountId===id);
@@ -2518,6 +2702,99 @@ document.getElementById('view-accounts').addEventListener('click', e=>{
   if(!confirm(tt(`تأكيد حذف ${acc ? acc.name : 'الحساب'}؟ الإجراء ده مش قابل للتراجع.`, `Delete ${acc ? acc.name : 'this account'}? This can't be undone.`))) return;
   DB.accounts = DB.accounts.filter(a=>a.id!==id);
   saveDB(); renderAll(); toast(t('toast_account_deleted'));
+});
+
+/* ---------------------------- RENDER: WEALTH ---------------------------- */
+function renderWealth(){
+  const cardsEl = document.getElementById('wealth-cards');
+  if(!cardsEl) return; // view not in DOM yet on very first paint
+  const balancesEGP = wealthAccountBalancesEGP();
+  const assetsEGP = totalAssetsEGP();
+  const vehiclesEGP = totalVehicleValueEGP();
+  const manualLiabilitiesEGP = totalWealthLiabilitiesEGP();
+  const commitmentLiabilitiesEGP = totalLiabilitiesEGP();
+  const liabilitiesEGP = manualLiabilitiesEGP + commitmentLiabilitiesEGP;
+  const netWorth = wealthNetWorthEGP();
+  cardsEl.innerHTML = `
+    <div class="card">
+      <h3>${tt('صافي الثروة','Net Worth')}</h3>
+      <div class="big" style="color:${netWorth>=0?'var(--positive)':'var(--negative)'}">EGP ${fmtMoney(netWorth)}</div>
+      <div class="delta">${tt('أرصدة + أصول + مركبات − التزامات (يدوية + أقساط)','Balances + Assets + Vehicles − Liabilities (manual + commitments)')}</div>
+    </div>
+    <div class="card">
+      <h3>${tt('أرصدة الحسابات','Account Balances')}</h3>
+      <div class="big">EGP ${fmtMoney(balancesEGP)}</div>
+    </div>
+    <div class="card">
+      <h3>${tt('إجمالي الأصول','Total Assets')}</h3>
+      <div class="big" style="color:var(--positive)">EGP ${fmtMoney(assetsEGP + vehiclesEGP)}</div>
+      <div class="delta">${tt('يشمل قيمة المركبات الحالية','Includes current vehicle values')}</div>
+    </div>
+    <div class="card">
+      <h3>${tt('إجمالي الالتزامات','Total Liabilities')}</h3>
+      <div class="big" style="color:var(--warning)">EGP ${fmtMoney(liabilitiesEGP)}</div>
+      <div class="delta">${tt('يدوية','Manual')}: EGP ${fmtMoney(manualLiabilitiesEGP)} · ${tt('أقساط متبقية','Commitments left')}: EGP ${fmtMoney(commitmentLiabilitiesEGP)}</div>
+    </div>
+  `;
+
+  document.getElementById('wealth-assets-body').innerHTML = (DB.assets||[]).map(a=>`
+    <tr>
+      <td class="td-date" data-label="">${a.name}</td>
+      <td data-label="${t('th_currency')}">${a.currency}</td>
+      <td class="amt" data-label="">${fmtMoney(a.value)}</td>
+      <td class="amt" data-label="">${fmtMoney(toEGP(a.value, a.currency))}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${a.note||''}</td>
+      <td class="td-actions">
+        <button class="btn ghost sm" data-edit-asset="${a.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-asset="${a.id}">${t('btn_delete')}</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="6" class="empty">${tt('لا يوجد أصول بعد','No assets yet')}</td></tr>`;
+
+  document.getElementById('wealth-liabilities-body').innerHTML = (DB.liabilities||[]).map(l=>`
+    <tr>
+      <td class="td-date" data-label="">${l.name}</td>
+      <td data-label="${t('th_currency')}">${l.currency}</td>
+      <td class="amt" data-label="">${fmtMoney(l.value)}</td>
+      <td class="amt" data-label="">${fmtMoney(toEGP(l.value, l.currency))}</td>
+      <td class="td-note" dir="auto" data-label="${t('th_note')}">${l.note||''}</td>
+      <td class="td-actions">
+        <button class="btn ghost sm" data-edit-liability="${l.id}">${t('btn_edit')}</button>
+        <button class="btn ghost sm" data-del-liability="${l.id}">${t('btn_delete')}</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="6" class="empty">${tt('لا يوجد التزامات بعد','No liabilities yet')}</td></tr>`;
+
+  const activeCommitments = DB.commitments.filter(c=>c.status!=='completed' && commitmentRemaining(c)>0);
+  document.getElementById('wealth-commitments-body').innerHTML = activeCommitments.map(c=>`
+    <tr>
+      <td data-label="${tt('الالتزام','Commitment')}">${c.name}</td>
+      <td class="amt" data-label="">${fmtMoney(commitmentRemaining(c) * (Number(c.installmentAmount)||0))}</td>
+    </tr>`).join('') || `<tr><td colspan="2" class="empty">${tt('لا يوجد التزامات نشطة','No active commitments')}</td></tr>`;
+
+  document.getElementById('wealth-vehicles-body').innerHTML = (DB.vehicles||[]).map(v=>`
+    <tr>
+      <td data-label="${t('th_vehicle')}">${v.name}</td>
+      <td class="amt" data-label="">${v.currentValue!=null ? fmtMoney(v.currentValue) : tt('غير محدد','Not set')}</td>
+    </tr>`).join('') || `<tr><td colspan="2" class="empty">${tt('لا يوجد مركبات بعد','No vehicles yet')}</td></tr>`;
+}
+document.getElementById('view-wealth').addEventListener('click', e=>{
+  const editAssetId = e.target.dataset.editAsset;
+  if(editAssetId) return openModal('asset', {assetId: editAssetId});
+  const delAssetId = e.target.dataset.delAsset;
+  if(delAssetId){
+    if(!confirm(tt('تأكيد حذف الأصل ده؟','Delete this asset?'))) return;
+    DB.assets = DB.assets.filter(a=>a.id!==delAssetId);
+    saveDB(); renderAll(); toast(tt('تم حذف الأصل','Asset deleted'));
+    return;
+  }
+  const editLiabId = e.target.dataset.editLiability;
+  if(editLiabId) return openModal('liability', {liabilityId: editLiabId});
+  const delLiabId = e.target.dataset.delLiability;
+  if(delLiabId){
+    if(!confirm(tt('تأكيد حذف الالتزام ده؟','Delete this liability?'))) return;
+    DB.liabilities = DB.liabilities.filter(l=>l.id!==delLiabId);
+    saveDB(); renderAll(); toast(tt('تم حذف الالتزام','Liability deleted'));
+    return;
+  }
 });
 
 /* ---------------------------- RENDER: TRANSACTIONS ---------------------------- */
@@ -2544,7 +2821,8 @@ function renderTransactions(){
     {k:'all', label:t('txn_filter_all')},
     {k:'income', label:t('txn_filter_income')},
     {k:'expense', label:t('txn_filter_expense')},
-    {k:'transfer', label:t('txn_filter_transfer')}
+    {k:'transfer', label:t('txn_filter_transfer')},
+    {k:'deleted', label:tt('المحذوفة','Deleted')}
   ];
   document.getElementById('txn-filters').innerHTML = filters.map(f=>
     `<button class="filter-pill ${txnFilter===f.k?'active':''}" data-filter="${f.k}">${f.label}</button>`
@@ -2569,12 +2847,10 @@ function renderTransactions(){
     DB.accounts.map(a=>`<option value="${a.id}" ${a.id===txnAccountFilterVal?'selected':''}>${a.name}${a.excludeFromNetWorth?` (${t('archived_tag')})`:''}` + '</option>').join('');
 
   // Source: ALL transactions — live accounts + archived/historical accounts together (History page merged in here)
-  // Newest transaction date first; when dates are equal, newest registration first.
-  let list = [...DB.transactions].sort((a,b)=>{
-    const dateCmp = (b.date||'').localeCompare(a.date||'');
-    if(dateCmp !== 0) return dateCmp;
-    return (b.createdAt||'').localeCompare(a.createdAt||'');
-  });
+  // The "Deleted" filter shows only soft-deleted rows; every other filter shows only active ones.
+  const showDeleted = txnFilter==='deleted';
+  let list = DB.transactions.filter(t=> showDeleted ? !!t.deletedAt : !t.deletedAt)
+    .sort((a,b)=> compareTxnChronological(b,a));
   if(txnFilter==='income') list = list.filter(t=>t.type==='income');
   else if(txnFilter==='expense') list = list.filter(t=>t.type==='expense');
   else if(txnFilter==='transfer') list = list.filter(t=>t.type.startsWith('transfer'));
@@ -2608,22 +2884,43 @@ function renderTransactions(){
   if(txnPage >= pages) txnPage = pages - 1;
   const pageSlice = list.slice(txnPage*TXN_PG, (txnPage+1)*TXN_PG);
 
+  // Running Balance: only meaningful when exactly one account is selected. Computed over that
+  // account's FULL active transaction history (chronological: date then createdAt), independent
+  // of the month/category/type/search filters, so switching those never resets the balance.
+  const balanceTh = document.getElementById('th-txn-balance');
+  let balanceMap = null;
+  if(!showDeleted && txnAccountFilterVal){
+    const balAcc = accountById(txnAccountFilterVal);
+    if(balAcc){
+      balanceMap = new Map();
+      let running = Number(balAcc.openingBalance)||0;
+      const chrono = activeTransactions().filter(t=>t.accountId===balAcc.id).sort(compareTxnChronological);
+      chrono.forEach(t=>{
+        if(t.type==='income'||t.type==='transfer_in') running += Number(t.amount);
+        else if(t.type==='expense'||t.type==='transfer_out') running -= Number(t.amount);
+        balanceMap.set(t.id, running);
+      });
+    }
+  }
+  if(balanceTh) balanceTh.style.display = balanceMap ? '' : 'none';
+
   document.getElementById('txn-body').innerHTML = pageSlice.map(tx=>{
     const acc = accountById(tx.accountId);
     const sign = tx.type==='income'||tx.type==='transfer_in' ? '+' : '-';
     const cls = tx.type==='income'||tx.type==='transfer_in' ? 'pos':'neg';
-    return `<tr>
+    const balCell = balanceMap ? `<td class="amt" data-label="${tt('الرصيد بعد','Balance After')}">${balanceMap.has(tx.id) ? fmtMoney(balanceMap.get(tx.id)) : '—'}</td>` : '';
+    return `<tr${tx.deletedAt?' style="opacity:.6;"':''}>
       <td class="td-date" data-label="">${fmtDate(tx.date)}</td>
       <td data-label="${t('th_account')}">${acc?acc.name:'—'}${acc&&acc.excludeFromNetWorth?` <span class="tag">${t('archived_tag')}</span>`:''}</td>
       <td data-label="${t('th_category')}">${tx.type.startsWith('transfer') ? `<span class="tag">${t('transfer_tag')}</span>` : categoryLabel(tx.categoryId)}</td>
       <td class="td-note" dir="auto" data-label="${t('th_note')}">${tx.note||''}</td>
       <td class="amt ${cls}" data-label="${t('th_amount')}">${sign}${tx.currency} ${fmtMoney(tx.amount)}</td>
+      ${balCell}
       <td class="td-actions">
-        <button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button>
-        <button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>
+        ${tx.deletedAt ? `<button class="btn ghost sm" data-restore-txn="${tx.id}">${tt('استرجاع','Restore')}</button>` : `<button class="btn ghost sm" data-edit-txn="${tx.id}">${t('btn_edit')}</button><button class="btn ghost sm" data-del-txn="${tx.id}">${t('btn_delete')}</button>`}
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${t('empty_no_txn_filter')}</td></tr>`;
 
   const pgEl = document.getElementById('txn-pagination');
   if(pgEl){
@@ -2680,13 +2977,19 @@ document.getElementById('txn-reset').addEventListener('click', ()=>{
 // the person knows the linked record won't be touched and the two may go out of sync.
 function confirmIfLinked(txnId, action){
   const src = findLinkedSource(txnId);
-  if(src){
+  if(src && action==='edit'){
     return confirm(tt(
-      `المعاملة دي مرتبطة بـ ${src.label} (${src.kind==='commitment'?'دفعة التزام':'سجل مركبة'}). ${action==='edit'?'تعديلها هيحدّث السجل المرتبط تلقائياً.':'حذفها هيحذف السجل المرتبط كمان.'} تكمل؟`,
-      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). ${action==='edit'?'Editing it will update the linked record automatically.':'Deleting it will delete the linked record too.'} Continue?`
+      `المعاملة دي مربوطة بـ ${src.label} (${src.kind==='commitment'?'دفعة التزام':'سجل مركبة'}). التعديل هيتزامن مع السجل ده تلقائياً (التاريخ/المبلغ/الحساب). تكمل؟`,
+      `This transaction is linked to ${src.label} (${src.kind==='commitment'?'a commitment payment':'a vehicle log'}). Your edit will automatically sync to that record (date/amount/account). Continue?`
     ));
   }
-  if(action==='delete') return confirm(tt('حذف المعاملة دي؟ الإجراء ده مش قابل للتراجع.','Delete this transaction? This can\'t be undone.'));
+  if(src && action==='delete'){
+    return confirm(tt(
+      `المعاملة دي مربوطة بـ ${src.label}. الحذف (نقل لسلة المهملات) مش هيحذف السجل المرتبط، وممكن يحصل عدم تطابق. تكمل؟`,
+      `This transaction is linked to ${src.label}. Deleting (moving to Deleted) won't remove that linked record, and the two may go out of sync. Continue?`
+    ));
+  }
+  if(action==='delete') return confirm(tt('نقل المعاملة دي لسلة المهملات؟ تقدر تسترجعها بعدين من فلتر "المحذوفة".','Move this transaction to Deleted? You can restore it later from the "Deleted" filter.'));
   return true;
 }
 document.getElementById('view-transactions').addEventListener('click', e=>{
@@ -2696,21 +2999,19 @@ document.getElementById('view-transactions').addEventListener('click', e=>{
     openModal('transaction', {txnId: editId});
     return;
   }
+  const restoreId = e.target.dataset.restoreTxn;
+  if(restoreId){
+    const t = DB.transactions.find(x=>x.id===restoreId);
+    if(t){ t.deletedAt = null; saveDB(); renderAll(); toast(tt('اتسترجعت المعاملة','Transaction restored')); }
+    return;
+  }
   const id = e.target.dataset.delTxn; if(!id) return;
   if(!confirmIfLinked(id, 'delete')) return;
-  const linkedPmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===id);
-  const linkedVehicleLog = DB.vehicleLogs.find(l=>l.linkedTransactionId===id);
-  DB.transactions = DB.transactions.filter(t=>t.id!==id);
-  if(linkedPmt){
-    const c = DB.commitments.find(x=>x.id===linkedPmt.commitmentId);
-    DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.id!==linkedPmt.id);
-    if(c){
-      const paidCount = commitmentPayments(c.id).length;
-      c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
-    }
-  }
-  if(linkedVehicleLog) DB.vehicleLogs = DB.vehicleLogs.filter(l=>l.id!==linkedVehicleLog.id);
-  saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف المعاملة والسجل المرتبط':'Transaction and linked record deleted');
+  // Soft delete: the transaction stays stored (with deletedAt set) and excluded from every
+  // active calculation — balances, income/expense, reports, budgets — but stays recoverable.
+  const t = DB.transactions.find(x=>x.id===id);
+  if(t) t.deletedAt = Date.now();
+  saveDB(); renderAll(); toast(LANG==='ar'?'اتنقلت المعاملة لسلة المهملات':'Transaction moved to Deleted');
 });
 
 /* ---------------------------- RENDER: CATEGORIES ---------------------------- */
@@ -2817,12 +3118,9 @@ document.getElementById('view-commitments').addEventListener('click', e=>{
       ? tt(`حذف ${c ? c.name : 'الالتزام'}؟ ده هيمسح كمان ${paymentCount} دفعة متسجلة نهائياً. الإجراء ده مش قابل للتراجع.`, `Delete ${c ? c.name : 'this commitment'}? This also permanently deletes its ${paymentCount} recorded payment${paymentCount===1?'':'s'}. This can't be undone.`)
       : tt(`حذف ${c ? c.name : 'الالتزام'}؟ الإجراء ده مش قابل للتراجع.`, `Delete ${c ? c.name : 'this commitment'}? This can't be undone.`);
     if(!confirm(warning)) return;
-    const paymentIds = DB.commitmentPayments.filter(p=>p.commitmentId===delId).map(p=>p.id);
-    const linkedTxnIds = new Set(DB.commitmentPayments.filter(p=>p.commitmentId===delId && p.linkedTransactionId).map(p=>p.linkedTransactionId));
     DB.commitments = DB.commitments.filter(c=>c.id!==delId);
     DB.commitmentPayments = DB.commitmentPayments.filter(p=>p.commitmentId!==delId);
-    DB.transactions = DB.transactions.filter(t=>!linkedTxnIds.has(t.id));
-    saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف الالتزام ودفعاته ومعاملاته المرتبطة':'Commitment, its payments and linked transactions deleted');
+    saveDB(); renderAll(); toast(LANG==='ar'?'تم حذف الالتزام':'Commitment deleted');
   }
 });
 
@@ -3018,8 +3316,9 @@ function _incInRange(from,to,catIds){
     return !cat || cat.type==='income';  // include if income or unknown
   })) : null;
   const useFilter = incCatIds && incCatIds.size > 0;
-  return DB.transactions.filter(t=>{
+  return activeTransactions().filter(t=>{
     if(t.type!=='income')return false;
+    if(isAdjustmentCategory(t.categoryId))return false;
     const mk=monthKey(t.date);
     if(from&&mk<from)return false;
     if(to&&mk>to)return false;
@@ -3368,6 +3667,9 @@ function renderVehicles(){
       <div class="stats" style="margin-top:4px;">
         <span>${LANG==='ar'?'تكلفة الشهر':'This month cost'}</span><span class="num">EGP ${fmtMoney(monthCost)}</span>
       </div>
+      ${v.currentValue!=null ? `<div class="stats" style="margin-top:4px;">
+        <span>${tt('القيمة السوقية','Market value')}</span><span class="num">EGP ${fmtMoney(v.currentValue)}</span>
+      </div>` : ''}
       ${docsCount? `<div class="meta" style="margin-top:8px;">${tt(`${docsCount} مستند متابَع`, `${docsCount} document${docsCount===1?'':'s'} tracked`)}</div>` : ''}
       <div class="actions">
         <button class="btn secondary sm" data-view-vehicle="${v.id}">${t('veh_view_log')}</button>
@@ -3417,6 +3719,103 @@ document.getElementById('view-vehicles').addEventListener('click', e=>{
 });
 
 /* ---------------------------- RENDER: VEHICLES > ALL LOGS PANEL ---------------------------- */
+// Small icon prefix for the 4 built-in log types; custom categories just show their own name.
+const VLOG_TYPE_ICONS = {fuel:'⛽', maintenance:'🔧', oil:'🛢', asset:'💰', other:'📋'};
+// The filter's real unit is a CATEGORY, not a coarse type bucket — so any subcategory the user
+// creates under "Car/Scooter Expenses" (however many, however named) shows up on its own,
+// exactly matching what's configured on the Categories page. Older log entries recorded before
+// categoryId was tracked fall back to a legacy "type:xxx" bucket so they stay filterable too.
+function vlogFilterKey(log){
+  return log.categoryId || ('type:' + log.type);
+}
+function vlogFilterLabel(key){
+  if(key.startsWith('type:')){
+    const ty = key.slice(5);
+    const labels = LANG==='ar'
+      ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'📋 أخرى'}
+      : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'📋 Other'};
+    return labels[ty] || ty;
+  }
+  const cat = categoryById(key);
+  if(!cat) return key;
+  const icon = VLOG_TYPE_ICONS[categoryVehicleInfo(key)?.logType] || '';
+  return (icon ? icon+' ' : '') + cat.name;
+}
+// Options are built dynamically from whatever categories actually exist on logs for the
+// currently selected vehicle (or across all vehicles when none is selected) — never a
+// hardcoded list — so a brand-new custom subcategory (e.g. "Add Oil") appears automatically
+// as soon as it has been used, with no code change needed.
+function vlogAvailableFilterKeys(){
+  const pool = DB.vehicleLogs.filter(l=> _vlVehicle==='all' || l.vehicleId===_vlVehicle);
+  const set = new Set(pool.map(vlogFilterKey));
+  if(!set.size){
+    // No logs recorded yet: fall back to listing the vehicle-tracked categories that exist
+    // (from the Categories page) so the filter isn't empty before any data has been entered.
+    const wantRoot = _vlVehicle==='all' ? null : (vehicleById(_vlVehicle)?.type==='scooter' ? 'cat_scooter' : 'cat_car');
+    DB.categories.forEach(c=>{
+      const root = categoryRootAncestor(c.id);
+      if(root==='cat_car' || root==='cat_scooter'){
+        if(!wantRoot || root===wantRoot) set.add(c.id);
+      }
+    });
+  }
+  return [...set];
+}
+function _vlogTypeDropdownRender(){
+  const listEl = document.getElementById('vlogs-type-list');
+  const labelEl = document.getElementById('vlogs-type-label');
+  if(!listEl) return;
+  const keys = vlogAvailableFilterKeys();
+  // Selection semantics: empty set == "All" (matches the old select's default).
+  listEl.innerHTML = keys.map(key=>{
+    const checked = _vlTypes.size===0 || _vlTypes.has(key);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;border-radius:5px;margin:1px 4px;user-select:none;" onmouseenter="this.style.background='var(--surface-2)'" onmouseleave="this.style.background=''">
+      <input type="checkbox" data-vlog-key="${key}" ${checked?'checked':''} style="width:14px;height:14px;accent-color:var(--accent);flex:none;cursor:pointer;">
+      <span style="font-size:12.5px;">${vlogFilterLabel(key)}</span>
+    </label>`;
+  }).join('');
+  listEl.querySelectorAll('[data-vlog-key]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      // Build the explicit selected set from what's currently checked (an empty result
+      // collapses back to "All" so unchecking every box behaves the same as never filtering).
+      const allBoxes = [...listEl.querySelectorAll('[data-vlog-key]')];
+      const checkedNow = allBoxes.filter(b=>b.checked).map(b=>b.dataset.vlogKey);
+      _vlTypes = checkedNow.length===allBoxes.length ? new Set() : new Set(checkedNow);
+      labelEl.textContent = _vlogTypeLabelText();
+      renderVehicleLogsPanel();
+    });
+  });
+  labelEl.textContent = _vlogTypeLabelText();
+}
+function _vlogTypeLabelText(){
+  if(_vlTypes.size===0) return tt('كل الأنواع','All types');
+  const names = [..._vlTypes].map(vlogFilterLabel);
+  return names.length<=2 ? names.join(', ') : `${names[0]} +${names.length-1} ${tt('أخرى','more')}`;
+}
+(function(){
+  const btn = document.getElementById('vlogs-type-btn');
+  const dropdown = document.getElementById('vlogs-type-dropdown');
+  if(!btn||!dropdown) return;
+  btn.addEventListener('click', ev=>{
+    ev.stopPropagation();
+    const opening = dropdown.style.display==='none'||!dropdown.style.display;
+    document.querySelectorAll('.tree-dd-open').forEach(d=>{d.style.display='none';d.classList.remove('tree-dd-open');});
+    if(opening){ dropdown.style.display='block'; dropdown.classList.add('tree-dd-open'); _vlogTypeDropdownRender(); }
+    else { dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open'); }
+  });
+  document.addEventListener('click', ev=>{
+    if(!dropdown.contains(ev.target) && ev.target!==btn){
+      dropdown.style.display='none'; dropdown.classList.remove('tree-dd-open');
+    }
+  });
+  document.getElementById('vlogs-type-all')?.addEventListener('click', ()=>{
+    _vlTypes = new Set(); _vlogTypeDropdownRender(); renderVehicleLogsPanel();
+  });
+  document.getElementById('vlogs-type-none')?.addEventListener('click', ()=>{
+    _vlTypes = new Set(vlogAvailableFilterKeys().length ? ['__none__'] : []); // sentinel: nothing matches
+    _vlogTypeDropdownRender(); renderVehicleLogsPanel();
+  });
+})();
 function renderVehicleLogsPanel(){
   const vehSel = document.getElementById('vlogs-filter-vehicle');
   if(!vehSel) return; // shell not in DOM yet (shouldn't happen, but stay safe)
@@ -3427,7 +3826,7 @@ function renderVehicleLogsPanel(){
   if(vehSel.innerHTML !== vehOptionsHtml) vehSel.innerHTML = vehOptionsHtml;
   if(_vlVehicle!=='all' && !DB.vehicles.some(v=>v.id===_vlVehicle)) _vlVehicle = 'all';
   vehSel.value = _vlVehicle;
-  document.getElementById('vlogs-filter-type').value = _vlType;
+  document.getElementById('vlogs-type-label').textContent = _vlogTypeLabelText();
   document.getElementById('vlogs-filter-from').value = _vlFrom;
   document.getElementById('vlogs-filter-to').value = _vlTo;
   document.getElementById('vlogs-sort-toggle').textContent = LANG==='ar' ? ('التاريخ: ' + (_vlSort==='asc' ? 'الأقدم أولاً ↑' : 'الأحدث أولاً ↓')) : ('Date: ' + (_vlSort==='asc' ? 'Oldest first ↑' : 'Newest first ↓'));
@@ -3435,7 +3834,7 @@ function renderVehicleLogsPanel(){
   const typeLabels = LANG==='ar' ? {fuel:'⛽ وقود', maintenance:'🔧 صيانة', oil:'🛢 تغيير زيت', asset:'💰 مقتنيات', other:'أخرى'} : {fuel:'⛽ Fuel', maintenance:'🔧 Maintenance', oil:'🛢 Oil Change', asset:'💰 Asset', other:'Other'};
   let logs = allVehicleLogsComputed()
     .filter(l => _vlVehicle==='all' || l.vehicleId===_vlVehicle)
-    .filter(l => _vlType==='all' || l.type===_vlType)
+    .filter(l => _vlTypes.size===0 || _vlTypes.has(vlogFilterKey(l)))
     .filter(l => !_vlFrom || l.date>=_vlFrom)
     .filter(l => !_vlTo || l.date<=_vlTo)
     .sort((a,b) => _vlSort==='asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
@@ -3443,7 +3842,7 @@ function renderVehicleLogsPanel(){
   // Table
   document.getElementById('vlogs-table-body').innerHTML = logs.map(l=>`<tr>
       <td class="td-date" data-label="">${fmtDate(l.date)} · ${l.vehicleIcon} ${l.vehicleName}</td>
-      <td data-label="${t('th_type')}"><span class="tag">${typeLabels[l.type]||l.type}</span></td>
+      <td data-label="${t('th_type')}"><span class="tag">${vlogFilterLabel(vlogFilterKey(l))}</span></td>
       <td class="amt neg" data-label="${t('th_amount')}">${fmtMoney(l.amount)}</td>
       <td class="amt" data-label="${t('th_km')}">${l.odometerKm!=null?fmtMoney(l.odometerKm):'—'}</td>
       <td class="amt" data-label="${t('th_dist')}">${l.distance!=null?fmtMoney(l.distance):'—'}</td>
@@ -3464,6 +3863,32 @@ function renderVehicleLogsPanel(){
     {l:LANG==='ar'?'إجمالي الإنفاق':'Total Spend', v: 'EGP '+fmtMoney(totalSpend)},
     {l:LANG==='ar'?'متوسط كم/لتر':'Avg km/L', v: avgKmL!=null ? avgKmL.toFixed(2) : '—'}
   ];
+  // Last known odometer reading for the vehicle selected in the filter — read from ALL of that
+  // vehicle's logs (ignoring the current type/date filters, since "last known KM" should reflect
+  // the vehicle's real-world state, not just whatever subset happens to be filtered right now).
+  if(_vlVehicle!=='all'){
+    const allVehLogs = vehicleLogsRaw(_vlVehicle); // ascending chronological
+    let lastOdo = null;
+    for(let i=allVehLogs.length-1;i>=0;i--){
+      if(allVehLogs[i].odometerKm!=null){ lastOdo = allVehLogs[i].odometerKm; break; }
+    }
+    summaryCards.push({
+      l: LANG==='ar' ? 'آخر قراءة عداد' : 'Last Odometer',
+      v: lastOdo!=null ? fmtMoney(lastOdo)+' '+tt('كم','km') : '—'
+    });
+
+    // Distance covered WITHIN the current filter: first odometer reading to last odometer
+    // reading among the filtered/displayed log entries — unlike the card above, this one is
+    // meant to move as the filters change (date range, category, etc).
+    const logsWithOdo = logs.filter(l=>l.odometerKm!=null).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    const filteredDistance = logsWithOdo.length>=2
+      ? logsWithOdo[logsWithOdo.length-1].odometerKm - logsWithOdo[0].odometerKm
+      : null;
+    summaryCards.push({
+      l: LANG==='ar' ? 'المسافة (حسب الفلتر)' : 'Distance (filtered)',
+      v: filteredDistance!=null ? fmtMoney(filteredDistance)+' '+tt('كم','km') : '—'
+    });
+  }
   document.getElementById('vlogs-summary-strip').innerHTML = summaryCards.map(s=>`
     <div class="card" style="padding:10px 14px;flex:1;min-width:120px;">
       <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
@@ -3490,7 +3915,7 @@ function renderVehicleLogsPanel(){
       name: (v.type==='scooter'?'🛵 ':'🚗 ')+v.name,
       total: allVehicleLogsComputed()
         .filter(l=>l.vehicleId===v.id)
-        .filter(l => _vlType==='all' || l.type===_vlType)
+        .filter(l => _vlTypes.size===0 || _vlTypes.has(vlogFilterKey(l)))
         .filter(l => !_vlFrom || l.date>=_vlFrom)
         .filter(l => !_vlTo || l.date<=_vlTo)
         .reduce((s,l)=>s+l.amount,0)
@@ -3505,8 +3930,7 @@ function renderVehicleLogsPanel(){
 (function(){
   const vehSel = document.getElementById('vlogs-filter-vehicle');
   if(!vehSel) return;
-  vehSel.addEventListener('change', e=>{ _vlVehicle = e.target.value; renderVehicleLogsPanel(); });
-  document.getElementById('vlogs-filter-type').addEventListener('change', e=>{ _vlType = e.target.value; renderVehicleLogsPanel(); });
+  vehSel.addEventListener('change', e=>{ _vlVehicle = e.target.value; _vlogTypeDropdownRender(); renderVehicleLogsPanel(); });
   document.getElementById('vlogs-filter-from').addEventListener('change', e=>{ _vlFrom = e.target.value; renderVehicleLogsPanel(); });
   document.getElementById('vlogs-filter-to').addEventListener('change', e=>{ _vlTo = e.target.value; renderVehicleLogsPanel(); });
   document.getElementById('vlogs-sort-toggle').addEventListener('click', ()=>{
@@ -3514,7 +3938,8 @@ function renderVehicleLogsPanel(){
     renderVehicleLogsPanel();
   });
   document.getElementById('vlogs-filter-reset').addEventListener('click', ()=>{
-    _vlVehicle='all'; _vlType='all'; _vlFrom=''; _vlTo=''; _vlSort='desc';
+    _vlVehicle='all'; _vlTypes=new Set(); _vlFrom=''; _vlTo=''; _vlSort='desc';
+    _vlogTypeDropdownRender();
     renderVehicleLogsPanel();
   });
   document.getElementById('veh-subtab-group').addEventListener('click', e=>{
@@ -3598,12 +4023,6 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
 
 
 /* ---------------------------- MODALS ---------------------------- */
-function commitmentOptions(selected){
-  const active = DB.commitments.filter(c=>c.status!=='completed' || c.id===selected);
-  return `<option value="">${tt('— اختار الالتزام —','— Select commitment —')}</option>` +
-    active.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${c.name}</option>`).join('');
-}
-
 function accountOptions(selected){
   return DB.accounts.filter(a=>!a.excludeFromNetWorth).map(a=>`<option value="${a.id}" ${a.id===selected?'selected':''}>${a.name} (${a.currency})</option>`).join('');
 }
@@ -3639,6 +4058,7 @@ function openModal(kind, ctx={}){
 
   if(kind==='account'){
     const editing = ctx.accountId ? accountById(ctx.accountId) : null;
+    const currencyLocked = editing ? DB.transactions.some(t=>t.accountId===editing.id) : false;
     html = `<div class="modal">
       <h2>${editing ? tt('تعديل الحساب','Edit Account') : tt('حساب جديد','New Account')}</h2>
       <form id="form-account">
@@ -3653,9 +4073,10 @@ function openModal(kind, ctx={}){
             </select>
           </div>
           <div class="field"><label>${tt('العملة','Currency')}</label>
-            <select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select>
+            ${currencyLocked ? `<select name="currency" disabled><option value="${editing.currency}" selected>${editing.currency}</option></select><input type="hidden" name="currency" value="${editing.currency}">` : `<select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select>`}
           </div>
         </div>
+        ${currencyLocked ? `<div class="help-text" style="margin-top:-6px;">${tt('الحساب ده عليه معاملات، فمينفعش تغيّر عملته — لو محتاج عملة تانية، اعمل حساب جديد بالعملة دي.','This account already has transactions, so its currency cannot be changed — create a new account with the desired currency instead.')}</div>` : ''}
         <div class="field-row">
           <div class="field"><label>${tt('الرصيد الافتتاحي','Opening Balance')}</label><input type="number" step="0.01" name="openingBalance" value="${editing?editing.openingBalance:0}"></div>
           <div class="field"><label>${tt('تاريخ الافتتاح','Opening Date')}</label><input type="date" name="openingDate" value="${editing?editing.openingDate:todayLocalISO()}"></div>
@@ -3666,9 +4087,37 @@ function openModal(kind, ctx={}){
             ${tt('استثناء من صافي الثروة (مثلاً أرشيف تاريخي، مش رصيد حقيقي)','Exclude from Net Worth (e.g. a historical archive, not a real balance)')}
           </label>
         </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="hiddenFromAccountsList" style="width:auto;" ${editing&&editing.hiddenFromAccountsList?'checked':''}>
+            ${tt('إخفاء من قائمة الحسابات (الحساب هيفضل محفوظ ومتاح في الأرشيف)','Hide from Accounts list (the account stays stored and available in the Archived section)')}
+          </label>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${editing ? tt('حفظ التعديلات','Save Changes') : tt('إنشاء الحساب','Create Account')}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  if(kind==='asset' || kind==='liability'){
+    const isAsset = kind==='asset';
+    const editing = isAsset ? (ctx.assetId ? DB.assets.find(a=>a.id===ctx.assetId) : null) : (ctx.liabilityId ? DB.liabilities.find(l=>l.id===ctx.liabilityId) : null);
+    const idField = isAsset ? 'assetId' : 'liabilityId';
+    html = `<div class="modal">
+      <h2>${editing ? (isAsset?tt('تعديل الأصل','Edit Asset'):tt('تعديل الالتزام','Edit Liability')) : (isAsset?tt('أصل جديد','New Asset'):tt('التزام جديد','New Liability'))}</h2>
+      <form id="form-${kind}">
+        ${editing ? `<input type="hidden" name="${idField}" value="${editing.id}">` : ''}
+        <div class="field"><label>${tt('الاسم','Name')}</label><input name="name" required value="${editing?editing.name:''}" placeholder="${isAsset?tt('مثال: شقة، ذهب، محفظة استثمار','e.g. apartment, gold, investment portfolio'):tt('مثال: قرض شخصي','e.g. personal loan')}"></div>
+        <div class="field-row">
+          <div class="field"><label>${isAsset?tt('القيمة الحالية','Current Value'):tt('المبلغ المتبقي','Remaining Amount')}</label><input type="number" step="0.01" name="value" required value="${editing?editing.value:''}"></div>
+          <div class="field"><label>${tt('العملة','Currency')}</label><select name="currency">${DB.fxRates.map(r=>`<option value="${r.currency}" ${editing&&editing.currency===r.currency?'selected':''}>${r.currency}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" dir="auto" value="${editing?(editing.note||''):''}"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
+          <button type="submit" class="btn">${editing ? tt('حفظ التعديلات','Save Changes') : tt('حفظ','Save')}</button>
         </div>
       </form>
     </div>`;
@@ -3740,10 +4189,6 @@ function openModal(kind, ctx={}){
     if(!DB.accounts.length){ toast(tt('ضيف حساب الأول','Add an account first')); return; }
     const editing = ctx.txnId ? DB.transactions.find(t=>t.id===ctx.txnId) : null;
     if(ctx.txnId && !editing){ toast(tt('المعاملة مش موجودة','Transaction not found')); return; }
-    const linkedCommitmentPayment = editing
-      ? DB.commitmentPayments.find(p=>p.linkedTransactionId===editing.id)
-      : null;
-    const linkedCommitmentId = linkedCommitmentPayment ? linkedCommitmentPayment.commitmentId : null;
 
     if(editing && editing.type.startsWith('transfer')){
       // Reduced edit form for transfers: date/amount/note only, accounts read-only.
@@ -3764,7 +4209,7 @@ function openModal(kind, ctx={}){
             <div class="field"><label>${tt('التاريخ','Date')}</label><input type="date" name="date" value="${fromTxn?fromTxn.date:editing.date}" required></div>
             <div class="field"><label>${tt('المبلغ','Amount')} (${fromAcc?fromAcc.currency:''})</label><input type="number" step="0.01" name="amount" value="${fromTxn?fromTxn.amount:editing.amount}" required></div>
           </div>
-          <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" value="${(fromTxn?fromTxn.note:editing.note)||''}" placeholder="${tt('مثال: صيانة العربية','e.g. car maintenance')}"></div>
+          <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" dir="auto" value="${(fromTxn?fromTxn.note:editing.note)||''}" placeholder="${tt('مثال: صيانة العربية','e.g. car maintenance')}"></div>
           <div class="modal-actions">
             <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
             <button type="submit" class="btn">${tt('حفظ التعديلات','Save Changes')}</button>
@@ -3802,10 +4247,14 @@ function openModal(kind, ctx={}){
             <label>${tt('الفئة','Category')}</label>
             <select name="categoryId" id="txn-category-select">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:undefined)}</select>
           </div>
-          <div class="field" id="txn-commitment-field" style="display:${(editing && linkedCommitmentId) || (!editing && typeVal==='expense' && editing?.categoryId==='cat_commit') ? 'block':'none'};">
+          ${editing ? '' : `
+          <div class="field" id="txn-commitment-field" style="display:none;">
             <label>${tt('الالتزام المرتبط','Linked Commitment')}</label>
-            <select name="commitmentId" id="txn-commitment-select">${commitmentOptions(linkedCommitmentId||'')}</select>
-          </div>
+            <select name="commitmentId" id="txn-commitment-select">
+              <option value="">${tt('اختر الالتزام...','Choose a commitment...')}</option>
+              ${DB.commitments.filter(c=>c.status!=='completed').map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+            </select>
+          </div>`}
           ${editing ? '' : `
           <div class="field" id="txn-vehicle-field" style="display:none;">
             <label>${tt('المركبة','Vehicle')}</label>
@@ -3825,7 +4274,7 @@ function openModal(kind, ctx={}){
           <div class="help-text" id="txn-vehicle-hint" style="display:none;margin-top:-6px;">
             ${tt('دخول العداد هنا بيخلي FinTrack يتابع كفاءة الوقود وفترات تغيير الزيت وعمر القطع تلقائياً لهذه المركبة.', 'Entering the odometer here lets FinTrack track fuel efficiency, oil-change intervals and part wear for this vehicle automatically.')}
           </div>`}
-          <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="${tt('مثال: صيانة العربية','e.g. car maintenance')}"></div>
+          <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" dir="auto" value="${editing?(editing.note||''):''}" placeholder="${tt('مثال: صيانة العربية','e.g. car maintenance')}"></div>
           <div class="modal-actions">
             <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
             <button type="submit" class="btn">${editing ? tt('حفظ التعديلات','Save Changes') : tt('حفظ المعاملة','Save Transaction')}</button>
@@ -3947,11 +4396,10 @@ function openModal(kind, ctx={}){
           </div>
           <input type="hidden" name="method" value="cash">
         </div>
-        <div class="field" id="pay-account-field">
+        <div class="field" id="pay-account-field" style="display:none;">
           <label>${tt('من حساب','From Account')}</label>
           <select name="accountId">${accountOptions()}</select>
         </div>
-        <div class="help-text">${tt('الدفعة هتتسجل كمعاملة مرتبطة بالالتزام، وأي تعديل أو حذف من أي صفحة هينعكس على الصفحة التانية.','The payment will be saved as a linked transaction. Editing or deleting it from either page updates the other side too.')}</div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('تسجيل الدفعة','Record Payment')}</button>
@@ -4030,6 +4478,7 @@ function openModal(kind, ctx={}){
         </div>
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
+        <div class="field"><label>${tt('القيمة السوقية الحالية (ج.م، اختياري)','Current market value (EGP, optional)')}</label><input type="number" step="100" name="currentValue" placeholder="${tt('تُستخدم في حساب صافي الثروة','used in Net Worth calculation')}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('إنشاء المركبة','Create Vehicle')}</button>
@@ -4057,6 +4506,7 @@ function openModal(kind, ctx={}){
         <div class="field"><label>${tt('رقم اللوحة / ملاحظة (اختياري)','Plate / Note (optional)')}</label><input name="plateNote" value="${v.plateNote||''}" placeholder="${tt('مثال: رقم اللوحة','e.g. plate number')}"></div>
         <div class="field"><label>${tt('فترة تغيير الزيت (كم، اختياري)','Oil change interval (km, optional)')}</label><input type="number" step="100" name="oilIntervalKm" value="${v.oilIntervalKm||''}" placeholder="${tt('مثال: 5000','e.g. 5000')}"></div>
         <div class="field"><label>${tt('مدى الخزان (كم لكل تانك كامل، اختياري)','Tank range (km per full tank, optional)')}</label><input type="number" step="10" name="tankRangeKm" value="${v.tankRangeKm||''}" placeholder="${tt('مثال: 550','e.g. 550')}"></div>
+        <div class="field"><label>${tt('القيمة السوقية الحالية (ج.م، اختياري)','Current market value (EGP, optional)')}</label><input type="number" step="100" name="currentValue" value="${v.currentValue!=null?v.currentValue:''}" placeholder="${tt('تُستخدم في حساب صافي الثروة','used in Net Worth calculation')}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${tt('حفظ التعديلات','Save Changes')}</button>
@@ -4170,7 +4620,7 @@ function openModal(kind, ctx={}){
           <div class="field"><label>${tt('العداد (كم)','Odometer (km)')}</label><input type="number" step="0.01" name="odometerKm" id="vlog-odometer" value="${editing&&editing.odometerKm!=null?editing.odometerKm:''}"></div>
           <div class="field" id="vlog-liters-field" style="${typeVal==='fuel'?'':'display:none;'}"><label>${tt('اللترات','Liters')} <span style="color:var(--text-faint);">(${tt(`تلقائي على ${DB.fuelPricePerLiter} ج.م/لتر — مش قابل للتعديل هنا، غيّر السعر من صفحة المركبات`, `auto @ ${DB.fuelPricePerLiter} EGP/L — not editable, change the price on the Vehicles page instead`)})</span></label><input type="number" step="0.01" name="litersFilled" id="vlog-liters" value="${editing&&editing.litersFilled!=null?editing.litersFilled:''}" readonly></div>
         </div>
-        <div class="field"><label>${tt('الوصف (اختياري)','Description (optional)')}</label><input name="note" value="${editing?(editing.note||''):''}" placeholder="${tt('مثال: صيانة دورية','e.g. routine maintenance')}"></div>
+        <div class="field"><label>${tt('الوصف (اختياري)','Description (optional)')}</label><input name="note" dir="auto" value="${editing?(editing.note||''):''}" placeholder="${tt('مثال: صيانة دورية','e.g. routine maintenance')}"></div>
         <div class="field" id="vlog-part-field" style="${typeVal==='maintenance'?'':'display:none;'}">
           <label>${tt('القطعة (اختياري)','Part (optional)')}</label>
           <select name="partId">
@@ -4240,7 +4690,7 @@ function openModal(kind, ctx={}){
         ${editing ? `<input type="hidden" name="docId" value="${editing.id}">` : ''}
         <div class="field"><label>${tt('النوع','Type')}</label><input name="docType" value="${editing?editing.docType:''}" required placeholder="${tt('مثال: رخصة، تأمين، بطاقة','e.g. license, insurance, card')}"></div>
         <div class="field"><label>${tt('تاريخ التجديد','Renewal Date')}</label><input type="date" name="renewalDate" value="${editing?editing.renewalDate:''}" required></div>
-        <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" value="${editing?(editing.note||''):''}"></div>
+        <div class="field"><label>${tt('ملاحظة (اختياري)','Note (optional)')}</label><input name="note" dir="auto" value="${editing?(editing.note||''):''}"></div>
         <div class="modal-actions">
           <button type="button" class="btn secondary" data-close>${tt('إلغاء','Cancel')}</button>
           <button type="submit" class="btn">${editing ? tt('حفظ التعديلات','Save Changes') : tt('حفظ المستند','Save Document')}</button>
@@ -4477,6 +4927,11 @@ function wireModal(kind){
     const partField = backdrop.querySelector('#txn-part-field');
     const partSelect = backdrop.querySelector('#txn-part-select');
     const hint = backdrop.querySelector('#txn-vehicle-hint');
+    // These vehicle-aware fields only exist in the DOM when creating a brand-new transaction
+    // (see openModal): editing an existing transaction never shows them, since a linked Vehicle
+    // Log is kept in sync separately (date/amount/account/etc.) rather than re-picked here.
+    // Guard the whole block so editing a vehicle-linked transaction never hits a null field.
+    if(vehicleField && vehicleSelect && odoRow && litersField && litersInput && partField && partSelect && hint){
     const updatePartOptions = ()=>{
       if(!partSelect) return;
       const vid = vehicleSelect.value;
@@ -4509,31 +4964,26 @@ function wireModal(kind){
       updatePartOptions();
       recalcLiters();
     };
-    const commitmentField = backdrop.querySelector('#txn-commitment-field');
-    const commitmentSelect = backdrop.querySelector('#txn-commitment-select');
-    const updateCommitmentField = ()=>{
-      if(!commitmentField || !commitmentSelect) return;
-      const isCommitment = catSelect?.value === 'cat_commit' && (backdrop.querySelector('[name="type"]')?.value || typeVal) === 'expense';
-      commitmentField.style.display = isCommitment ? 'block' : 'none';
-      if(!isCommitment) commitmentSelect.value = linkedCommitmentId || '';
-    };
-    catSelect.addEventListener('change', ()=>{
-      updateVehicleFields();
-      updateCommitmentField();
-    });
-    const txnTypeInput = backdrop.querySelector('[name="type"]');
-    backdrop.querySelectorAll('#txn-type-group .radio-opt').forEach(opt=>{
-      opt.addEventListener('click', ()=>{
-        setTimeout(()=>{
-          updateCommitmentField();
-          updateVehicleFields();
-        }, 0);
-      });
-    });
-    vehicleSelect?.addEventListener('change', updatePartOptions);
+    catSelect.addEventListener('change', updateVehicleFields);
+    vehicleSelect.addEventListener('change', updatePartOptions);
     amountInput?.addEventListener('input', recalcLiters);
     updateVehicleFields();
-    updateCommitmentField();
+    }
+
+    // Commitment category selected directly in the New Transaction form: reveal the linked
+    // Commitment selector and require it, so a plain expense never silently misses its
+    // Commitment Payment link (mirrors the dedicated "Record Payment" flow on Commitments page).
+    const commitField = backdrop.querySelector('#txn-commitment-field');
+    const commitSelect = backdrop.querySelector('#txn-commitment-select');
+    if(commitField && commitSelect){
+      const updateCommitField = ()=>{
+        const isCommit = catSelect.value === 'cat_commit';
+        commitField.style.display = isCommit ? 'block' : 'none';
+        commitSelect.required = isCommit;
+      };
+      catSelect.addEventListener('change', updateCommitField);
+      updateCommitField();
+    }
   }
 
   const form = backdrop.querySelector('form');
@@ -4560,21 +5010,45 @@ const submitHandlers = {
     if(data.accountId){
       const a = accountById(data.accountId);
       if(!a) throw new Error('Account not found');
-      const hasTxns = DB.transactions.some(t=>t.accountId===a.id);
-      if(hasTxns && a.currency !== data.currency){
-        throw new Error(tt('مينفعش تغيّر عملة الحساب لأنه مرتبط بمعاملات موجودة. اعمل حساب جديد بالعملة المطلوبة.','You cannot change an account currency while it has linked transactions. Create a new account with the required currency instead.'));
-      }
-      a.name = data.name.trim(); a.type = data.type; a.currency = data.currency;
+      const currencyLocked = DB.transactions.some(t=>t.accountId===a.id);
+      a.name = data.name.trim(); a.type = data.type;
+      // Currency protection: once an account has transactions its currency is fixed — even if
+      // the form was somehow tampered with, never let a currency change slip through here.
+      if(!currencyLocked) a.currency = data.currency;
       a.openingBalance = Number(data.openingBalance)||0; a.openingDate = data.openingDate;
       a.excludeFromNetWorth = data.excludeFromNetWorth === 'on';
+      a.hiddenFromAccountsList = data.hiddenFromAccountsList === 'on';
       saveDB(); toast(tt('اتحدث الحساب','Account updated'));
     } else {
       DB.accounts.push({
         id: uid('acc'), name: data.name.trim(), type: data.type, currency: data.currency,
         openingBalance: Number(data.openingBalance)||0, openingDate: data.openingDate,
-        excludeFromNetWorth: data.excludeFromNetWorth === 'on'
+        excludeFromNetWorth: data.excludeFromNetWorth === 'on',
+        hiddenFromAccountsList: data.hiddenFromAccountsList === 'on'
       });
       saveDB(); toast(tt('اتعمل الحساب','Account created'));
+    }
+  },
+  asset(data){
+    if(data.assetId){
+      const a = DB.assets.find(x=>x.id===data.assetId);
+      if(!a) throw new Error('Asset not found');
+      a.name = data.name.trim(); a.value = Number(data.value)||0; a.currency = data.currency; a.note = data.note||'';
+      saveDB(); toast(tt('تم تحديث الأصل','Asset updated'));
+    } else {
+      DB.assets.push({id: uid('asset'), name: data.name.trim(), value: Number(data.value)||0, currency: data.currency, note: data.note||'', createdAt: Date.now()});
+      saveDB(); toast(tt('تم إضافة الأصل','Asset added'));
+    }
+  },
+  liability(data){
+    if(data.liabilityId){
+      const l = DB.liabilities.find(x=>x.id===data.liabilityId);
+      if(!l) throw new Error('Liability not found');
+      l.name = data.name.trim(); l.value = Number(data.value)||0; l.currency = data.currency; l.note = data.note||'';
+      saveDB(); toast(tt('تم تحديث الالتزام','Liability updated'));
+    } else {
+      DB.liabilities.push({id: uid('liab'), name: data.name.trim(), value: Number(data.value)||0, currency: data.currency, note: data.note||'', createdAt: Date.now()});
+      saveDB(); toast(tt('تم إضافة الالتزام','Liability added'));
     }
   },
   reconcile(data){
@@ -4582,11 +5056,15 @@ const submitHandlers = {
     const computed = Number(data.computed);
     const actual = Number(data.actualBalance);
     const diff = actual - computed;
-    if(Math.abs(diff) < 0.01){ toast(tt('مفيش فرق للتسجيل','No difference to record')); return; }
+    DB.reconciliations.push({
+      id: uid('recon'), date: todayLocalISO(), accountId: a.id,
+      systemBalance: computed, actualBalance: actual, difference: diff, source: 'single'
+    });
+    if(Math.abs(diff) < 0.01){ saveDB(); toast(tt('مفيش فرق للتسجيل','No difference to record')); return; }
     DB.transactions.push({
-      id: uid('txn'), date: todayLocalISO(), accountId: a.id,
+      id: uid('txn'), date: todayLocalISO(), createdAt: Date.now(), accountId: a.id,
       categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
-      amount: Math.abs(diff), currency: a.currency,
+      amount: Math.abs(diff), currency: a.currency, deletedAt: null,
       note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
     });
     saveDB(); toast(tt('اتسجل التعديل — الرصيد بقى مطابق','Adjustment recorded — balance now matches'));
@@ -4601,23 +5079,24 @@ const submitHandlers = {
       if(!a) return;
       const computed = accountBalance(a);
       const diff = Number(data[key]) - computed;
+      DB.reconciliations.push({
+        id: uid('recon'), date: today, accountId: a.id,
+        systemBalance: computed, actualBalance: Number(data[key]), difference: diff, source: 'all'
+      });
       if(Math.abs(diff) < 0.01) return;
       DB.transactions.push({
-        id: uid('txn'), date: today, accountId: a.id,
+        id: uid('txn'), date: today, createdAt: Date.now(), accountId: a.id,
         categoryId: diff>0 ? 'cat_adjustment_inc' : 'cat_adjustment',
-        amount: Math.abs(diff), currency: a.currency,
+        amount: Math.abs(diff), currency: a.currency, deletedAt: null,
         note: 'Balance reconciliation adjustment', type: diff>0 ? 'income' : 'expense', transferPairId: null
       });
       recorded++;
     });
-    if(recorded===0){ toast(tt('مفيش فروق للتسجيل','No differences to record')); return; }
-    saveDB(); toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
+    saveDB();
+    if(recorded===0){ toast(tt('مفيش فروق للتسجيل — الأرصدة متطابقة','No differences to record — balances already match')); return; }
+    toast(`${recorded} adjustment${recorded===1?'':'s'} recorded — balances now match`);
   },
   transaction(data){
-    if(!data.accountId) throw new Error(tt('اختار الحساب المرتبط بالمعاملة','Choose the account linked to this transaction'));
-    const selectedAccount = accountById(data.accountId);
-    if(!selectedAccount) throw new Error(tt('الحساب المرتبط بالمعاملة غير موجود','The account linked to this transaction was not found'));
-
     if(data.transferPairId){
       // Editing an existing transfer: date/amount/note only, accounts stay fixed.
       const pair = DB.transactions.filter(t=>t.transferPairId===data.transferPairId);
@@ -4632,111 +5111,83 @@ const submitHandlers = {
       saveDB(); toast(tt('اتحدث التحويل','Transfer updated'));
       return;
     }
-
     if(data.txnId){
-      // Editing an existing regular transaction. If it is a commitment payment,
-      // the commitment-payment record is updated in the same operation.
+      // Editing an existing regular (income/expense) transaction in place.
       const t = DB.transactions.find(x=>x.id===data.txnId);
       if(!t) throw new Error('Transaction not found');
       const acc = accountById(data.accountId);
-      if(!acc) throw new Error('Choose an account');
+      t.date = data.date; t.accountId = data.accountId; t.categoryId = data.categoryId;
+      t.amount = Number(data.amount); t.currency = acc.currency; t.note = data.note; t.type = data.type;
 
+      // Keep a linked Commitment Payment in sync (date/amount/account/method), then
+      // recalculate the commitment's paid/remaining/installments/status.
       const linkedPmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===t.id);
-      const commitmentId = linkedPmt ? linkedPmt.commitmentId : (data.categoryId==='cat_commit' ? data.commitmentId : null);
-
-      if(data.categoryId==='cat_commit'){
-        if(data.type!=='expense') throw new Error(tt('دفعات الالتزامات لازم تكون مصروف','Commitment payments must be expenses'));
-        if(!commitmentId) throw new Error(tt('اختار الالتزام المرتبط بالدفعة','Choose the commitment linked to this payment'));
-        const c = DB.commitments.find(x=>x.id===commitmentId);
-        if(!c) throw new Error('Commitment not found');
-        if(linkedPmt && linkedPmt.commitmentId!==commitmentId) throw new Error(tt('المعاملة مرتبطة بالتزام مختلف','This transaction is linked to a different commitment'));
-      } else if(linkedPmt){
-        throw new Error(tt('المعاملة دي مرتبطة بدفعة التزام — لازم تفضل فئة الالتزامات','This transaction is linked to a commitment payment — keep the Commitments category'));
-      }
-
-      t.date = data.date;
-      t.accountId = data.accountId;
-      t.categoryId = data.categoryId;
-      t.amount = Number(data.amount);
-      t.currency = acc.currency;
-      t.note = data.note;
-      t.type = data.type;
-
       if(linkedPmt){
-        linkedPmt.date = data.date;
-        linkedPmt.amount = Number(data.amount);
-        linkedPmt.accountId = data.accountId;
-        linkedPmt.method = data.method || linkedPmt.method || 'cash';
-      } else if(data.categoryId==='cat_commit'){
-        DB.commitmentPayments.push({
-          id:uid('pmt'),
-          commitmentId,
-          date:data.date,
-          amount:Number(data.amount),
-          method:data.method || 'cash',
-          accountId:data.accountId,
-          linkedTransactionId:t.id
-        });
+        linkedPmt.date = t.date; linkedPmt.amount = t.amount; linkedPmt.accountId = t.accountId;
+        const c = DB.commitments.find(x=>x.id===linkedPmt.commitmentId);
+        if(c){
+          const paidCount = commitmentPayments(c.id).length;
+          if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+          else if(c.status==='completed') c.status='active';
+        }
       }
-      const c = commitmentId ? DB.commitments.find(x=>x.id===commitmentId) : null;
-      if(c){
-        const paidCount = commitmentPayments(c.id).length;
-        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
+      // Keep a linked Vehicle Log in sync (date/account/amount/note) without breaking the
+      // relationship or deleting the transaction just because its category changed.
+      const linkedLog = DB.vehicleLogs.find(l=>l.linkedTransactionId===t.id);
+      if(linkedLog){
+        linkedLog.date = t.date; linkedLog.accountId = t.accountId; linkedLog.amount = t.amount; linkedLog.note = t.note;
+        const info = categoryVehicleInfo(t.categoryId);
+        if(info){
+          linkedLog.type = info.logType; linkedLog.categoryId = t.categoryId;
+          if(info.logType==='fuel') linkedLog.litersFilled = computeLitersFromAmount(t.amount);
+        }
       }
       saveDB(); toast(tt('اتحدثت المعاملة','Transaction updated'));
       return;
     }
-
     if(data.type==='transfer'){
       if(data.accountId===data.destAccountId) throw new Error('Choose two different accounts');
       const from = accountById(data.accountId), to = accountById(data.destAccountId);
-      if(!to) throw new Error(tt('اختار الحساب المستلم','Choose the destination account'));
       const amount = Number(data.amount);
       const destAmount = from.currency===to.currency ? amount : amount * (fxRate(from.currency)/fxRate(to.currency));
       const pairId = uid('pair');
-      const createdAt = new Date().toISOString();
-      DB.transactions.push({id:uid('txn'), date:data.date, createdAt, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
-      DB.transactions.push({id:uid('txn'), date:data.date, createdAt, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
+      const _now = Date.now();
+      DB.transactions.push({id:uid('txn'), date:data.date, createdAt:_now, deletedAt:null, accountId:from.id, categoryId:null, amount, currency:from.currency, note:data.note, type:'transfer_out', transferPairId:pairId});
+      DB.transactions.push({id:uid('txn'), date:data.date, createdAt:_now+1, deletedAt:null, accountId:to.id, categoryId:null, amount:destAmount, currency:to.currency, note:data.note, type:'transfer_in', transferPairId:pairId});
     } else {
       const acc = accountById(data.accountId);
-      if(!acc) throw new Error('Choose an account');
-      if(data.categoryId==='cat_commit'){
-        if(data.type!=='expense') throw new Error(tt('دفعات الالتزامات لازم تكون مصروف','Commitment payments must be expenses'));
-        if(!data.commitmentId) throw new Error(tt('اختار الالتزام المرتبط بالدفعة','Choose the commitment linked to this payment'));
+      const txnId = uid('txn');
+      DB.transactions.push({
+        id: txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId:data.accountId, categoryId:data.categoryId,
+        amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
+      });
+      // Commitment category picked directly in the plain transaction form: this expense
+      // also represents a Commitment Payment, so create/link one — same relationship the
+      // dedicated "Record Payment" flow creates, just reached from a different entry point.
+      if(data.categoryId==='cat_commit' && data.type==='expense' && data.commitmentId){
         const c = DB.commitments.find(x=>x.id===data.commitmentId);
-        if(!c) throw new Error('Commitment not found');
-        const txnId = uid('txn');
-        DB.transactions.push({
-          id:txnId, date:data.date, createdAt:new Date().toISOString(), accountId:data.accountId,
-          categoryId:'cat_commit', amount:Number(data.amount), currency:acc.currency,
-          note:data.note || c.name, type:'expense', transferPairId:null,
-          commitmentPaymentId:null
-        });
-        DB.commitmentPayments.push({
-          id:uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
-          method:data.method || 'cash', accountId:data.accountId, linkedTransactionId:txnId
-        });
-        const paidCount = commitmentPayments(c.id).length;
-        c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
-      } else {
-        const txnId = uid('txn');
-        DB.transactions.push({
-          id: txnId, date:data.date, createdAt:new Date().toISOString(), accountId:data.accountId, categoryId:data.categoryId,
-          amount:Number(data.amount), currency:acc.currency, note:data.note, type:data.type, transferPairId:null
-        });
-        // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log.
-        const info = categoryVehicleInfo(data.categoryId);
-        if(info && data.vehicleId){
-          const v = vehicleById(data.vehicleId);
-          if(v){
-            DB.vehicleLogs.push({
-              id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType,
-              amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
-              litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
-              partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
-              note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
-            });
-          }
+        if(c){
+          DB.commitmentPayments.push({
+            id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
+            method:'bank_transfer', accountId:data.accountId, linkedTransactionId: txnId
+          });
+          const paidCount = commitmentPayments(c.id).length;
+          if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+        }
+      }
+      // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log
+      // entry too, so odometer-based fuel efficiency, oil-change and part-wear tracking pick it up.
+      const info = categoryVehicleInfo(data.categoryId);
+      if(info && data.vehicleId){
+        const v = vehicleById(data.vehicleId);
+        if(v){
+          DB.vehicleLogs.push({
+            id: uid('vlog'), vehicleId: v.id, date: data.date, type: info.logType, categoryId: data.categoryId,
+            amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
+            litersFilled: info.logType==='fuel' ? computeLitersFromAmount(data.amount) : null,
+            partId: (info.logType==='maintenance' && data.partId) ? data.partId : null,
+            note: data.note || '', method: 'cash', accountId: data.accountId, linkedTransactionId: txnId
+          });
         }
       }
     }
@@ -4775,34 +5226,28 @@ const submitHandlers = {
   },
   payment(data){
     const c = DB.commitments.find(x=>x.id===data.commitmentId);
-    if(!c) throw new Error('Commitment not found');
-    if(!data.accountId) throw new Error(tt('اختار الحساب اللي اتدفعت منه الدفعة','Choose the account the payment was made from'));
-    const acc = accountById(data.accountId);
-    if(!acc) throw new Error('Account not found');
-
-    const amount = Number(data.amount);
-    if(!(amount > 0)) throw new Error(tt('المبلغ لازم يكون أكبر من صفر','Amount must be greater than zero'));
-
-    const txnId = uid('txn');
-    const paymentId = uid('pmt');
-    DB.transactions.push({
-      id:txnId, date:data.date, createdAt:new Date().toISOString(),
-      accountId:acc.id, categoryId:'cat_commit', amount, currency:acc.currency,
-      note:c.name, type:'expense', transferPairId:null, commitmentPaymentId:paymentId
-    });
+    const method = data.method;
+    let accountId = data.accountId || null;
+    let currency = 'EGP';
+    let txnId = null;
+    if(method==='bank_transfer'){
+      if(!accountId) throw new Error('Choose an account');
+      const acc = accountById(accountId); currency = acc.currency;
+      txnId = uid('txn');
+      DB.transactions.push({id:txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId, categoryId:'cat_commit', amount:Number(data.amount), currency, note:c.name, type:'expense', transferPairId:null});
+    }
     DB.commitmentPayments.push({
-      id:paymentId, commitmentId:c.id, date:data.date, amount,
-      method:data.method || 'cash', accountId:acc.id, linkedTransactionId:txnId
+      id: uid('pmt'), commitmentId:c.id, date:data.date, amount:Number(data.amount),
+      method, accountId, linkedTransactionId: txnId
     });
-
     const paidCount = commitmentPayments(c.id).length;
-    c.status = (paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) ? 'completed' : 'active';
-    saveDB(); toast(tt('اتسجلت الدفعة والمعاملة المرتبطة','Payment and linked transaction recorded'));
+    if(paidCount >= c.totalInstallments && (c.type!=='rotating_saving' || c.payoutReceived)) c.status='completed';
+    saveDB(); toast(tt('اتسجلت الدفعة','Payment recorded'));
   },
   payout(data){
     const c = DB.commitments.find(x=>x.id===data.commitmentId);
     const acc = accountById(data.accountId);
-    DB.transactions.push({id:uid('txn'), date:data.date, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
+    DB.transactions.push({id:uid('txn'), date:data.date, createdAt:Date.now(), deletedAt:null, accountId:acc.id, categoryId:'cat_other_inc', amount:Number(data.amount), currency:acc.currency, note:`${c.name} — payout`, type:'income', transferPairId:null});
     c.payoutReceived = true;
     const paidCount = commitmentPayments(c.id).length;
     if(paidCount >= c.totalInstallments) c.status='completed';
@@ -4811,7 +5256,8 @@ const submitHandlers = {
   vehicle(data){
     DB.vehicles.push({
       id: uid('veh'), name: data.name.trim(), type: data.type, plateNote: data.plateNote || '',
-      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null
+      oilIntervalKm: data.oilIntervalKm ? Number(data.oilIntervalKm) : null,
+      currentValue: data.currentValue ? Number(data.currentValue) : null
     });
     saveDB(); toast(tt('اتعملت المركبة','Vehicle created'));
   },
@@ -4823,6 +5269,7 @@ const submitHandlers = {
     v.plateNote = data.plateNote || '';
     v.oilIntervalKm = data.oilIntervalKm ? Number(data.oilIntervalKm) : null;
     v.tankRangeKm = data.tankRangeKm ? Number(data.tankRangeKm) : null;
+    v.currentValue = data.currentValue ? Number(data.currentValue) : null;
     saveDB(); toast(tt('اتحدثت المركبة','Vehicle updated'));
   },
   'vehicle-log'(data){
@@ -4850,14 +5297,14 @@ const submitHandlers = {
           t.amount = Number(data.amount); t.currency = currency; t.note = noteTxt; t.type = 'expense';
         } else {
           txnId = uid('txn');
-          DB.transactions.push({id:txnId, date:data.date, accountId, categoryId:catId, amount:Number(data.amount), currency, note:noteTxt, type:'expense', transferPairId:null});
+          DB.transactions.push({id:txnId, date:data.date, createdAt:Date.now(), deletedAt:null, accountId, categoryId:catId, amount:Number(data.amount), currency, note:noteTxt, type:'expense', transferPairId:null});
         }
       } else if(txnId){
         DB.transactions = DB.transactions.filter(t=>t.id!==txnId);
         txnId = null;
       }
       Object.assign(editing, {
-        date: data.date, type: data.type, amount: Number(data.amount),
+        date: data.date, type: data.type, categoryId: catId, amount: Number(data.amount),
         odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
         litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
         partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
@@ -4871,13 +5318,13 @@ const submitHandlers = {
     if(accountId){
       txnId = uid('txn');
       DB.transactions.push({
-        id: txnId, date: data.date, accountId, categoryId: catId,
+        id: txnId, date: data.date, createdAt: Date.now(), deletedAt: null, accountId, categoryId: catId,
         amount: Number(data.amount), currency, note: noteTxt,
         type: 'expense', transferPairId: null
       });
     }
     DB.vehicleLogs.push({
-      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type,
+      id: uid('vlog'), vehicleId: v.id, date: data.date, type: data.type, categoryId: catId,
       amount: Number(data.amount), odometerKm: data.odometerKm ? Number(data.odometerKm) : null,
       litersFilled: data.type==='fuel' ? computeLitersFromAmount(data.amount) : null,
       partId: (data.type==='maintenance' && data.partId) ? data.partId : null,
@@ -5168,29 +5615,66 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
    All <th> elements get a resize handle on right edge.
    ================================================================ */
 (function initColResize(){
-  function makeTableResizable(table){
-    if(table.dataset.resizable) return;
-    table.dataset.resizable='1';
+  // Column widths persist per-table (keyed by that table's tbody id, since every table in this
+  // app already has a unique tbody id) and per-column-index, restored on every scan so widths
+  // survive re-renders, filtering, sorting, and language switches — and now also page reloads.
+  const COLW_KEY = 'fintrack_col_widths_v1';
+  function loadColWidths(){ try{ return JSON.parse(localStorage.getItem(COLW_KEY)) || {}; }catch(e){ return {}; } }
+  function saveColWidths(d){ try{ localStorage.setItem(COLW_KEY, JSON.stringify(d)); }catch(e){} }
+  function tableKey(table){
+    const tb = table.querySelector('tbody[id]');
+    if(tb && tb.id) return tb.id;
+    if(table.id) return table.id;
+    return 'table-' + [...document.querySelectorAll('table')].indexOf(table);
+  }
+  function applyStoredWidths(table, key){
+    const stored = loadColWidths()[key];
+    if(!stored) return;
     const ths = table.querySelectorAll('thead th');
-    ths.forEach(th=>{
-      if(th.dataset.resizable) return;
-      th.dataset.resizable='1';
-      th.style.position='relative';
-      const handle = document.createElement('div');
-      handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
-      handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
-      handle.onmouseleave=()=>handle.style.background='';
-      th.appendChild(handle);
-      let startX, startW;
-      handle.addEventListener('mousedown', ev=>{
-        ev.preventDefault(); ev.stopPropagation();
-        startX=ev.clientX; startW=th.offsetWidth;
-        const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
-        const mu=()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
-        document.addEventListener('mousemove',mm);
-        document.addEventListener('mouseup',mu);
+    ths.forEach((th, i)=>{ if(stored[i]) th.style.width = stored[i]; });
+  }
+  function makeTableResizable(table){
+    const key = tableKey(table);
+    if(!table.dataset.resizable){
+      table.dataset.resizable='1';
+      const ths = table.querySelectorAll('thead th');
+      ths.forEach((th, i)=>{
+        if(th.dataset.resizable) return;
+        th.dataset.resizable='1';
+        th.style.position='relative';
+        const handle = document.createElement('div');
+        handle.style.cssText='position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:2;';
+        handle.onmouseenter=()=>handle.style.background='rgba(76,154,142,.4)';
+        handle.onmouseleave=()=>handle.style.background='';
+        handle.title = tt('اسحب لتغيير العرض — دبل كليك للحجم التلقائي','Drag to resize — double-click to auto-fit');
+        th.appendChild(handle);
+        let startX, startW;
+        handle.addEventListener('mousedown', ev=>{
+          ev.preventDefault(); ev.stopPropagation();
+          startX=ev.clientX; startW=th.offsetWidth;
+          const mm=ev2=>{ th.style.width=Math.max(40,startW+(ev2.clientX-startX))+'px'; };
+          const mu=()=>{
+            document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+            // Persist this table's per-column widths (separately from every other table).
+            const d = loadColWidths();
+            d[key] = d[key] || {};
+            table.querySelectorAll('thead th').forEach((thh, ii)=>{ d[key][ii] = thh.style.width || d[key][ii]; });
+            saveColWidths(d);
+          };
+          document.addEventListener('mousemove',mm);
+          document.addEventListener('mouseup',mu);
+        });
+        // Double-click a resize handle: auto-fit that single column back to its natural content
+        // width (clear the manual override) and forget the saved width for just that column.
+        handle.addEventListener('dblclick', ev=>{
+          ev.preventDefault(); ev.stopPropagation();
+          th.style.width = '';
+          const d = loadColWidths();
+          if(d[key]) { delete d[key][i]; saveColWidths(d); }
+        });
       });
-    });
+    }
+    applyStoredWidths(table, key);
   }
 
   // Scan tables periodically (after renders)
@@ -5208,6 +5692,7 @@ try{ localStorage.removeItem('fintrack_card_positions'); }catch(e){}
 function renderAll(){
   renderDashboard();
   renderAccounts();
+  renderWealth();
   renderTransactions();
   renderCategories();
   renderCommitments();
@@ -5225,7 +5710,7 @@ const I18N = {
     brand_sub:'Wealth Platform',
     nav_dashboard:'Dashboard', nav_transactions:'Transactions',
     nav_commitments:'Commitments', nav_reports:'Reports',
-    nav_accounts:'Accounts', nav_vehicles:'Vehicles',
+    nav_accounts:'Accounts', nav_vehicles:'Vehicles', nav_wealth:'Wealth',
     nav_budgets:'Budgets', nav_categories:'Categories', nav_guide:'User Guide',
     btn_lang:'\ud83c\udf10 \u0627\u0644\u0639\u0631\u0628\u064a\u0629',
     btn_theme_light:'\u2600 Light Mode', btn_theme_dark:'\ud83c\udf19 Dark Mode',
@@ -5251,6 +5736,11 @@ const I18N = {
     th_current_balance:'Current Balance', th_vehicle:'Vehicle',
     rep_this_month_th:'This Month', rep_no_data:'No data yet', btn_close:'Close',
     page_accounts:'Accounts', page_accounts_sub:'Cash, banks & wallets',
+    page_wealth:'Wealth', page_wealth_sub:'Net worth, assets & liabilities',
+    wealth_assets:'Assets', wealth_liabilities:'Liabilities', wealth_vehicles:'Vehicle Market Values',
+    wealth_vehicles_hint:'Set each vehicle\u2019s current market value from the Vehicles page \u2014 it is included in Net Worth automatically below.',
+    wealth_value:'Value', wealth_value_egp:'Value (EGP)',
+    btn_new_asset:'+ New Asset', btn_new_liability:'+ New Liability',
     all_accounts:'All Accounts', btn_new_account:'+ New Account',
     exchange_rates:'Exchange Rates', exchange_rates_hint:'used to convert balances to EGP',
     th_rate_egp:'Rate to EGP', btn_edit:'Edit', btn_reconcile:'Reconcile', btn_delete:'Delete',
@@ -5297,7 +5787,7 @@ const I18N = {
     brand_sub:'\u0645\u0646\u0635\u0629 \u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u062b\u0631\u0648\u0629',
     nav_dashboard:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629', nav_transactions:'\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
     nav_commitments:'\u0627\u0644\u0627\u0644\u062a\u0632\u0627\u0645\u0627\u062a', nav_reports:'\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631',
-    nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a',
+    nav_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', nav_vehicles:'\u0627\u0644\u0645\u0631\u0643\u0628\u0627\u062a', nav_wealth:'الثروة',
     nav_budgets:'\u0627\u0644\u0645\u064a\u0632\u0627\u0646\u064a\u0627\u062a', nav_categories:'\u0627\u0644\u0641\u0626\u0627\u062a', nav_guide:'\u062f\u0644\u064a\u0644 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645',
     btn_lang:'\ud83c\udf10 English',
     btn_theme_light:'\u2600 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d', btn_theme_dark:'\ud83c\udf19 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
@@ -5323,6 +5813,11 @@ const I18N = {
     th_current_balance:'\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u062d\u0627\u0644\u064a', th_vehicle:'\u0627\u0644\u0645\u0631\u0643\u0628\u0629',
     rep_this_month_th:'\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631', rep_no_data:'\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0639\u062f', btn_close:'\u0625\u063a\u0644\u0627\u0642',
     page_accounts:'\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', page_accounts_sub:'\u0643\u0627\u0634\u060c \u0628\u0646\u0648\u0643 \u0648\u0645\u062d\u0627\u0641\u0638 \u0628\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u062a',
+    page_wealth:'الثروة', page_wealth_sub:'صافي الثروة، الأصول والالتزامات',
+    wealth_assets:'الأصول', wealth_liabilities:'الالتزامات', wealth_vehicles:'القيمة السوقية للمركبات',
+    wealth_vehicles_hint:'حدّد القيمة السوقية الحالية لكل مركبة من صفحة المركبات — وهتتحسب تلقائياً في صافي الثروة تحت.',
+    wealth_value:'القيمة', wealth_value_egp:'القيمة (ج.م)',
+    btn_new_asset:'+ أصل جديد', btn_new_liability:'+ التزام جديد',
     all_accounts:'\u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a', btn_new_account:'+ \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f',
     exchange_rates:'\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0635\u0631\u0641', exchange_rates_hint:'\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0644\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0644\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a',
     th_rate_egp:'\u0627\u0644\u0633\u0639\u0631 \u0644\u0644\u062c\u0646\u064a\u0647', btn_edit:'\u062a\u0639\u062f\u064a\u0644', btn_reconcile:'\u0645\u0637\u0627\u0628\u0642\u0629', btn_delete:'\u062d\u0630\u0641',
@@ -5390,6 +5885,7 @@ function applyLang(lang){
   // Nav labels
   var navMap = {dashboard:'nav_dashboard',transactions:'nav_transactions',
     commitments:'nav_commitments',reports:'nav_reports',accounts:'nav_accounts',
+    wealth:'nav_wealth',
     vehicles:'nav_vehicles',budgets:'nav_budgets',categories:'nav_categories',guide:'nav_guide'};
   document.querySelectorAll('.nav button[data-view]').forEach(function(btn){
     var lbl = btn.querySelector('.lbl');
@@ -5427,6 +5923,36 @@ function applyLang(lang){
     });
   });
 
+  // Wealth page
+  var wealthMap = {
+    'wealth-h1':'page_wealth', 'wealth-sub':'page_wealth_sub',
+    'wealth-assets-title':'wealth_assets', 'wealth-new-asset-btn':'btn_new_asset',
+    'wealth-liabilities-title':'wealth_liabilities', 'wealth-new-liability-btn':'btn_new_liability',
+    'wealth-vehicles-title':'wealth_vehicles', 'wealth-vehicles-hint':'wealth_vehicles_hint',
+    'wealth-commitments-title': null, 'wealth-commitments-hint': null, 'th-wealth-c-name': null, 'th-wealth-c-remaining': null,
+    'th-wealth-a-name':'th_name', 'th-wealth-a-cur':'th_currency', 'th-wealth-a-val':'wealth_value', 'th-wealth-a-valegp':'wealth_value_egp', 'th-wealth-a-note':'th_note',
+    'th-wealth-l-name':'th_name', 'th-wealth-l-cur':'th_currency', 'th-wealth-l-val':'wealth_value', 'th-wealth-l-valegp':'wealth_value_egp', 'th-wealth-l-note':'th_note',
+    'th-wealth-v-name':'th_vehicle', 'th-wealth-v-val':'wealth_value_egp',
+    'hidden-accounts-title': null, 'th-hacc-name':'th_name', 'th-hacc-type':'th_type', 'th-hacc-cur':'th_currency', 'th-hacc-opening':'th_opening', 'th-hacc-curbal':'th_current_balance',
+    'recon-history-title': null, 'th-recon-date':'th_date', 'th-recon-acc':'th_account', 'th-recon-src': null,
+    'th-txn-balance': null
+  };
+  Object.keys(wealthMap).forEach(function(id){
+    var key = wealthMap[id]; if(!key) return;
+    var el = document.getElementById(id); if(el) el.textContent = t(key);
+  });
+  var thBal = document.getElementById('th-txn-balance'); if(thBal) thBal.textContent = tt('الرصيد بعد','Balance After');
+  var wct = document.getElementById('wealth-commitments-title'); if(wct) wct.textContent = tt('الالتزامات (متضمّنة تلقائياً)','Commitments (included automatically)');
+  var wch = document.getElementById('wealth-commitments-hint'); if(wch) wch.textContent = tt('المبلغ المتبقي من أي التزام نشط بيتضاف تلقائياً لصافي الثروة — مش محتاج تضيفه كمان كالتزام يدوي.','The remaining balance of every active Commitment is included in Net Worth automatically — no need to also add it as a Liability.');
+  var twcn = document.getElementById('th-wealth-c-name'); if(twcn) twcn.textContent = tt('الالتزام','Commitment');
+  var twcr = document.getElementById('th-wealth-c-remaining'); if(twcr) twcr.textContent = tt('المتبقي (ج.م)','Remaining (EGP)');
+  var hat = document.getElementById('hidden-accounts-title'); if(hat) hat.textContent = tt('حسابات مخفية / مؤرشفة','Hidden / Archived Accounts');
+  var rht = document.getElementById('recon-history-title'); if(rht) rht.textContent = tt('سجل المطابقة','Reconciliation History');
+  var trs = document.getElementById('th-recon-src'); if(trs) trs.textContent = tt('المصدر','Source');
+  var trsys = document.getElementById('th-recon-sys'); if(trsys) trsys.textContent = tt('النظام','System');
+  var tract = document.getElementById('th-recon-actual'); if(tract) tract.textContent = tt('الفعلي','Actual');
+  var trdiff = document.getElementById('th-recon-diff'); if(trdiff) trdiff.textContent = tt('الفرق','Difference');
+
   // Table headers (desktop <th> + mobile data-label via CSS content:attr)
   var thMap = {
     'th-dash-acc':'th_account','th-dash-type':'th_type','th-dash-bal':'th_balance',
@@ -5434,7 +5960,7 @@ function applyLang(lang){
     'th-acc-name':'th_name','th-acc-type':'th_type','th-acc-cur':'th_currency','th-acc-opening':'th_opening','th-acc-curbal':'th_current_balance',
     'th-fx-cur':'th_currency','th-fx-rate':'th_rate_egp',
     'th-txn-date':'th_date','th-txn-acc':'th_account','th-txn-cat':'th_category','th-txn-note':'th_note','th-txn-amt':'th_amount',
-    'th-veh-date':'th_date','th-veh-vehicle':'th_vehicle','th-veh-type':'th_type','th-veh-amt':'th_amount',
+    'th-veh-date':'th_date','th-veh-type':'th_type','th-veh-amt':'th_amount',
     'th-veh-km':'th_km','th-veh-dist':'th_dist','th-veh-kmpl':'th_kmpl','th-veh-note':'th_note',
     'th-rep-cat':'rep_cat_col','th-rep-thismonth':'rep_this_month_th','th-rep-month':'rep_month_th'
   };
@@ -5447,11 +5973,11 @@ function applyLang(lang){
   var vlMap = {
     'vlogs-lbl-vehicle': tt('المركبة','Vehicle'), 'vlogs-lbl-type': tt('النوع','Type'),
     'vlogs-lbl-from': tt('من','From'), 'vlogs-lbl-to': tt('إلى','To'),
-    'vlogs-opt-all': tt('كل الأنواع','All types'), 'vlogs-opt-fuel': tt('⛽ وقود','⛽ Fuel'),
-    'vlogs-opt-maint': tt('🔧 صيانة','🔧 Maintenance'), 'vlogs-opt-oil': tt('🛢 تغيير زيت','🛢 Oil Change'),
-    'vlogs-opt-asset': tt('💰 مقتنيات','💰 Asset'), 'vlogs-filter-reset': tt('مسح الفلاتر','Reset')
+    'vlogs-type-all': tt('الكل','All'), 'vlogs-type-none': tt('إلغاء','Clear'),
+    'vlogs-filter-reset': tt('مسح الفلاتر','Reset')
   };
   Object.keys(vlMap).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent = vlMap[id]; });
+  if(typeof _vlogTypeDropdownRender==='function') _vlogTypeDropdownRender();
 
   // Static page texts
   [['#view-accounts h1','page_accounts'],['#view-accounts .today','page_accounts_sub'],

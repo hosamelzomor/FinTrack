@@ -781,8 +781,8 @@
       en: {'guide-content-vehicles': '<div class="g-section-title">🚗 Vehicles</div><p class="g-p">The Vehicles section tracks every detail of your car or scooter expenses: fuel, maintenance, oil changes, documents, and consumable parts.</p><div class="g-section-title">Adding a Vehicle</div><div class="g-table-wrap"><table><thead><tr><th>Field</th><th>Explanation</th></tr></thead><tbody><tr><td><strong>Name</strong></td><td>A name you\'ll recognize (the car, the scooter...)</td></tr><tr><td><strong>Type</strong></td><td>🚗 Car or 🛵 Scooter</td></tr><tr><td><strong>Plate Number</strong></td><td>Optional — reference only</td></tr><tr><td><strong>Oil Change Interval</strong></td><td>e.g. 5000 km — the system warns you as you approach it</td></tr><tr><td><strong>Tank Range</strong></td><td>How many km on a full tank</td></tr></tbody></table></div><div class="g-section-title">Log Types</div><div class="g-cards"><div class="g-card"><div class="g-card-title">⛽ Fuel</div><div class="g-card-body">Enter the amount and odometer — the system calculates fuel efficiency (km/L) automatically.</div></div><div class="g-card"><div class="g-card-title">🔧 Maintenance</div><div class="g-card-body">Any general maintenance linked to a specific part, to track its lifespan.</div></div><div class="g-card"><div class="g-card-title">🛢️ Oil Change</div><div class="g-card-body">Logging an oil change automatically resets the Oil Interval counter.</div></div><div class="g-card"><div class="g-card-title">💰 Asset</div><div class="g-card-body">Any purchase linked to the vehicle (accessories, tires, battery...).</div></div></div><div class="g-section-title">Editing a Vehicle</div><p class="g-p">Click the <strong>Edit</strong> button next to a vehicle to change its name, type, oil interval, or tank range at any time.</p><div class="g-callout tip">📍 <strong>Manual odometer reading:</strong> setting a value in "Manual last odometer reading" while editing makes every vehicle calculation (km until next oil change, remaining fuel range, part wear) use that number instead of the last odometer from a transaction &mdash; useful if you missed logging a transaction with an odometer reading, or just want to correct it by hand. A "manual" tag appears on the vehicle card when this is active. Clear the field to go back to the automatic transaction-derived value.</div><div class="g-callout tip">🔗 <strong>Transaction integration:</strong> If you log a fuel expense from the Transactions page and pick the "Fuel" category while specifying the vehicle and odometer — the system adds a vehicle log automatically.</div><div class="g-section-title">All Logs &mdash; Filtering &amp; Distance</div><p class="g-p">Switch to <strong>All Logs</strong> to see every entry across a vehicle history in one table, with summary cards for entry count, total spend, average km/L, and (once a specific vehicle is selected) its last known odometer reading and the distance covered within the current filter.</p><div class="g-callout tip">🔍 <strong>Multi-select Type filter:</strong> the Type dropdown lists the actual categories used on that vehicle logs (not a fixed list) &mdash; so a custom category like "Add Oil" shows up as its own filterable option, distinct from "Oil Change".</div><div class="g-callout tip">📏 <strong>Distance per category:</strong> the Distance column is calculated since the previous entry of the SAME category, just like fuel efficiency is calculated since the previous fill-up &mdash; so "Gearbox Oil Change" is measured against the last gearbox oil change, not whatever log happened to be entered right before it.</div><div class="g-callout tip">🛢️ <strong>Oil change vs. top-up:</strong> the "km until next oil change" reminder only resets on a category whose name contains "change" (e.g. "Oil Change") &mdash; a partial top-up category like "Add Oil" is tracked and shown in the log, but does not reset the interval.</div><div class="g-callout tip">🧮 <strong>Total row:</strong> the "All Logs" table shows a totals row summing the Amount and Distance columns (only those two &mdash; odometer and km/L are point-in-time readings or averages, not meaningful to sum) across every entry matching the current filter.</div>'}
     },
     budgets: {
-      ar: {'guide-content-budgets': '<div class="g-section-title">🎯 الميزانيات (Budgets)</div><p class="g-p">من صفحة الميزانيات تقدر تحدد حد شهري لكل فئة. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p><div class="g-section-title">كيف تستخدمها</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل فئة في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل فئة بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div></div>'},
-      en: {'guide-content-budgets': '<div class="g-section-title">🎯 Budgets</div><p class="g-p">From the Budgets page you can set a monthly limit per category. The system computes the average of the last 3 months and suggests a suitable number.</p><div class="g-section-title">How to Use It</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Type the limit into the field</div><div class="g-step-desc">Next to each category on the page there\'s an amount field — enter your desired monthly limit.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Or use "Use average"</div><div class="g-step-desc">The system automatically fills in the average of the last 3 months as a suggested limit.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Track the progress bar</div><div class="g-step-desc">Each category shows a bar indicating how much of the limit has been spent. 🟢 On track | 🔴 Over budget.</div></div></div></div>'}
+      ar: {'guide-content-budgets': '<div class="g-section-title">🎯 الميزانيات (Budgets)</div><p class="g-p">من صفحة الميزانيات تقدر تحدد حد شهري لكل فئة. النظام بيحسب المتوسط من آخر 3 شهور ويقترح عليك رقم مناسب.</p><div class="g-section-title">كيف تستخدمها</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل فئة في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل فئة بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">شيك على الملخص فوق</div><div class="g-step-desc">في أعلى الصفحة هتلاقي 3 كروت: دخل الشهر الحالي، إجمالي المبالغ اللي حطيتها في كل الميزانيات، والفرق بينهم. لو إجمالي الميزانيات بقى أكبر من دخلك، الكارت الأخير هيبان باللون الأحمر وهتوصلك رسالة تنبيه لما تضيف أو تعدّل حد شهري.</div></div></div></div>'},
+      en: {'guide-content-budgets': '<div class="g-section-title">🎯 Budgets</div><p class="g-p">From the Budgets page you can set a monthly limit per category. The system computes the average of the last 3 months and suggests a suitable number.</p><div class="g-section-title">How to Use It</div><div class="g-steps"><div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">Type the limit into the field</div><div class="g-step-desc">Next to each category on the page there\'s an amount field — enter your desired monthly limit.</div></div></div><div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">Or use "Use average"</div><div class="g-step-desc">The system automatically fills in the average of the last 3 months as a suggested limit.</div></div></div><div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">Track the progress bar</div><div class="g-step-desc">Each category shows a bar indicating how much of the limit has been spent. 🟢 On track | 🔴 Over budget.</div></div></div><div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">Check the summary at the top</div><div class="g-step-desc">At the top of the page you\'ll see 3 cards: this month\'s income, the total you\'ve set across all budgets, and the difference between them. If your total budgets exceed your income, the last card turns red and you\'ll get a warning toast whenever you add or edit a monthly limit.</div></div></div></div>'}
     },
     reports: {
       ar: {'guide-content-reports': '<div class="g-section-title">📈 التقارير (Reports)</div><p class="g-p">صفحة التقارير بتعطيك نظرة تحليلية على مصاريفك ودخلك مع إمكانية الفلترة بالفترة والفئة.</p><div class="g-section-title">الفلاتر المتاحة</div><div class="g-table-wrap"><table><thead><tr><th>الفلتر</th><th>الخيارات</th></tr></thead><tbody><tr><td><strong>الفترة</strong></td><td>كل الوقت / هذه السنة / آخر 6 أشهر / آخر 3 أشهر / هذا الشهر / تخصيص</td></tr><tr><td><strong>الفئة</strong></td><td>قائمة شجرية متعددة الاختيار — parent أو sub-categories</td></tr></tbody></table></div><div class="g-section-title">ما تشوفه في التقارير</div><div class="g-card"><div class="g-card-body">📊 <strong>الرسم البياني الشهري:</strong> Bar/Line chart للمصاريف شهر بشهر<br><br>🗂️ <strong>جدول الفئات:</strong> مجموع كل فئة للشهر الحالي + للفترة الكلية<br><br>📅 <strong>التفصيل الشهري:</strong> مجموع المصاريف شهر بشهر بترتيب تنازلي</div></div><div class="g-section-title">نصائح للتقارير</div><div class="g-card"><div class="g-card-body">📊 فلتر بفئة واحدة لمعرفة مصاريفها بالضبط<br>📅 اختار آخر 3 أشهر عشان تشوف ترند مصاريفك<br>🎯 قارن التقارير مع الميزانيات للتحكم الكامل في الصرف</div></div>'},
@@ -1123,6 +1123,7 @@
       <div class="topbar">
         <div><h1>Budgets</h1><div class="today">Set a monthly limit per category — suggested from your real spending history</div></div>
       </div>
+      <div id="budgets-summary-strip" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
       <div class="grid cols-3" id="budgets-grid"></div>
     </section>
 
@@ -1438,6 +1439,7 @@
             <div class="g-step"><div class="g-step-n">1</div><div class="g-step-b"><div class="g-step-title">اكتب الحد في الحقل</div><div class="g-step-desc">بجانب كل فئة في الصفحة فيه حقل للمبلغ — اكتب فيه حدك الشهري المطلوب.</div></div></div>
             <div class="g-step"><div class="g-step-n">2</div><div class="g-step-b"><div class="g-step-title">أو استخدم "Use average"</div><div class="g-step-desc">النظام يحط المتوسط من آخر 3 شهور تلقائياً كحد مقترح.</div></div></div>
             <div class="g-step"><div class="g-step-n">3</div><div class="g-step-b"><div class="g-step-title">تابع الـ Progress</div><div class="g-step-desc">كل فئة بتعرض شريط بيوضح كام اتصرف من الحد. 🟢 On track | 🔴 Over budget.</div></div></div>
+            <div class="g-step"><div class="g-step-n">4</div><div class="g-step-b"><div class="g-step-title">شيك على الملخص فوق</div><div class="g-step-desc">في أعلى الصفحة هتلاقي 3 كروت: دخل الشهر الحالي، إجمالي المبالغ اللي حطيتها في كل الميزانيات، والفرق بينهم. لو إجمالي الميزانيات بقى أكبر من دخلك، الكارت الأخير هيبان باللون الأحمر وهتوصلك رسالة تنبيه لما تضيف أو تعدّل حد شهري.</div></div></div>
           </div>
           </div>
         </div>
@@ -2280,6 +2282,12 @@ function categoryAvgSpend(catId, monthsCount){
   return monthsCount ? total / monthsCount : 0;
 }
 function budgetFor(catId){ return DB.budgets.find(b=>b.categoryId===catId); }
+// Sum of every monthly limit currently set across all budgeted categories (parents and subs
+// alike) — the user's total planned allocation for the month, compared against real income
+// on the Budgets page so they don't plan to spend more than they expect to earn.
+function totalBudgetedEGP(){
+  return DB.budgets.reduce((s,b)=> s + (Number(b.monthlyLimit)||0), 0);
+}
 
 /* ---------------------------- REPORTS ---------------------------- */
 // Reports (and Budgets, via categorySpendInMonth above) look across ALL expense entries —
@@ -4125,9 +4133,28 @@ function budgetCardHTML(c, mKey, nested){
     </div>` : ''}
   </div>`;
 }
+function renderBudgetsSummaryStrip(mKey){
+  const strip = document.getElementById('budgets-summary-strip');
+  if(!strip) return;
+  const income = monthTotals(mKey).income;
+  const budgeted = totalBudgetedEGP();
+  const diff = income - budgeted;
+  const overBudgeted = budgeted > income;
+  const cards = [
+    {l: tt('دخل الشهر الحالي','This month\'s income'), v: income, c: 'var(--positive)'},
+    {l: tt('إجمالي المحدد في الميزانية','Total set in budgets'), v: budgeted, c: overBudgeted ? 'var(--negative)' : 'var(--text)'},
+    {l: overBudgeted ? tt('تجاوزت الدخل بـ','Over income by') : tt('متبقي من الدخل غير مخصص','Unallocated income left'),
+     v: Math.abs(diff), c: overBudgeted ? 'var(--negative)' : 'var(--positive)'}
+  ];
+  strip.innerHTML = cards.map(s=>`<div class="card" style="padding:10px 14px;">
+    <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
+    <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">EGP ${fmtMoney(s.v)}</div>
+  </div>`).join('');
+}
 function renderBudgets(){
   const topExpenseCats = DB.categories.filter(c=>c.type==='expense' && !c.parentId);
   const mKey = thisMonthKey();
+  renderBudgetsSummaryStrip(mKey);
   if(!topExpenseCats.length){
     document.getElementById('budgets-grid').innerHTML = `<div class="empty" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;">${LANG==='ar'?'لا يوجد فئات مصاريف بعد':'No expense categories yet'}</div>`;
     return;
@@ -4141,7 +4168,12 @@ document.getElementById('view-budgets').addEventListener('change', e=>{
   let b = budgetFor(catId);
   if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
   else b.monthlyLimit = val;
-  saveDB(); renderBudgets(); toast(tt('اتحدثت الميزانية','Budget updated'));
+  saveDB(); renderBudgets();
+  if(totalBudgetedEGP() > monthTotals(thisMonthKey()).income){
+    toast(tt('تنبيه: إجمالي الميزانيات بقى أكبر من دخل الشهر','Heads up: total budgets now exceed this month\'s income'));
+  } else {
+    toast(tt('اتحدثت الميزانية','Budget updated'));
+  }
 });
 document.getElementById('view-budgets').addEventListener('click', e=>{
   const toggleId = e.target.dataset.toggleBudgetCat;
@@ -4157,7 +4189,12 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
   let b = budgetFor(catId);
   if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
   else b.monthlyLimit = val;
-  saveDB(); renderBudgets(); toast(tt('اتحددت الميزانية من متوسط 3 شهور','Budget set from 3-month average'));
+  saveDB(); renderBudgets();
+  if(totalBudgetedEGP() > monthTotals(thisMonthKey()).income){
+    toast(tt('تنبيه: إجمالي الميزانيات بقى أكبر من دخل الشهر','Heads up: total budgets now exceed this month\'s income'));
+  } else {
+    toast(tt('اتحددت الميزانية من متوسط 3 شهور','Budget set from 3-month average'));
+  }
 });
 
 

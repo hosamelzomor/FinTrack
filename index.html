@@ -1905,6 +1905,12 @@ function categoryLabel(id){
 // Cash payments recorded with no transaction (older data) are always live.
 // This is what keeps the Commitments page automatically in sync with the Transactions page:
 // delete a transaction -> its installment disappears from the commitment; restore it -> it's back.
+// True for the Commitments category itself and any sub-category nested under it.
+function isCommitCategory(id){
+  let c = DB.categories.find(x=>x.id===id), guard=0;
+  while(c && guard++<5){ if(c.id==='cat_commit') return true; c = c.parentId ? DB.categories.find(x=>x.id===c.parentId) : null; }
+  return false;
+}
 function paymentIsLive(p){
   if(!p.linkedTransactionId) return true;
   const t = DB.transactions.find(x=>x.id===p.linkedTransactionId);
@@ -4546,11 +4552,12 @@ function openModal(kind, ctx={}){
             <select name="categoryId" id="txn-category-select">${categoryOptions(typeVal==='income'?'income':'expense', editing?editing.categoryId:(preCommit?'cat_commit':undefined))}</select>
           </div>
           <div class="field" id="txn-commitment-field" style="display:none;">
-            <label>${tt('الالتزام المرتبط','Linked Commitment')}</label>
+            <label>${tt('الالتزام المرتبط','Linked Commitment')} <span id="txn-commit-opt" style="color:var(--text-faint);">(${tt('اختياري','optional')})</span></label>
             <select name="commitmentId" id="txn-commitment-select">
               <option value="">${editing ? tt('بدون ربط','No link') : tt('اختر الالتزام...','Choose a commitment...')}</option>
               ${DB.commitments.filter(c=>c.status!=='completed' || c.id===selCommitId).map(c=>`<option value="${c.id}" ${c.id===selCommitId?'selected':''}>${c.name}</option>`).join('')}
             </select>
+            <div class="help-text" style="margin-top:4px;">${tt('اختار الالتزام عشان المعاملة دي تتسجل كقسط تلقائياً في صفحة الالتزامات — مهما كانت الفئة.','Pick a commitment and this transaction is recorded as an installment on the Commitments page automatically — whatever the category.')}</div>
           </div>
           ${editing ? '' : `
           <div class="field" id="txn-vehicle-field" style="display:none;">
@@ -5176,8 +5183,9 @@ function wireModal(kind){
         if(val!=='transfer'){
           const sel = backdrop.querySelector('select[name="categoryId"]');
           sel.innerHTML = categoryOptions(val==='income'?'income':'expense');
-          sel.dispatchEvent(new Event('change'));
         }
+        const _cs = backdrop.querySelector('#txn-category-select');
+        if(_cs) _cs.dispatchEvent(new Event('change'));
       }
       if(group.id==='cat-type-group'){
         const val = opt.dataset.val;
@@ -5287,10 +5295,16 @@ function wireModal(kind){
     const commitField = backdrop.querySelector('#txn-commitment-field');
     const commitSelect = backdrop.querySelector('#txn-commitment-select');
     if(commitField && commitSelect){
+      const typeInput = backdrop.querySelector('input[name="type"]');
+      const optTag = backdrop.querySelector('#txn-commit-opt');
+      const isEditing = !!backdrop.querySelector('input[name="txnId"]');
       const updateCommitField = ()=>{
-        const isCommit = catSelect.value === 'cat_commit';
-        commitField.style.display = isCommit ? 'block' : 'none';
-        commitSelect.required = isCommit && !backdrop.querySelector('input[name="txnId"]');
+        const isExpense = !typeInput || typeInput.value==='expense';
+        const needs = isExpense && isCommitCategory(catSelect.value) && !isEditing;
+        commitField.style.display = (isExpense && DB.commitments.length) ? 'block' : 'none';
+        commitSelect.required = needs;
+        if(optTag) optTag.style.display = needs ? 'none' : 'inline';
+        if(!isExpense) commitSelect.value = '';
       };
       catSelect.addEventListener('change', updateCommitField);
       updateCommitField();
@@ -5471,7 +5485,7 @@ const submitHandlers = {
       // is no longer Commitments / the link was cleared). Then recalc status of every
       // commitment involved so paid/remaining are always right.
       const linkedPmt = DB.commitmentPayments.find(p=>p.linkedTransactionId===t.id);
-      const wantsCommit = t.categoryId==='cat_commit' && t.type==='expense' && data.commitmentId;
+      const wantsCommit = t.type==='expense' && !!data.commitmentId;
       const touched = new Set();
       if(linkedPmt){
         touched.add(linkedPmt.commitmentId);
@@ -5520,7 +5534,7 @@ const submitHandlers = {
       // Commitment category picked directly in the plain transaction form: this expense
       // also represents a Commitment Payment, so create/link one — same relationship the
       // dedicated "Record Payment" flow creates, just reached from a different entry point.
-      if(data.categoryId==='cat_commit' && data.type==='expense' && data.commitmentId){
+      if(data.type==='expense' && data.commitmentId){
         recordCommitmentPayment(data.commitmentId, {date:data.date, amount:data.amount, method:'bank_transfer', accountId:data.accountId, linkedTransactionId:txnId});
       }
       // Vehicle-tracked category + a vehicle picked: mirror this transaction into a vehicle log

@@ -2364,9 +2364,78 @@ let driveAccessToken = null;
 let driveFileId = null;
 let tokenClient = null;
 let pushTimer = null;
+// Shared between autoReconnectDriveSilently and the conflict-guard IIFE.
+// Must live at outer scope so both can read and write the same variable.
+let driveLastRemoteModified = null;
 
-function getClientId(){ return localStorage.getItem('fintrack_client_id') || ''; }
-function setClientId(id){ localStorage.setItem('fintrack_client_id', id); }
+// Client ID lives in localStorage => it is PER DEVICE/BROWSER. A phone that has a
+// mistyped / stale / truncated ID gets "Error 401: invalid_client" from Google.
+// normalizeClientId strips the invisible junk that mobile keyboards and
+// copy/paste add (spaces, newlines, zero-width chars, quotes) and extracts the
+// real ID. Returns '' when the text does not contain a valid-looking ID.
+const CLIENT_ID_RE = /\d{6,}-[a-z0-9]{8,}\.apps\.googleusercontent\.com/i;
+function normalizeClientId(raw){
+  const cleaned = String(raw||'').replace(/[\s\u200B-\u200F\u202A-\u202E\u2060\uFEFF"'`]/g,'');
+  const m = cleaned.match(CLIENT_ID_RE);
+  return m ? m[0] : '';
+}
+function getClientId(){
+  const raw = localStorage.getItem('fintrack_client_id') || '';
+  const clean = normalizeClientId(raw);
+  // Self-heal: if the stored value was dirty, rewrite it; if it was garbage, drop it
+  // so the setup dialog opens instead of sending a bad ID to Google.
+  if(clean !== raw){
+    try{ clean ? localStorage.setItem('fintrack_client_id', clean) : localStorage.removeItem('fintrack_client_id'); }catch(e){}
+  }
+  return clean;
+}
+function setClientId(id){ localStorage.setItem('fintrack_client_id', normalizeClientId(id)); }
+
+// One-tap device setup: opening  <app-url>#ftcid=<clientId>  saves the Client ID on
+// this device (used to move the ID from laptop to phone without retyping it).
+(function importClientIdFromHash(){
+  try{
+    const m = /^#ftcid=(.+)$/.exec(location.hash || '');
+    if(!m) return;
+    const id = normalizeClientId(decodeURIComponent(m[1]));
+    history.replaceState(null, '', location.pathname + location.search);
+    if(id){
+      localStorage.setItem('fintrack_client_id', id);
+      localStorage.removeItem('fintrack_drive_consented');
+      try{ sessionStorage.removeItem('ft_drive_fail'); }catch(e){}
+      window.__ftCidImported = true;
+    }
+  }catch(e){}
+})();
+
+// ---------- Session token cache ----------
+// GIS access tokens are in-memory only and lost on page refresh.
+// We cache the token + expiry in sessionStorage so a browser F5 refresh
+// restores the session instantly without any Google popup.
+// sessionStorage is cleared automatically when the tab is closed,
+// so a fresh tab always requires a new interactive login — by design.
+const TOKEN_CACHE_KEY = 'fintrack_drive_token';
+
+function saveTokenToSession(token, expiresInSeconds){
+  try{
+    const expiry = Date.now() + (expiresInSeconds || 3600) * 1000 - 60000; // 1-min safety margin
+    sessionStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify({ token, expiry }));
+  }catch(e){ /* sessionStorage unavailable — no-op */ }
+}
+
+function loadTokenFromSession(){
+  try{
+    const raw = sessionStorage.getItem(TOKEN_CACHE_KEY);
+    if(!raw) return null;
+    const { token, expiry } = JSON.parse(raw);
+    if(Date.now() > expiry){ sessionStorage.removeItem(TOKEN_CACHE_KEY); return null; }
+    return token;
+  }catch(e){ return null; }
+}
+
+function clearTokenFromSession(){
+  try{ sessionStorage.removeItem(TOKEN_CACHE_KEY); }catch(e){}
+}
 
 function initGoogleAuth(){
   const clientId = getClientId();
@@ -2374,34 +2443,100 @@ function initGoogleAuth(){
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
     scope: DRIVE_SCOPE,
-    callback: onTokenResponse
+    callback: onTokenResponse,
+    // Fires when the popup is closed/blocked. With a wrong Client ID Google shows its
+    // own "invalid_client" page inside the popup and the user just closes it, so this
+    // is our only signal: the next tap on the connect button opens the Client ID dialog.
+    error_callback: (err)=>{
+      console.warn('GIS popup error:', err);
+      try{ sessionStorage.setItem('ft_drive_fail','1'); }catch(e){}
+      updateSyncStatus('error');
+      if(err && err.type === 'popup_failed_to_open'){
+        toast(LANG==='ar'?'المتصفح منع نافذة Google — اسمح بالنوافذ المنبثقة وجرب تاني':'Browser blocked the Google popup — allow popups and try again');
+      } else {
+        toast(LANG==='ar'?'لو ظهرت لك رسالة invalid_client اضغط 🔗 تاني وصحّح الـ Client ID':'If you saw invalid_client, tap 🔗 again and fix the Client ID');
+      }
+    }
   });
+}
+
+function driveOriginSupported(){
+  return location.protocol === 'https:' || (location.protocol === 'http:' && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(location.host));
+}
+
+function driveEnvironmentError(){
+  if(location.protocol === 'file:') return LANG==='ar'
+    ? 'Google Drive لا يعمل عند فتح الملف مباشرة من الجهاز (file://). شغّل FinTrack على HTTPS أو localhost أولاً.'
+    : 'Google Drive cannot work when the HTML file is opened directly (file://). Run FinTrack over HTTPS or localhost first.';
+  if(!driveOriginSupported()) return LANG==='ar'
+    ? 'Google Drive يحتاج HTTPS (أو localhost أثناء الاختبار). افتح النظام من رابط آمن ثم أعد المحاولة.'
+    : 'Google Drive requires HTTPS (or localhost for testing). Open FinTrack from a secure URL and try again.';
+  return '';
 }
 
 function connectDrive(){
   const clientId = getClientId();
   if(!clientId){ openModal('drive-setup'); return; }
+  const envError = driveEnvironmentError();
+  if(envError){ updateSyncStatus('error'); toast(envError); openModal('drive-setup'); return; }
   if(typeof google === 'undefined' || !google.accounts){ toast(LANG==='ar'?'مكتبة Google لم تُحمَّل — تحقق من الاتصال بالإنترنت':'Google Sign-In failed to load — check internet connection'); return; }
   if(!tokenClient) initGoogleAuth();
-  const alreadyConsented = localStorage.getItem('fintrack_drive_consented') === '1';
-  tokenClient.requestAccessToken({ prompt: alreadyConsented ? '' : 'consent' });
+  if(!tokenClient){ toast(LANG==='ar'?'تعذر تهيئة Google OAuth — راجع Client ID':'Could not initialize Google OAuth — check the Client ID'); updateSyncStatus('error'); return; }
+  // Always use 'select_account' for interactive sign-in so the Google popup
+  // always opens visibly. Using prompt:'' (empty) causes silent auth attempts
+  // that return interaction_required errors when the Google session has expired,
+  // forcing the user to click the button twice. 'select_account' is safe for
+  // both first-time and returning users.
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+function describeDriveError(e){
+  const msg = e && e.message ? e.message : String(e || 'Unknown error');
+  if(/403/.test(msg)) return LANG==='ar'
+    ? msg + ' — تأكد أن Google Drive API مفعّل وأن الـ OAuth Client ID تابع لنفس المشروع.'
+    : msg + ' — make sure Google Drive API is enabled and the OAuth Client ID belongs to the same project.';
+  if(/origin|redirect|disallowed_useragent|unauthorized_client|invalid_client/i.test(msg)) return LANG==='ar'
+    ? msg + ' — راجع Authorized JavaScript origins في Google Cloud.'
+    : msg + ' — check Authorized JavaScript origins in Google Cloud.';
+  return msg;
 }
 
 async function onTokenResponse(resp){
-  if(resp.error){ toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + resp.error); updateSyncStatus('error'); return; }
+  if(resp.error){
+    console.error('Google OAuth error:', resp);
+    // Only clear the consented flag for hard auth failures (invalid client, revoked access).
+    // Transient errors like interaction_required (session expired) or popup_closed_by_user
+    // do NOT mean the user revoked consent — clearing the flag would confuse the retry flow.
+    const hardError = /invalid_client|unauthorized_client|access_denied|admin_policy_enforced/i.test(resp.error);
+    if(hardError) localStorage.removeItem('fintrack_drive_consented');
+    updateSyncStatus('error');
+    // Don't show a toast for popup_closed — the user closed it intentionally
+    if(resp.error !== 'popup_closed_by_user'){
+      toast((LANG==='ar'?'فشل تسجيل الدخول لـ Google: ':'Google sign-in failed: ') + (resp.error_description || resp.error));
+    }
+    return;
+  }
   driveAccessToken = resp.access_token;
   localStorage.setItem('fintrack_drive_consented', '1');
+  try{ sessionStorage.removeItem('ft_drive_fail'); }catch(e){}
+  // Cache the token in sessionStorage so page refresh restores the session
+  // instantly without re-opening the Google popup (survives F5, not tab close).
+  saveTokenToSession(resp.access_token, resp.expires_in || 3600);
   updateSyncStatus('syncing');
   try{
     await driveInitialSync();
     updateSyncStatus('connected');
   }catch(e){
-    console.error(e); toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + e.message); updateSyncStatus('error');
+    console.error('Drive sync error:', e);
+    toast((LANG==='ar'?'خطأ في مزامنة Drive: ':'Drive sync error: ') + describeDriveError(e));
+    updateSyncStatus('error');
   }
 }
 
 function disconnectDrive(){
   driveAccessToken = null; driveFileId = null;
+  localStorage.removeItem('fintrack_drive_consented');
+  clearTokenFromSession();
   updateSyncStatus('disconnected');
   toast(LANG==='ar'?'تم قطع الاتصال بـ Google Drive':'Disconnected from Google Drive');
 }
@@ -2412,17 +2547,23 @@ function disconnectDrive(){
 // (e.g. the user needs to reconnect manually).
 function silentRefreshToken(){
   return new Promise((resolve, reject)=>{
+    if(!driveOriginSupported()){ reject(new Error(driveEnvironmentError() || 'Unsupported origin')); return; }
     if(typeof google === 'undefined' || !google.accounts){ reject(new Error('Google library not loaded')); return; }
-    if(!tokenClient) initGoogleAuth();
-    if(!tokenClient){ reject(new Error('No client ID configured')); return; }
-    const prevCallback = tokenClient.callback;
-    tokenClient.callback = (resp)=>{
-      tokenClient.callback = prevCallback;
-      if(resp.error){ reject(new Error(resp.error)); return; }
-      driveAccessToken = resp.access_token;
-      resolve(resp.access_token);
-    };
-    tokenClient.requestAccessToken({ prompt: '' });
+    const clientId = getClientId();
+    if(!clientId){ reject(new Error('No client ID configured')); return; }
+    // Use a separate token client so a background refresh cannot overwrite
+    // the callback used by the interactive sign-in flow.
+    const refreshClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      callback: (resp)=>{
+        if(resp.error){ reject(new Error(resp.error_description || resp.error)); return; }
+        driveAccessToken = resp.access_token;
+        saveTokenToSession(resp.access_token, resp.expires_in || 3600);
+        resolve(resp.access_token);
+      }
+    });
+    refreshClient.requestAccessToken({ prompt: 'none' });
   });
 }
 
@@ -2547,18 +2688,131 @@ function updateSyncStatus(state){
 }
 
 document.getElementById('btn-connect-drive')?.addEventListener('click', ()=>{
-  if(driveAccessToken) openModal('drive-manage');
-  else connectDrive();
-});
-
-window.addEventListener('load', ()=>{
-  if(getClientId()){
-    initGoogleAuth();
-    if(localStorage.getItem('fintrack_drive_consented') === '1'){
-      // Give Google Identity Services a moment to finish loading, then try a silent (no-prompt) reconnect.
-      setTimeout(()=>{ if(tokenClient) connectDrive(); }, 700);
+  if(driveAccessToken){
+    openModal('drive-manage');
+  } else {
+    // If a client ID exists, go straight to the OAuth flow.
+    // If not (or env not supported), open drive-setup so user can configure.
+    const clientId = getClientId();
+    const envErr = driveEnvironmentError();
+    let lastFailed = false;
+    try{ lastFailed = sessionStorage.getItem('ft_drive_fail') === '1'; }catch(e){}
+    if(!clientId || envErr || lastFailed){
+      openModal('drive-setup');
+    } else {
+      connectDrive();
     }
   }
+});
+
+// Restore an existing Drive session without ever opening the interactive
+// Google login window.  Interactive OAuth is ONLY allowed when the user
+// explicitly clicks "Connect Google Drive".  This is important because
+// saveDB()/transaction saves must never trigger authentication UI.
+function autoReconnectDriveSilently(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  if(typeof google === 'undefined' || !google.accounts) return;
+  const clientId = getClientId();
+  try{
+    const silentClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPE,
+      callback: async (resp)=>{
+        if(resp.error){
+          // Silent reconnect can legitimately fail when the Google session
+          // has expired. Do NOT show a login popup or error toast here.
+          driveAccessToken = null;
+          return;
+        }
+        driveAccessToken = resp.access_token;
+        saveTokenToSession(resp.access_token, resp.expires_in || 3600);
+        try{
+          // Do not pull/overwrite local data during automatic reconnect.
+          // The user can explicitly use Drive Sync > Pull when needed.
+          const f = await driveFindFile();
+          if(f){
+            driveFileId = f.id;
+            driveLastRemoteModified = f.modifiedTime || null;
+          }
+          updateSyncStatus('connected');
+        }catch(e){
+          console.error('Silent Drive reconnect failed:', e);
+          updateSyncStatus('error');
+        }
+      }
+    });
+    silentClient.requestAccessToken({prompt:'none'});
+  }catch(e){
+    console.error('Silent Drive reconnect setup failed:', e);
+  }
+}
+
+// Attempt to restore the Drive session on page load.
+// Strategy (in order of preference):
+//   1. sessionStorage cached token (valid, not expired) → instant restore, no Google call.
+//      This is what makes F5 refresh work seamlessly.
+//   2. Google silent token (prompt:'none') → works when Google browser session is active.
+//   3. Nothing → stay disconnected, user clicks to re-auth interactively.
+let driveRestoreStarted = false;   // guard: onGoogleLibraryLoad AND window.load may both call us
+async function tryRestoreDriveSession(){
+  if(driveRestoreStarted) return;
+  if(!getClientId() || !driveOriginSupported()) return;
+  if(localStorage.getItem('fintrack_drive_consented') !== '1') return;
+
+  // ── Path 1: cached token in sessionStorage ──────────────────────────────
+  const cached = loadTokenFromSession();
+  if(cached){
+    driveRestoreStarted = true;
+    driveAccessToken = cached;
+    updateSyncStatus('syncing');
+    try{
+      const f = await driveFindFile();
+      if(f){ driveFileId = f.id; driveLastRemoteModified = f.modifiedTime || null; }
+      updateSyncStatus('connected');
+    }catch(e){
+      // Token may have been revoked server-side even though it wasn't expired locally.
+      console.warn('Cached token rejected by Drive API:', e);
+      clearTokenFromSession();
+      driveAccessToken = null;
+      // Fall through to silent Google token below.
+      if(typeof google !== 'undefined' && google.accounts){
+        autoReconnectDriveSilently();
+      } else {
+        updateSyncStatus('error');
+      }
+    }
+    return;
+  }
+
+  // ── Path 2: silent Google token (requires active browser session) ────────
+  if(typeof google !== 'undefined' && google.accounts){
+    driveRestoreStarted = true;
+    autoReconnectDriveSilently();
+  }
+  // If google not loaded yet, onGoogleLibraryLoad will call us again.
+}
+
+// Called by the Google GSI script exactly once when the library is ready.
+// This is the RELIABLE hook — replaces the unreliable 700ms setTimeout hack.
+function onGoogleLibraryLoad(){
+  if(!getClientId() || !driveOriginSupported()) return;
+  initGoogleAuth();
+  tryRestoreDriveSession();
+}
+
+window.addEventListener('load', ()=>{
+  if(!getClientId()) return;
+  if(!driveOriginSupported()){
+    updateSyncStatus('error');
+    return;
+  }
+  // If the GSI script was already cached and loaded before our code ran,
+  // onGoogleLibraryLoad may never fire — handle that case here.
+  if(typeof google !== 'undefined' && google.accounts){
+    initGoogleAuth();
+    tryRestoreDriveSession();
+  }
+  // Otherwise onGoogleLibraryLoad() will fire when the script finishes loading.
 });
 
 /* ---------------------------- NAVIGATION ---------------------------- */
@@ -5048,6 +5302,10 @@ function openModal(kind, ctx={}){
         <button type="button" class="btn secondary sm" id="btn-force-push">⬆ ${LANG==='ar'?'رفع على Drive':'Force Push to Drive'}</button>
         <button type="button" class="btn danger sm" id="btn-disconnect-drive">${LANG==='ar'?'قطع الاتصال':'Disconnect'}</button>
       </div>
+      <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+        <button type="button" class="btn secondary sm" id="btn-copy-setup-link">📱 ${LANG==='ar'?'نسخ رابط إعداد الموبايل':'Copy phone setup link'}</button>
+        <button type="button" class="btn secondary sm" id="btn-change-client-id">✏️ ${LANG==='ar'?'تغيير Client ID':'Change Client ID'}</button>
+      </div>
       <div class="modal-actions"><button type="button" class="btn secondary" data-close>${LANG==='ar'?'إغلاق':'Close'}</button></div>
     </div>`;
   }
@@ -5067,6 +5325,12 @@ function openModal(kind, ctx={}){
     });
     backdrop.querySelector('#btn-disconnect-drive').addEventListener('click', ()=>{
       disconnectDrive(); closeModal();
+    });
+    backdrop.querySelector('#btn-change-client-id').addEventListener('click', ()=> openModal('drive-setup'));
+    backdrop.querySelector('#btn-copy-setup-link').addEventListener('click', async ()=>{
+      const link = location.origin + location.pathname + '#ftcid=' + encodeURIComponent(getClientId());
+      try{ await navigator.clipboard.writeText(link); toast(LANG==='ar'?'اتنسخ الرابط — افتحه على الموبايل':'Link copied — open it on your phone'); }
+      catch(e){ window.prompt(LANG==='ar'?'انسخ الرابط وافتحه على الموبايل:':'Copy this link and open it on your phone:', link); }
     });
   }
 
@@ -5323,7 +5587,8 @@ function wireModal(kind){
       renderAll();
       if(kind==='vehicle-log' || kind==='vehicle-doc' || kind==='vehicle-part'){
         openModal('vehicle-detail', {vehicleId: data.vehicleId});
-      } else {
+      } else if(kind !== 'drive-setup'){
+        // drive-setup closes the modal itself (before the Google popup opens).
         closeModal();
       }
     }catch(err){ toast(err.message || 'Something went wrong'); }
@@ -5709,23 +5974,26 @@ const submitHandlers = {
     saveDB(); toast(tt('اتسجل المستند','Document saved'));
   },
   'drive-setup'(data){
-    const clientId = data.clientId.trim();
-    if(!clientId.includes('.apps.googleusercontent.com')){
-      toast(LANG==='ar'?'Client ID غير صحيح — يجب أن ينتهي بـ .apps.googleusercontent.com':'Invalid Client ID — must end with .apps.googleusercontent.com');
+    const clientId = normalizeClientId(data.clientId);
+    if(!clientId){
+      toast(LANG==='ar'?'Client ID غير صحيح — الشكل الصحيح: 123456789-xxxxxxxx.apps.googleusercontent.com':'Invalid Client ID — expected: 123456789-xxxxxxxx.apps.googleusercontent.com');
       return;
     }
     setClientId(clientId);
+    try{ sessionStorage.removeItem('ft_drive_fail'); }catch(e){}
     if(typeof google === 'undefined' || !google.accounts){
       toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — تحقق من الاتصال بالإنترنت وأعد المحاولة':'Google Sign-In library not loaded — check your internet connection and try again');
       return;
     }
     initGoogleAuth();
-    if(tokenClient){
-      localStorage.removeItem('fintrack_drive_consented');
-      tokenClient.requestAccessToken({prompt:'consent'});
-    } else {
+    if(!tokenClient){
       toast(LANG==='ar'?'مكتبة Google لم تُحمَّل بعد — أغلق النافذة وأعد المحاولة':'Google library still loading — close and try again in a moment');
+      return;
     }
+    // Close the setup modal BEFORE opening the Google popup so nothing sits on top of it.
+    closeModal();
+    localStorage.removeItem('fintrack_drive_consented');
+    tokenClient.requestAccessToken({prompt:'consent'});
   }
 };
 

@@ -4540,6 +4540,8 @@ function renderBudgetsSummaryStrip(mKey){
   const diff = income - budgeted;
   const overBudgeted = budgeted > income;
   const overOwned = st.remaining > 0 && st.remaining > owned;
+  // Money you hold that no budget has claimed yet. Negative = the budgets still to be spent need more than you have.
+  const free = owned - st.remaining;
   // Alert: what is STILL left to spend from the budgets is more money than the user actually owns.
   let alertEl = document.getElementById('budgets-alert');
   if(!alertEl){ alertEl = document.createElement('div'); alertEl.id = 'budgets-alert'; strip.parentNode.insertBefore(alertEl, strip); }
@@ -4557,10 +4559,13 @@ function renderBudgetsSummaryStrip(mKey){
     {l: tt('إجمالي المحدد في الميزانية','Total set in budgets'), v: budgeted, c: overBudgeted ? 'var(--negative)' : 'var(--text)',
      sub: st.spentWithin>0 ? tt('اتصرف منها','Spent') + ' EGP ' + fmtMoney(st.spentWithin) : ''},
     {l: tt('المتبقي من الميزانيات','Left in budgets'), v: st.remaining, c: overOwned ? 'var(--negative)' : 'var(--text)', warn: overOwned},
+    {l: free < 0 ? tt('عجز بعد الميزانيات','Shortfall after budgets') : tt('فلوس حرّة بعد الميزانيات','Free money after budgets'),
+     v: Math.abs(free), c: free < 0 ? 'var(--negative)' : 'var(--positive)', warn: free < 0,
+     tip: tt('إجمالي فلوسك − المتبقي من الميزانيات','Total money you have − Left in budgets')},
     {l: overBudgeted ? tt('تجاوزت الدخل بـ','Over income by') : tt('متبقي من الدخل غير مخصص','Unallocated income left'),
      v: Math.abs(diff), c: overBudgeted ? 'var(--negative)' : 'var(--positive)'}
   ];
-  strip.innerHTML = cards.map(s=>`<div class="card" style="padding:10px 14px;${s.warn?'border-color:rgba(226,114,124,.5);':''}">
+  strip.innerHTML = cards.map(s=>`<div class="card" ${s.tip?`title="${s.tip}"`:''} style="padding:10px 14px;${s.warn?'border-color:rgba(226,114,124,.5);':''}">
     <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
     <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">EGP ${fmtMoney(s.v)}</div>
     ${s.sub ? `<div class="num" style="font-size:10px;color:var(--text-faint);margin-top:2px;">${s.sub}</div>` : ''}

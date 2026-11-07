@@ -294,6 +294,16 @@
   .catpick-chip small{font-size:10.5px;color:var(--text-faint);font-weight:400;}
   .catpick-empty{padding:26px 8px;text-align:center;color:var(--text-faint);font-size:13px;}
 
+  /* Universal select picker: every <select> in the app gets the same tap-to-choose sheet.
+     The native <select> stays in the DOM (visually hidden, still focusable so `required` validation works)
+     as the single source of truth for values, events and form submission. */
+  .pk-native{position:absolute !important;opacity:0 !important;pointer-events:none !important;width:1px !important;height:1px !important;
+    margin:0 !important;padding:0 !important;border:0 !important;overflow:hidden !important;}
+  .catpick-btn.compact{width:auto;min-height:34px;padding:6px 10px;font-size:13px;font-weight:500;display:inline-flex;}
+  .catpick-btn:disabled{opacity:.55;cursor:not-allowed;}
+  .catpick-panel.pk-auto{height:auto;max-height:min(82vh,720px);}
+  .catpick-chip:disabled{opacity:.45;cursor:not-allowed;}
+
   .toast{
     position:fixed;bottom:22px;right:22px;background:var(--surface-3);border:1px solid var(--accent);
     color:var(--text);padding:11px 18px;border-radius:8px;font-size:13px;z-index:200;
@@ -4504,36 +4514,56 @@ function budgetCardHTML(c, mKey, nested){
     </div>` : ''}
   </div>`;
 }
+// Budget position for the month, built on the SAME per-budget math as the budget cards
+// (limit - spent, never below 0; sub-categories use their own spend, top-level ones include children).
+// Money already spent has already left the balances, so only the REMAINING budget is still a claim on
+// the money you hold: that is what gets compared with "total money you have".
+function budgetStatus(mKey){
+  let budgeted = 0, remaining = 0;
+  DB.budgets.forEach(b=>{
+    const limit = Number(b.monthlyLimit) || 0;
+    if(!(limit > 0)) return;
+    const cat = categoryById(b.categoryId);
+    const spent = cat ? (cat.parentId ? categorySelfTotal(cat.id, mKey) : categorySpendInMonth(cat.id, mKey)) : 0;
+    budgeted += limit;
+    remaining += Math.max(0, limit - spent);
+  });
+  return {budgeted, remaining, spentWithin: budgeted - remaining};
+}
 function renderBudgetsSummaryStrip(mKey){
   const strip = document.getElementById('budgets-summary-strip');
   if(!strip) return;
   const income = monthTotals(mKey).income;
-  const budgeted = totalBudgetedEGP();
+  const st = budgetStatus(mKey);
+  const budgeted = st.budgeted;
   const owned = netWorthEGP();                       // total money you actually have (same figure as the dashboard)
   const diff = income - budgeted;
   const overBudgeted = budgeted > income;
-  const overOwned = budgeted > 0 && budgeted > owned;
-  // Alert: budgets add up to more money than the user actually owns.
+  const overOwned = st.remaining > 0 && st.remaining > owned;
+  // Alert: what is STILL left to spend from the budgets is more money than the user actually owns.
   let alertEl = document.getElementById('budgets-alert');
   if(!alertEl){ alertEl = document.createElement('div'); alertEl.id = 'budgets-alert'; strip.parentNode.insertBefore(alertEl, strip); }
   if(overOwned){
     alertEl.className = 'budget-alert'; alertEl.setAttribute('role','alert');
     alertEl.innerHTML = `<div class="budget-alert-ico">⚠</div><div>
-      <div class="budget-alert-title">${tt('حطيت ميزانية أكبر من اللي تملكه أصلاً','You set a budget bigger than what you actually own')}</div>
-      <div class="budget-alert-sub num">${tt('إجمالي الميزانيات','Total budgets')} EGP ${fmtMoney(budgeted)} · ${tt('إجمالي فلوسك','Total money you have')} EGP ${fmtMoney(owned)} · ${tt('العجز','Short by')} EGP ${fmtMoney(budgeted-owned)}</div>
+      <div class="budget-alert-title">${tt('المتبقي من ميزانياتك أكبر من اللي تملكه فعلاً','What is left in your budgets is more than you actually own')}</div>
+      <div class="budget-alert-sub num">${tt('المتبقي','Left')} EGP ${fmtMoney(st.remaining)} (${tt('الميزانيات','budgets')} ${fmtMoney(budgeted)} − ${tt('اتصرف','spent')} ${fmtMoney(st.spentWithin)}) · ${tt('فلوسك','You have')} EGP ${fmtMoney(owned)} · ${tt('العجز','Short by')} EGP ${fmtMoney(st.remaining-owned)}</div>
     </div>`;
   } else { alertEl.className = ''; alertEl.innerHTML = ''; alertEl.removeAttribute('role'); }
   strip.style.gridTemplateColumns = 'repeat(auto-fit,minmax(150px,1fr))';
   const cards = [
     {l: tt('دخل الشهر الحالي','This month\'s income'), v: income, c: 'var(--positive)'},
     {l: tt('إجمالي فلوسك','Total money you have'), v: owned, c: owned<0 ? 'var(--negative)' : 'var(--text)'},
-    {l: tt('إجمالي المحدد في الميزانية','Total set in budgets'), v: budgeted, c: (overBudgeted||overOwned) ? 'var(--negative)' : 'var(--text)', warn: overOwned},
+    {l: tt('إجمالي المحدد في الميزانية','Total set in budgets'), v: budgeted, c: overBudgeted ? 'var(--negative)' : 'var(--text)',
+     sub: st.spentWithin>0 ? tt('اتصرف منها','Spent') + ' EGP ' + fmtMoney(st.spentWithin) : ''},
+    {l: tt('المتبقي من الميزانيات','Left in budgets'), v: st.remaining, c: overOwned ? 'var(--negative)' : 'var(--text)', warn: overOwned},
     {l: overBudgeted ? tt('تجاوزت الدخل بـ','Over income by') : tt('متبقي من الدخل غير مخصص','Unallocated income left'),
      v: Math.abs(diff), c: overBudgeted ? 'var(--negative)' : 'var(--positive)'}
   ];
   strip.innerHTML = cards.map(s=>`<div class="card" style="padding:10px 14px;${s.warn?'border-color:rgba(226,114,124,.5);':''}">
     <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
     <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">EGP ${fmtMoney(s.v)}</div>
+    ${s.sub ? `<div class="num" style="font-size:10px;color:var(--text-faint);margin-top:2px;">${s.sub}</div>` : ''}
   </div>`).join('');
 }
 function renderBudgets(){
@@ -4554,8 +4584,8 @@ document.getElementById('view-budgets').addEventListener('change', e=>{
   if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
   else b.monthlyLimit = val;
   saveDB(); renderBudgets();
-  if(totalBudgetedEGP() > netWorthEGP()){
-    toast(tt('تنبيه: حطيت ميزانيات أكبر من إجمالي فلوسك الفعلية','Heads up: your budgets exceed the total money you actually have'));
+  if(budgetStatus(thisMonthKey()).remaining > netWorthEGP()){
+    toast(tt('تنبيه: المتبقي من الميزانيات أكبر من إجمالي فلوسك الفعلية','Heads up: what is left in your budgets exceeds the total money you actually have'));
   } else if(totalBudgetedEGP() > monthTotals(thisMonthKey()).income){
     toast(tt('تنبيه: إجمالي الميزانيات بقى أكبر من دخل الشهر','Heads up: total budgets now exceed this month\'s income'));
   } else {
@@ -4577,8 +4607,8 @@ document.getElementById('view-budgets').addEventListener('click', e=>{
   if(!b){ b = {id: uid('bud'), categoryId: catId, monthlyLimit: val}; DB.budgets.push(b); }
   else b.monthlyLimit = val;
   saveDB(); renderBudgets();
-  if(totalBudgetedEGP() > netWorthEGP()){
-    toast(tt('تنبيه: حطيت ميزانيات أكبر من إجمالي فلوسك الفعلية','Heads up: your budgets exceed the total money you actually have'));
+  if(budgetStatus(thisMonthKey()).remaining > netWorthEGP()){
+    toast(tt('تنبيه: المتبقي من الميزانيات أكبر من إجمالي فلوسك الفعلية','Heads up: what is left in your budgets exceeds the total money you actually have'));
   } else if(totalBudgetedEGP() > monthTotals(thisMonthKey()).income){
     toast(tt('تنبيه: إجمالي الميزانيات بقى أكبر من دخل الشهر','Heads up: total budgets now exceed this month\'s income'));
   } else {
@@ -6938,6 +6968,160 @@ document.getElementById('guide-tabs')?.addEventListener('click', e => {
   if (panel) panel.classList.add('active');
 });
 
+
+/* ---------------------------- UNIVERSAL SELECT PICKER ---------------------------- */
+// Every <select> in the app (page filters and modal fields, present now or created later) is shown
+// as a tap-to-open sheet of big buttons instead of the native dropdown. The native <select> is kept
+// as the source of truth, so existing code that reads .value, listens for 'change', rebuilds
+// options with innerHTML, or assigns .value programmatically keeps working untouched.
+// Opt out for a specific select with the attribute  data-nopk.
+(function universalSelectPicker(){
+  const SEARCH_MIN = 9;                                   // search box only appears for long lists
+  const valDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  const idxDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+  const norm = (str)=> String(str||'').toLowerCase().replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').trim();
+  const clean = (str)=> String(str||'').replace(/^[\s\u3000└]+/,'').replace(/\s+/g,' ').trim();   // drops the "　└ " child indent
+
+  function shouldSkip(sel){
+    return sel.multiple || sel.size > 1 || sel.dataset.pk || sel.dataset.catpick || sel.hasAttribute('data-nopk') || !!sel.closest('[data-nopk]');
+  }
+  function labelText(sel){
+    const f = sel.closest('.field');
+    let lab = f && f.querySelector('label');
+    let txt = lab ? lab.childNodes[0] && lab.childNodes[0].textContent : '';
+    if(!clean(txt) && sel.previousElementSibling && !/^(SELECT|BUTTON|INPUT)$/.test(sel.previousElementSibling.tagName)){
+      const t = clean(sel.previousElementSibling.textContent); if(t && t.length <= 40) txt = t;
+    }
+    return clean(txt);
+  }
+  function optionLabel(o){
+    const raw = o.textContent || '';
+    const txt = clean(raw);
+    const g = o.parentElement && o.parentElement.tagName === 'OPTGROUP' ? o.parentElement : null;
+    return (g && /^[\s\u3000]*└/.test(raw) && g.label) ? g.label + ' › ' + txt : txt;   // category children read "Parent › Child"
+  }
+
+  function enhance(sel){
+    if(shouldSkip(sel)) return;
+    sel.dataset.pk = '1';
+    sel.classList.add('pk-native');
+    sel.tabIndex = -1; sel.setAttribute('aria-hidden','true');
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'catpick-btn pk-btn';
+    btn.setAttribute('aria-haspopup','listbox');
+    if(!sel.closest('.modal')){                                // page-level filters stay compact, matching their old size
+      btn.classList.add('compact');
+      ['minWidth','fontSize','padding','borderRadius'].forEach(k=>{ if(sel.style[k]) btn.style[k] = sel.style[k]; });
+      if(sel.style.fontSize && parseFloat(sel.style.fontSize) < 12) btn.style.minHeight = '0';
+    }
+    btn.innerHTML = '<span class="catpick-btn-label"></span><span class="catpick-btn-chev" aria-hidden="true">▾</span>';
+    sel.insertAdjacentElement('afterend', btn);
+    const labelEl = btn.querySelector('.catpick-btn-label');
+    const refresh = ()=>{
+      const o = sel.options[idxDesc.get.call(sel)];
+      const txt = o ? optionLabel(o) : '';
+      labelEl.textContent = txt || '—';
+      labelEl.classList.toggle('placeholder', !txt);
+      btn.disabled = sel.disabled;
+      const lt = labelText(sel); if(lt) btn.setAttribute('aria-label', lt + ': ' + txt);
+    };
+    sel.addEventListener('change', refresh);
+    new MutationObserver(refresh).observe(sel, {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['disabled','selected','label']});
+    // Programmatic `select.value = x` / `selectedIndex = n` fires no event, so mirror it in the label.
+    Object.defineProperty(sel, 'value', {configurable:true, get(){ return valDesc.get.call(this); }, set(v){ valDesc.set.call(this, v); refresh(); }});
+    Object.defineProperty(sel, 'selectedIndex', {configurable:true, get(){ return idxDesc.get.call(this); }, set(v){ idxDesc.set.call(this, v); refresh(); }});
+    refresh();
+    btn.addEventListener('click', ()=> openSheet(sel, btn));
+  }
+
+  function openSheet(sel, btn){
+    // Read the options now (they may have been rebuilt since the select was enhanced).
+    const rows = [];                                           // {group, opts:[{o,text,disabled}]}
+    [...sel.children].forEach(ch=>{
+      if(ch.tagName === 'OPTGROUP') rows.push({group: ch.label, opts: [...ch.children].filter(x=>x.tagName==='OPTION')});
+      else if(ch.tagName === 'OPTION'){
+        const last = rows[rows.length-1];
+        if(last && last.group === '') last.opts.push(ch); else rows.push({group:'', opts:[ch]});
+      }
+    });
+    const total = rows.reduce((n,r)=>n+r.opts.length, 0);
+    const curIdx = idxDesc.get.call(sel);
+    const title = labelText(sel) || tt('اختر','Choose');
+
+    const sheet = document.createElement('div');
+    sheet.className = 'catpick-sheet'; sheet.setAttribute('role','dialog'); sheet.setAttribute('aria-modal','true');
+    sheet.innerHTML = `<div class="catpick-panel pk-auto">
+        <div class="catpick-head"><div class="catpick-title"></div>
+          <button type="button" class="catpick-close" aria-label="${tt('إغلاق','Close')}">✕</button></div>
+        ${total >= SEARCH_MIN ? `<div class="catpick-search"><input type="search" autocomplete="off" placeholder="${tt('بحث…','Search…')}"></div>` : ''}
+        <div class="catpick-body"></div>
+      </div>`;
+    sheet.querySelector('.catpick-title').textContent = title;
+    document.body.appendChild(sheet);
+    const body = sheet.querySelector('.catpick-body');
+    const input = sheet.querySelector('input');
+
+    const onKey = (e)=>{ if(e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+    document.addEventListener('keydown', onKey, true);
+    function close(){ document.removeEventListener('keydown', onKey, true); sheet.remove(); if(btn && btn.isConnected) btn.focus(); }
+    function pick(opt){
+      if(opt.index !== curIdx){
+        idxDesc.set.call(sel, opt.index);
+        sel.dispatchEvent(new Event('input',  {bubbles:true}));
+        sel.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+      close();
+    }
+    const chip = (opt, withGroup)=>{
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'catpick-chip' + (opt.index === curIdx ? ' selected' : '');
+      b.disabled = !!opt.disabled; b.setAttribute('aria-pressed', opt.index === curIdx ? 'true' : 'false');
+      const t = document.createElement('span'); t.textContent = clean(opt.textContent); b.appendChild(t);
+      if(withGroup && opt.parentElement.tagName === 'OPTGROUP' && opt.parentElement.label){
+        const sm = document.createElement('small'); sm.textContent = opt.parentElement.label; b.appendChild(sm);
+      }
+      b._opt = opt; return b;
+    };
+    const grid = (chips)=>{ const g = document.createElement('div'); g.className = 'catpick-grid'; chips.forEach(c=>g.appendChild(c)); return g; };
+    function render(query){
+      body.innerHTML = '';
+      const q = norm(query);
+      if(q){
+        const hits = [];
+        rows.forEach(r=> r.opts.forEach(o=>{ if(norm(o.textContent).includes(q) || norm(r.group).includes(q)) hits.push(chip(o, true)); }));
+        if(!hits.length){ const e = document.createElement('div'); e.className = 'catpick-empty'; e.textContent = tt('مفيش نتائج','No matches'); body.appendChild(e); }
+        else body.appendChild(grid(hits));
+        return;
+      }
+      rows.forEach(r=>{
+        if(r.group){ const h = document.createElement('div'); h.className = 'catpick-h'; h.textContent = r.group; body.appendChild(h); }
+        body.appendChild(grid(r.opts.map(o=>chip(o, false))));
+      });
+    }
+    render('');
+    if(input) input.addEventListener('input', ()=> render(input.value));
+    body.addEventListener('click', e=>{ const b = e.target.closest('.catpick-chip'); if(b && b._opt && !b.disabled) pick(b._opt); });
+    sheet.querySelector('.catpick-close').addEventListener('click', close);
+    // Clicks inside the sheet must never reach the modal backdrop / global click handlers.
+    sheet.addEventListener('click', e=>{ if(e.target === sheet) close(); e.stopPropagation(); });
+    const cur = body.querySelector('.catpick-chip.selected');
+    if(cur && cur.scrollIntoView) cur.scrollIntoView({block:'center'});
+    if(input && window.matchMedia && window.matchMedia('(pointer:fine)').matches) input.focus();
+  }
+
+  // Enhance everything already on the page, then anything added later (modals, re-rendered panels).
+  const scan = ()=> document.querySelectorAll('select:not([data-pk]):not([data-catpick])').forEach(enhance);
+  let queued = false;
+  const queue = ()=>{ if(queued) return; queued = true; Promise.resolve().then(()=>{ queued = false; scan(); }); };
+  new MutationObserver(muts=>{
+    for(const m of muts){
+      for(const n of m.addedNodes){
+        if(n.nodeType === 1 && (n.tagName === 'SELECT' || (n.querySelector && n.querySelector('select')))){ queue(); return; }
+      }
+    }
+  }).observe(document.body, {childList:true, subtree:true});
+  scan();
+})();
 </script>
 </body>
 </html>

@@ -261,7 +261,28 @@
     background:rgba(226,114,124,.12);border:1px solid rgba(226,114,124,.35);color:var(--negative);}
   .budget-alert-ico{font-size:16px;line-height:1.25;}
   .budget-alert-title{font-size:13px;font-weight:700;}
-  .budget-alert-sub{font-size:11.5px;margin-top:3px;color:var(--text-muted);}
+  .budget-alert-sub{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:11.5px;margin-top:3px;color:var(--text-muted);}
+  .budget-alert-sub span{white-space:nowrap;}
+
+  /* Budget summary cards. Reading order (right-to-left in Arabic, left-to-right in English):
+     row 1 = money vs budgets:   [Total money you have] [Left in budgets] [Free money = result]
+     row 2 = budgets vs income:  [Income]               [Total set]       [Gap vs income = result]
+     Desktop: 3 columns (2 rows). Phone: 2 columns, the two result cards span the full width. */
+  #budgets-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px;}
+  #budgets-summary-strip .bsum-card{padding:11px 14px;display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .bsum-l{font-size:11px;font-weight:600;color:var(--text-faint);}
+  .bsum-v{font-size:16px;font-weight:700;margin-top:2px;}
+  .bsum-f{font-size:10.5px;color:var(--text-faint);line-height:1.4;margin-top:3px;}
+  .bsum-n{font-size:10.5px;color:var(--text-muted);}
+  #budgets-summary-strip .bsum-result .bsum-v{font-size:19px;}
+  #budgets-summary-strip .bsum-result.pos{border-inline-start:3px solid var(--positive);}
+  #budgets-summary-strip .bsum-result.neg{border-inline-start:3px solid var(--negative);}
+  #budgets-summary-strip .bsum-card.warn{border-color:rgba(226,114,124,.5);}
+  @media (max-width:640px){
+    #budgets-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    #budgets-summary-strip .bsum-result{grid-column:1 / -1;}
+    #budgets-summary-strip .bsum-card{padding:10px 12px;}
+  }
 
   /* Transaction category picker (replaces the long dropdown; the native <select> stays as the hidden source of truth) */
   .catpick-native{display:none !important;}
@@ -1171,7 +1192,7 @@
       <div class="topbar">
         <div><h1>Budgets</h1><div class="today">Set a monthly limit per category — suggested from your real spending history</div></div>
       </div>
-      <div id="budgets-summary-strip" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
+      <div id="budgets-summary-strip"></div>
       <div class="grid cols-3" id="budgets-grid"></div>
     </section>
 
@@ -4549,26 +4570,41 @@ function renderBudgetsSummaryStrip(mKey){
     alertEl.className = 'budget-alert'; alertEl.setAttribute('role','alert');
     alertEl.innerHTML = `<div class="budget-alert-ico">⚠</div><div>
       <div class="budget-alert-title">${tt('المتبقي من ميزانياتك أكبر من اللي تملكه فعلاً','What is left in your budgets is more than you actually own')}</div>
-      <div class="budget-alert-sub num">${tt('المتبقي','Left')} EGP ${fmtMoney(st.remaining)} (${tt('الميزانيات','budgets')} ${fmtMoney(budgeted)} − ${tt('اتصرف','spent')} ${fmtMoney(st.spentWithin)}) · ${tt('فلوسك','You have')} EGP ${fmtMoney(owned)} · ${tt('العجز','Short by')} EGP ${fmtMoney(st.remaining-owned)}</div>
+      <div class="budget-alert-sub">
+        <span>${tt('المتبقي','Left')} <bdi dir="ltr" class="num">EGP ${fmtMoney(st.remaining)}</bdi></span>
+        <span>${tt('فلوسك','You have')} <bdi dir="ltr" class="num">EGP ${fmtMoney(owned)}</bdi></span>
+        <span>${tt('العجز','Short by')} <bdi dir="ltr" class="num">EGP ${fmtMoney(st.remaining-owned)}</bdi></span>
+      </div>
     </div>`;
   } else { alertEl.className = ''; alertEl.innerHTML = ''; alertEl.removeAttribute('role'); }
-  strip.style.gridTemplateColumns = 'repeat(auto-fit,minmax(150px,1fr))';
+  const f = (v)=> fmtMoney(v);
   const cards = [
-    {l: tt('دخل الشهر الحالي','This month\'s income'), v: income, c: 'var(--positive)'},
-    {l: tt('إجمالي فلوسك','Total money you have'), v: owned, c: owned<0 ? 'var(--negative)' : 'var(--text)'},
-    {l: tt('إجمالي المحدد في الميزانية','Total set in budgets'), v: budgeted, c: overBudgeted ? 'var(--negative)' : 'var(--text)',
-     sub: st.spentWithin>0 ? tt('اتصرف منها','Spent') + ' EGP ' + fmtMoney(st.spentWithin) : ''},
-    {l: tt('المتبقي من الميزانيات','Left in budgets'), v: st.remaining, c: overOwned ? 'var(--negative)' : 'var(--text)', warn: overOwned},
+    // ── row 1: your money vs what the budgets still need ──
+    {l: tt('إجمالي فلوسك','Total money you have'), v: owned, c: owned<0 ? 'var(--negative)' : 'var(--text)',
+     f: tt('مجموع أرصدة حساباتك','Sum of your account balances'),
+     tip: tt('الحسابات المستبعدة من صافي الثروة مش محسوبة','Accounts excluded from net worth are not counted')},
+    {l: tt('المتبقي من الميزانيات','Left in budgets'), v: st.remaining, c: overOwned ? 'var(--negative)' : 'var(--text)', warn: overOwned,
+     f: tt('الميزانيات − اللي اتصرف منها','Budgets − what was spent from them'), n: `${f(budgeted)} − ${f(st.spentWithin)}`,
+     tip: tt('لكل بند: الحد − المصروف منه (أقل قيمة صفر)، ثم الجمع','Per budget: limit − spent (never below 0), then summed')},
     {l: free < 0 ? tt('عجز بعد الميزانيات','Shortfall after budgets') : tt('فلوس حرّة بعد الميزانيات','Free money after budgets'),
-     v: Math.abs(free), c: free < 0 ? 'var(--negative)' : 'var(--positive)', warn: free < 0,
-     tip: tt('إجمالي فلوسك − المتبقي من الميزانيات','Total money you have − Left in budgets')},
+     v: Math.abs(free), c: free < 0 ? 'var(--negative)' : 'var(--positive)', result: free < 0 ? 'neg' : 'pos', warn: free < 0,
+     f: tt('فلوسك − المتبقي من الميزانيات','Money you have − Left in budgets'), n: `${f(owned)} − ${f(st.remaining)}`},
+    // ── row 2: budgets vs this month's income ──
+    {l: tt('دخل الشهر الحالي','This month\'s income'), v: income, c: 'var(--positive)',
+     f: tt('مجموع الدخل المسجل هذا الشهر','Sum of income recorded this month')},
+    {l: tt('إجمالي المحدد في الميزانية','Total set in budgets'), v: budgeted, c: overBudgeted ? 'var(--negative)' : 'var(--text)',
+     f: tt('مجموع حدود كل البنود','Sum of all budget limits'),
+     sub: st.spentWithin>0 ? tt('اتصرف منها','Spent') + ' EGP ' + f(st.spentWithin) : ''},
     {l: overBudgeted ? tt('تجاوزت الدخل بـ','Over income by') : tt('متبقي من الدخل غير مخصص','Unallocated income left'),
-     v: Math.abs(diff), c: overBudgeted ? 'var(--negative)' : 'var(--positive)'}
+     v: Math.abs(diff), c: overBudgeted ? 'var(--negative)' : 'var(--positive)', result: overBudgeted ? 'neg' : 'pos',
+     f: tt('الدخل − إجمالي الميزانيات','Income − Total set in budgets'), n: `${f(income)} − ${f(budgeted)}`}
   ];
-  strip.innerHTML = cards.map(s=>`<div class="card" ${s.tip?`title="${s.tip}"`:''} style="padding:10px 14px;${s.warn?'border-color:rgba(226,114,124,.5);':''}">
-    <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:3px;">${s.l}</div>
-    <div class="num" style="font-size:15px;font-weight:700;color:${s.c};">EGP ${fmtMoney(s.v)}</div>
-    ${s.sub ? `<div class="num" style="font-size:10px;color:var(--text-faint);margin-top:2px;">${s.sub}</div>` : ''}
+  strip.innerHTML = cards.map(s=>`<div class="card bsum-card${s.result ? ' bsum-result '+s.result : ''}${s.warn ? ' warn' : ''}"${s.tip ? ` title="${s.tip}"` : ''}>
+    <div class="bsum-l">${s.l}</div>
+    <div class="num bsum-v" style="color:${s.c};">EGP ${f(s.v)}</div>
+    <div class="bsum-f">${s.f}</div>
+    ${s.n ? `<div class="num bsum-n"><bdi dir="ltr">${s.n}</bdi></div>` : ''}
+    ${s.sub ? `<div class="num bsum-n">${s.sub}</div>` : ''}
   </div>`).join('');
 }
 function renderBudgets(){
